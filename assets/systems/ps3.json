@@ -33,7 +33,7 @@
       "name": "Standalone aPS3e",
       "default_standalone": true,
       "unique_id": "ps3.aenu.aps3e",
-      "description": "Supported extensions: iso.",
+      "description": "Supported extensions: iso, ps3folder.",
       "is_retroachievements_compatible": false,
       "platforms": {
         "android": {
@@ -45,7 +45,7 @@
       "name": "Standalone ARMSX3",
       "default_standalone": true,
       "unique_id": "ps3.armsx3.",
-      "description": "Supported extensions: iso.",
+      "description": "Supported extensions: iso, ps3folder.",
       "is_retroachievements_compatible": false,
       "platforms": {
         "android": {
