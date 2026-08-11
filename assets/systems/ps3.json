@@ -40,7 +40,19 @@
         }
       }
     },
-    {
+    [
+      "name": "Standalone ARMSX3",
+      "default_standalone": true,
+      "unique_id": "ps3.armsx3.",
+      "description": "Supported extensions: iso.",
+      "is_retroachievements_compatible": false,
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.armsx3/com.armsx2.Main -e iso_uri \"{file.uri}\""
+        }
+      }
+    },
+    ]
       "name": "Standalone RPCS3",
       "unique_id": "ps3.rpcs3",
       "description": "Supported extensions: iso.",
@@ -59,6 +71,18 @@
         "macos": {
           "executable": "rpcs3",
           "args": "--no-gui \"{file.path}\""
+        }
+      }
+    },
+    ]
+      "name": "Standalone aPS3e",
+      "default_standalone": true,
+      "unique_id": "ps3.aenu.aps3e",
+      "description": "Supported extensions: iso.",
+      "is_retroachievements_compatible": false,
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n aenu.aps3e/aenu.aps3e.EmulatorActivity -a aenu.intent.action.APS3E -e iso_uri \"{file.uri}\""
         }
       }
     }
