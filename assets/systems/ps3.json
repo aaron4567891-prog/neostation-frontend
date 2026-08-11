@@ -48,7 +48,7 @@
       "is_retroachievements_compatible": false,
       "platforms": {
         "android": {
-          "launch_arguments": "-n com.armsx3/com.armsx2.Main -a android.intent.action.VIEW -e path \"{file.uri}\""
+          "launch_arguments": "-n com.armsx3/com.armsx2.Main -a android.intent.action.VIEW -e path \"{file.path}\""
         }
       }
     },
