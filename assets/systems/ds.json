@@ -236,6 +236,17 @@
       }
     },
     {
+      "name": "Standalone Seedless DS",
+      "unique_id": "ds.standalone.Seedless",
+      "is_retroachievements_compatible": false,
+      "description": "SeedlessDS emulator",
+      "platforms": {
+        "android": {
+          "launch_arguments": "-n com.seedlessds.app/com.seedlessds.app.LaunchGame -e rom_path \"{file.path}\""
+        }
+      }
+    },
+    {
       "name": "Standalone NooDS",
       "unique_id": "ds.standalone.noods",
       "is_retroachievements_compatible": false,
