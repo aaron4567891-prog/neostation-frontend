@@ -239,42 +239,6 @@
           "args": "-L yabause_libretro.dylib \"{file.path}\""
         }
       }
-    },
-    {
-      "name": "RetroArch64 Emir",
-      "unique_id": "sat.ra64.emir",
-      "description": "Supported extensions: bin, ccd, chd, cue, iso, m3u, mds, zip.",
-      "is_retroachievements_compatible": false,
-      "platforms": {
-        "android": {
-          "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"emir\""
-        }
-      }
-    },
-    {
-      "name": "RetroArch Emir",
-      "unique_id": "sat.ra.emir",
-      "description": "Supported extensions: bin, ccd, chd, cue, iso, m3u, mds, zip.",
-      "is_retroachievements_compatible": false,
-      "platforms": {
-        "android": {
-          "launch_arguments": "-n com.retroarch/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"emir\""
-        },
-        "windows": {
-          "executable": "retroarch.exe",
-          "args": "-L emir_libretro.dll \"{file.path}\""
-        },
-        "linux": {
-          "executable": "retroarch",
-          "flatpak": "org.libretro.RetroArch",
-          "emudeck_launcher": "retroarch.sh",
-          "args": "-L emir_libretro.so \"{file.path}\""
-        },
-        "macos": {
-          "executable": "RetroArch.App",
-          "args": "-L emir_libretro.dylib \"{file.path}\"" 
-        }
-      }
     }
   ],
   "neosync": {
