@@ -237,7 +237,7 @@
         "macos": {
           "executable": "RetroArch.App",
           "args": "-L yabause_libretro.dylib \"{file.path}\""
-          }
+        }
       }
     },
     {
@@ -248,7 +248,7 @@
       "platforms": {
         "android": {
           "launch_arguments": "-n com.retroarch.aarch64/com.retroarch.browser.retroactivity.RetroActivityFuture --es ROM \"{file.path}\" --es LIBRETRO \"emir\""
-          }
+        }
       }
     },
     {
