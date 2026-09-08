@@ -126,7 +126,7 @@
     },
     {
       "name": "RetroArch64 MAME 2015",
-      "unique_id": "arc.ra64.mame2015",
+      "unique_id": "mame.ra64.mame2015",
       "description": "Supported extensions: 7z, chd, zip.",
       "is_retroachievements_compatible": false,
       "platforms": {
@@ -137,7 +137,7 @@
     },
     {
       "name": "RetroArch64 MAME 2016",
-      "unique_id": "arc.ra64.mame2016",
+      "unique_id": "mame.ra64.mame2016",
       "description": "Supported extensions: 7z, chd, zip.",
       "is_retroachievements_compatible": false,
       "platforms": {
@@ -215,7 +215,7 @@
     },
     {
       "name": "RetroArch32 MAME 2015",
-      "unique_id": "arc.ra32.mame2015",
+      "unique_id": "mame.ra32.mame2015",
       "description": "Supported extensions: 7z, chd, zip.",
       "is_retroachievements_compatible": false,
       "platforms": {
@@ -226,7 +226,7 @@
     },
     {
       "name": "RetroArch32 MAME 2016",
-      "unique_id": "arc.ra32.mame2016",
+      "unique_id": "mame.ra32.mame2016",
       "description": "Supported extensions: 7z, chd, zip.",
       "is_retroachievements_compatible": false,
       "platforms": {
@@ -388,7 +388,7 @@
     },
     {
       "name": "RetroArch MAME 2015",
-      "unique_id": "arc.ra.mame2015",
+      "unique_id": "mame.ra.mame2015",
       "description": "Supported extensions: 7z, chd, zip.",
       "is_retroachievements_compatible": false,
       "platforms": {
@@ -413,7 +413,7 @@
     },
     {
       "name": "RetroArch MAME 2016",
-      "unique_id": "arc.ra.mame2016",
+      "unique_id": "mame.ra.mame2016",
       "description": "Supported extensions: 7z, chd, zip.",
       "is_retroachievements_compatible": false,
       "platforms": {
