@@ -304,7 +304,7 @@
         "macos": {
           "executable": "RetroArch.App",
           "args": "-L mame2015_libretro.dylib \"{file.path}\""
-         }
+        }
       }
     },
     {
