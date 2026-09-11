@@ -95,7 +95,9 @@ class GameListViewState extends State<GameListView>
 
   // Constants for pixel-perfect highlight positioning.
   static const double _itemHeightBase = 26.0;
-  static const double _logoItemHeightBase = 58.0;
+  static const double _smallLogoItemHeightBase = 42.0;
+  static const double _mediumLogoItemHeightBase = 58.0;
+  static const double _largeLogoItemHeightBase = 72.0;
 
   /// Slack under the last row, so the list does not sit on the panel's edge.
   /// Mirrors the value the details footer keeps under its RA pill.
@@ -312,8 +314,16 @@ class GameListViewState extends State<GameListView>
     _syncProvider = context.watch<SyncManager?>()?.active;
 
     final theme = Theme.of(context);
+    final gameViewMode = context.select<SqliteConfigProvider, String>(
+      (p) => p.config.gameViewMode,
+    );
+    final logoItemHeightBase = switch (gameViewMode) {
+      'logoListSmall' => _smallLogoItemHeightBase,
+      'logoListLarge' => _largeLogoItemHeightBase,
+      _ => _mediumLogoItemHeightBase,
+    };
     final itemHeight =
-        (widget.useMarqueeLogos ? _logoItemHeightBase : _itemHeightBase).r;
+        (widget.useMarqueeLogos ? logoItemHeightBase : _itemHeightBase).r;
     final totalItemHeight = itemHeight;
     _centeredScrollController.setItemExtent(totalItemHeight, paddingTop: 2.r);
 
@@ -610,6 +620,15 @@ class GameListViewState extends State<GameListView>
         ? system.primaryFolderName
         : system.folderName;
     final wheelPath = game.getImagePath(folder, 'wheels', widget.fileProvider);
+    final gameViewMode = context
+        .read<SqliteConfigProvider>()
+        .config
+        .gameViewMode;
+    final logoHeight = switch (gameViewMode) {
+      'logoListSmall' => 32.0,
+      'logoListLarge' => 60.0,
+      _ => 48.0,
+    };
 
     if (wheelPath.isNotEmpty && File(wheelPath).existsSync()) {
       return AnimatedScale(
@@ -622,7 +641,7 @@ class GameListViewState extends State<GameListView>
           child: Image.file(
             File(wheelPath),
             key: ValueKey(wheelPath),
-            height: 48.r,
+            height: logoHeight.r,
             cacheHeight: 128,
             fit: BoxFit.contain,
             alignment: Alignment.centerLeft,

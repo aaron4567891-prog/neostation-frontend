@@ -895,7 +895,11 @@ class _SystemGamesListState extends State<SystemGamesList> {
                               'carousel') {
                             return _buildGamesCarousel();
                           } else if (configProvider.config.gameViewMode ==
-                              'logoList') {
+                                  'logoList' ||
+                              configProvider.config.gameViewMode ==
+                                  'logoListSmall' ||
+                              configProvider.config.gameViewMode ==
+                                  'logoListLarge') {
                             return _buildGamesList(useMarqueeLogos: true);
                           }
                           return _buildGamesList();

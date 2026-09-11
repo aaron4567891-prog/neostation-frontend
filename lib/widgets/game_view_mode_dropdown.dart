@@ -60,6 +60,14 @@ class GameViewModeDropdownState extends State<GameViewModeDropdown> {
         await configProvider.updateGameViewMode('list');
       } else if (result == 'view_logo_list') {
         await configProvider.updateGameViewMode('logoList');
+      } else if (result.startsWith('logo_size_')) {
+        final size = result.substring('logo_size_'.length);
+        final mode = switch (size) {
+          'S' => 'logoListSmall',
+          'L' => 'logoListLarge',
+          _ => 'logoList',
+        };
+        await configProvider.updateGameViewMode(mode);
       } else if (result == 'view_grid') {
         await configProvider.updateGameViewMode('grid');
       } else if (result == 'view_carousel') {
@@ -87,6 +95,7 @@ class _DropdownOption {
   final String group;
   final bool isCardSize;
   final bool isCardStyle;
+  final bool isLogoSize;
 
   _DropdownOption(
     this.value,
@@ -95,6 +104,7 @@ class _DropdownOption {
     required this.group,
     this.isCardSize = false,
     this.isCardStyle = false,
+    this.isLogoSize = false,
   });
 }
 
@@ -119,6 +129,7 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
 
   int _cardSizeIndex = 1;
   int _cardStyleIndex = 0;
+  int _logoSizeIndex = 1;
 
   @override
   void initState() {
@@ -132,11 +143,19 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     final styleIdx = cardStyles.indexOf(config.gameCarouselCardStyle);
     _cardStyleIndex = styleIdx >= 0 ? styleIdx : 0;
 
+    _logoSizeIndex = switch (config.gameViewMode) {
+      'logoListSmall' => 0,
+      'logoListLarge' => 2,
+      _ => 1,
+    };
+
     if (config.gameViewMode == 'carousel') {
       _selectedIndex = 3;
     } else if (config.gameViewMode == 'grid') {
       _selectedIndex = 2;
-    } else if (config.gameViewMode == 'logoList') {
+    } else if (config.gameViewMode == 'logoList' ||
+        config.gameViewMode == 'logoListSmall' ||
+        config.gameViewMode == 'logoListLarge') {
       _selectedIndex = 1;
     } else {
       _selectedIndex = 0;
@@ -187,7 +206,9 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
           position += 16.r;
           if (i > 0) position += 4.r;
         }
-        position += options[i].isCardSize ? 32.r : 28.r;
+        position += (options[i].isCardSize || options[i].isLogoSize)
+            ? 32.r
+            : 28.r;
       }
       if (_selectedIndex == 0 ||
           options[_selectedIndex].group != options[_selectedIndex - 1].group) {
@@ -212,6 +233,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyCardSize();
+    } else if (opt.isLogoSize) {
+      setState(() {
+        _logoSizeIndex = (_logoSizeIndex - 1 + 3) % 3;
+      });
+      SfxService().playNavSound();
+      _applyLogoSize();
     } else if (opt.isCardStyle) {
       setState(() {
         _cardStyleIndex = (_cardStyleIndex - 1 + 2) % 2;
@@ -231,6 +258,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyCardSize();
+    } else if (opt.isLogoSize) {
+      setState(() {
+        _logoSizeIndex = (_logoSizeIndex + 1) % 3;
+      });
+      SfxService().playNavSound();
+      _applyLogoSize();
     } else if (opt.isCardStyle) {
       setState(() {
         _cardStyleIndex = (_cardStyleIndex + 1) % 2;
@@ -254,6 +287,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     configProvider.updateGameCarouselCardStyle(style);
   }
 
+  void _applyLogoSize() {
+    final modes = ['logoListSmall', 'logoList', 'logoListLarge'];
+    final configProvider = context.read<SqliteConfigProvider>();
+    configProvider.updateGameViewMode(modes[_logoSizeIndex]);
+  }
+
   void _handleSelection() {
     final List<_DropdownOption> options = _getOptions(context);
     final opt = options[_selectedIndex];
@@ -271,6 +310,11 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         context,
         'card_style_${['fanart', 'box'][_cardStyleIndex]}',
       );
+      return;
+    }
+    if (opt.isLogoSize) {
+      _applyLogoSize();
+      Navigator.pop(context, 'logo_size_${['S', 'M', 'L'][_logoSizeIndex]}');
       return;
     }
     Navigator.pop(context, opt.value);
@@ -312,6 +356,20 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         group: AppLocale.viewModeGroup.getString(context),
       ),
     ];
+
+    if (config.gameViewMode == 'logoList' ||
+        config.gameViewMode == 'logoListSmall' ||
+        config.gameViewMode == 'logoListLarge') {
+      options.add(
+        _DropdownOption(
+          'logo_size',
+          '',
+          Symbols.image_rounded,
+          group: 'LOGO SIZE',
+          isLogoSize: true,
+        ),
+      );
+    }
 
     if (config.gameViewMode == 'grid') {
       options.add(
@@ -434,9 +492,11 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         currentGroup = opt.group;
       }
 
-      if (opt.isCardSize || opt.isCardStyle) {
+      if (opt.isCardSize || opt.isCardStyle || opt.isLogoSize) {
         final isSize = opt.isCardSize;
+        final isLogoSize = opt.isLogoSize;
         final sizes = ['S', 'M', 'L', 'XL'];
+        final logoSizes = ['S', 'M', 'L'];
         final styles = ['fanart', 'box'];
         final styleLabels = [
           AppLocale.fanartCard.getString(context),
@@ -447,9 +507,18 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         final currentStyleIndex = styles.indexOf(
           configInfo.gameCarouselCardStyle,
         );
-        final items = isSize ? sizes : styleLabels;
-        final currentIdx = isSize ? currentSizeIndex : currentStyleIndex;
-        final selectedIdx = isSize ? _cardSizeIndex : _cardStyleIndex;
+        final currentLogoSizeIndex = switch (configInfo.gameViewMode) {
+          'logoListSmall' => 0,
+          'logoListLarge' => 2,
+          _ => 1,
+        };
+        final items = isLogoSize ? logoSizes : (isSize ? sizes : styleLabels);
+        final currentIdx = isLogoSize
+            ? currentLogoSizeIndex
+            : (isSize ? currentSizeIndex : currentStyleIndex);
+        final selectedIdx = isLogoSize
+            ? _logoSizeIndex
+            : (isSize ? _cardSizeIndex : _cardStyleIndex);
         final isFocused = i == _selectedIndex;
 
         children.add(
@@ -505,14 +574,18 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
                           onTap: () {
                             setState(() {
                               _selectedIndex = i;
-                              if (isSize) {
+                              if (isLogoSize) {
+                                _logoSizeIndex = idx;
+                              } else if (isSize) {
                                 _cardSizeIndex = idx;
                               } else {
                                 _cardStyleIndex = idx;
                               }
                             });
                             SfxService().playNavSound();
-                            if (isSize) {
+                            if (isLogoSize) {
+                              _applyLogoSize();
+                            } else if (isSize) {
                               _applyCardSize();
                             } else {
                               _applyCardStyle();
@@ -561,7 +634,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       if (opt.value == 'view_list') {
         isSelected = config.gameViewMode == 'list';
       } else if (opt.value == 'view_logo_list') {
-        isSelected = config.gameViewMode == 'logoList';
+        isSelected =
+            config.gameViewMode == 'logoList' ||
+            config.gameViewMode == 'logoListSmall' ||
+            config.gameViewMode == 'logoListLarge';
       } else if (opt.value == 'view_grid') {
         isSelected = config.gameViewMode == 'grid';
       } else if (opt.value == 'view_carousel') {
