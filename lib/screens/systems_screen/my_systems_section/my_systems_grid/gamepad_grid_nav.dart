@@ -55,6 +55,7 @@ extension _GamepadGridNav on _SystemCardGridViewState {
           () {
             HeaderSortDropdown.globalKey.currentState?.showDropdown();
           },
+      onRightStickClick: widget.onRightStickPressed,
       // A pushed host is not part of the tab strip, so its shoulder buttons
       // must not cycle tabs out from under it.
       onPreviousTab: widget.enableTabBumpers ? AppNavigation.previousTab : null,

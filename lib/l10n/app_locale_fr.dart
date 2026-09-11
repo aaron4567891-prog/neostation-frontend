@@ -664,6 +664,7 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.beta: 'Bêta',
   AppLocale.gridView: 'Vue Grille',
   AppLocale.listView: 'Vue Liste',
+  AppLocale.logoListView: 'Liste de logos',
   AppLocale.carouselView: 'Vue Carrousel',
   AppLocale.alphabetical: 'Alphabétique',
   AppLocale.dateAdded: 'Date d\'ajout',

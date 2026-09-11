@@ -58,6 +58,7 @@ class MySystemsCarousel extends StatefulWidget {
     this.onYPressed,
     this.onBackPressed,
     this.onXPressed,
+    this.onRightStickPressed,
     this.navLayerId = kSystemsCarouselNavLayerId,
     this.cardOverrideBuilder,
     this.blockSystemBack = true,
@@ -96,6 +97,9 @@ class MySystemsCarousel extends StatefulWidget {
 
   /// X. Defaults to the header's view/sort picker.
   final VoidCallback? onXPressed;
+
+  /// R3. Opens Android Apps directly on the main systems screen.
+  final VoidCallback? onRightStickPressed;
 
   /// Anchor for a menu opened on the centred card.
   ///
@@ -299,6 +303,7 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
           () {
             HeaderSortDropdown.globalKey.currentState?.showDropdown();
           },
+      onRightStickClick: widget.onRightStickPressed,
       onPreviousTab: widget.enableTabBumpers ? AppNavigation.previousTab : null,
       onNextTab: widget.enableTabBumpers ? AppNavigation.nextTab : null,
       onLeftBumper: widget.enableTabBumpers ? AppNavigation.previousTab : null,

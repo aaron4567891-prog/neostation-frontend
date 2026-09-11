@@ -123,6 +123,8 @@ class MySystems extends StatelessWidget {
                       selectedIndex: selectedIndex,
                       onCardTapped: onCardTapped,
                       selectedItemKey: _cardAnchorKey,
+                      onRightStickPressed: () =>
+                          _openAndroidApps(context, configProvider, allSystems),
                       onYPressed: () => _openSystemContextMenu(
                         context,
                         currentSystem,
@@ -235,6 +237,8 @@ class MySystems extends StatelessWidget {
               onCardTapped: onCardTapped,
               selectedItemKey: _cardAnchorKey,
               systems: allSystems,
+              onRightStickPressed: () =>
+                  _openAndroidApps(context, configProvider, allSystems),
               onYPressed: () => _openSystemContextMenu(
                 context,
                 currentSystem,
@@ -267,6 +271,18 @@ class MySystems extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _openAndroidApps(
+    BuildContext context,
+    SqliteConfigProvider configProvider,
+    List<SystemInfo> systems,
+  ) {
+    final androidSystems = systems.where(
+      (system) => system.folderName == 'android',
+    );
+    if (androidSystems.isEmpty) return;
+    _navigateToSystem(context, androidSystems.first, configProvider);
   }
 
   /// The card context menu, opened by Y or by a long press on the card.
@@ -682,6 +698,7 @@ class SystemCardGridView extends StatefulWidget {
     this.onYPressed,
     this.onBackPressed,
     this.onXPressed,
+    this.onRightStickPressed,
     this.systems = const [],
     this.recentCardSize = RecentCardSizes.defaultSize,
     this.navLayerId = kSystemsGridNavLayerId,
@@ -724,6 +741,9 @@ class SystemCardGridView extends StatefulWidget {
   /// screen wants; a host without a header passes [showSystemViewDropdown]
   /// itself so both reach the same menu.
   final VoidCallback? onXPressed;
+
+  /// R3. Opens Android Apps directly on the main systems screen.
+  final VoidCallback? onRightStickPressed;
 
   final List<dynamic> systems;
 

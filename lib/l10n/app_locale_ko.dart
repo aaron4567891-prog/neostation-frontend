@@ -575,6 +575,7 @@ const Map<String, dynamic> appLocaleKo = {
   AppLocale.beta: '베타',
   AppLocale.gridView: '그리드 보기',
   AppLocale.listView: '목록 보기',
+  AppLocale.logoListView: '로고 목록',
   AppLocale.carouselView: '캐러셀 보기',
   AppLocale.alphabetical: '알파벳순',
   AppLocale.dateAdded: '추가된 날짜',

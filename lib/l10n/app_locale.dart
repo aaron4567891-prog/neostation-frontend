@@ -609,6 +609,7 @@ mixin AppLocale {
   static const String gridView = 'grid_view';
   static const String carouselView = 'carousel_view';
   static const String listView = 'list_view';
+  static const String logoListView = 'logo_list_view';
   static const String alphabetical = 'alphabetical';
   static const String dateAdded = 'dateAdded';
   static const String sortByGameCount = 'sortByGameCount';

@@ -634,6 +634,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.beta: 'Beta',
   AppLocale.gridView: 'Tampilan Kisi',
   AppLocale.listView: 'Tampilan Daftar',
+  AppLocale.logoListView: 'Daftar Logo',
   AppLocale.carouselView: 'Tampilan Karusel',
   AppLocale.alphabetical: 'Alfabetis',
   AppLocale.dateAdded: 'Tanggal ditambahkan',

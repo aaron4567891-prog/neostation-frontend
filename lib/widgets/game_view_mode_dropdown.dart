@@ -58,6 +58,8 @@ class GameViewModeDropdownState extends State<GameViewModeDropdown> {
       SfxService().playNavSound();
       if (result == 'view_list') {
         await configProvider.updateGameViewMode('list');
+      } else if (result == 'view_logo_list') {
+        await configProvider.updateGameViewMode('logoList');
       } else if (result == 'view_grid') {
         await configProvider.updateGameViewMode('grid');
       } else if (result == 'view_carousel') {
@@ -131,8 +133,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     _cardStyleIndex = styleIdx >= 0 ? styleIdx : 0;
 
     if (config.gameViewMode == 'carousel') {
-      _selectedIndex = 2;
+      _selectedIndex = 3;
     } else if (config.gameViewMode == 'grid') {
+      _selectedIndex = 2;
+    } else if (config.gameViewMode == 'logoList') {
       _selectedIndex = 1;
     } else {
       _selectedIndex = 0;
@@ -287,6 +291,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         'view_list',
         AppLocale.listView.getString(context),
         Symbols.list_rounded,
+        group: AppLocale.viewModeGroup.getString(context),
+      ),
+      _DropdownOption(
+        'view_logo_list',
+        AppLocale.logoListView.getString(context),
+        Symbols.image_rounded,
         group: AppLocale.viewModeGroup.getString(context),
       ),
       _DropdownOption(
@@ -550,6 +560,8 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       bool isSelected = false;
       if (opt.value == 'view_list') {
         isSelected = config.gameViewMode == 'list';
+      } else if (opt.value == 'view_logo_list') {
+        isSelected = config.gameViewMode == 'logoList';
       } else if (opt.value == 'view_grid') {
         isSelected = config.gameViewMode == 'grid';
       } else if (opt.value == 'view_carousel') {

@@ -644,6 +644,7 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.beta: 'Бета',
   AppLocale.gridView: 'Плитка',
   AppLocale.listView: 'Список',
+  AppLocale.logoListView: 'Список логотипов',
   AppLocale.carouselView: 'Карусель',
   AppLocale.alphabetical: 'По алфавиту',
   AppLocale.dateAdded: 'Дата добавления',

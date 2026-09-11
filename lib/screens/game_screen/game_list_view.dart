@@ -11,6 +11,7 @@ import '../../themes/corner_radii.dart';
 import '../../utils/centered_scroll_controller.dart';
 import '../../utils/game_utils.dart';
 import '../../providers/sqlite_config_provider.dart';
+import '../../providers/file_provider.dart';
 import '../../models/system_model.dart';
 import '../../models/game_model.dart';
 import '../../utils/rom_tree.dart';
@@ -47,6 +48,8 @@ class GameListView extends StatefulWidget {
   final bool isAllMode;
   final bool isNavigatingFast;
   final VoidCallback? onGamepadReactivated;
+  final bool useMarqueeLogos;
+  final FileProvider? fileProvider;
 
   /// Subfolder navigation: the first [folderCount] entries of [games] are folder
   /// placeholders rendered from [folderEntries]; confirming one calls
@@ -71,6 +74,8 @@ class GameListView extends StatefulWidget {
     this.isAllMode = false,
     this.isNavigatingFast = false,
     this.onGamepadReactivated,
+    this.useMarqueeLogos = false,
+    this.fileProvider,
     this.folderCount = 0,
     this.folderEntries = const [],
     this.onFolderActivated,
@@ -90,6 +95,7 @@ class GameListViewState extends State<GameListView>
 
   // Constants for pixel-perfect highlight positioning.
   static const double _itemHeightBase = 26.0;
+  static const double _logoItemHeightBase = 42.0;
 
   /// Slack under the last row, so the list does not sit on the panel's edge.
   /// Mirrors the value the details footer keeps under its RA pill.
@@ -306,7 +312,8 @@ class GameListViewState extends State<GameListView>
     _syncProvider = context.watch<SyncManager?>()?.active;
 
     final theme = Theme.of(context);
-    final itemHeight = _itemHeightBase.r;
+    final itemHeight =
+        (widget.useMarqueeLogos ? _logoItemHeightBase : _itemHeightBase).r;
     final totalItemHeight = itemHeight;
     _centeredScrollController.setItemExtent(totalItemHeight, paddingTop: 2.r);
 
@@ -438,33 +445,17 @@ class GameListViewState extends State<GameListView>
                                   ),
                                 Expanded(
                                   child: RepaintBoundary(
-                                    child: AnimatedDefaultTextStyle(
-                                      duration: const Duration(
-                                        milliseconds: 200,
-                                      ),
-                                      curve: Curves.easeOut,
-                                      style: TextStyle(
-                                        fontWeight: isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        fontSize: 11.r,
-                                        color: isSelected
-                                            ? theme.colorScheme.onPrimary
-                                            : theme.colorScheme.onSurface,
-                                        fontFamily: theme
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.fontFamily,
-                                      ),
-                                      child: MarqueeText(
-                                        text: GameUtils.formatGameName(
-                                          game.name.isNotEmpty
-                                              ? game.name
-                                              : game.romname,
-                                        ),
-                                        isActive: isSelected,
-                                      ),
-                                    ),
+                                    child: widget.useMarqueeLogos
+                                        ? _buildGameLogo(
+                                            game,
+                                            isSelected,
+                                            theme,
+                                          )
+                                        : _buildTextLabel(
+                                            game,
+                                            isSelected,
+                                            theme,
+                                          ),
                                   ),
                                 ),
                                 // Cloud-sync state, first of the marks at the
@@ -609,6 +600,60 @@ class GameListViewState extends State<GameListView>
       // only answer available.
       return widget.system;
     }
+  }
+
+  /// Shows the scraped wheel/marquee in place of the game's text title.
+  /// Games without wheel artwork retain the original scrolling text label.
+  Widget _buildGameLogo(GameModel game, bool isSelected, ThemeData theme) {
+    final system = _effectiveSystemFor(game);
+    final folder = system.primaryFolderName.isNotEmpty
+        ? system.primaryFolderName
+        : system.folderName;
+    final wheelPath = game.getImagePath(folder, 'wheels', widget.fileProvider);
+
+    if (wheelPath.isNotEmpty && File(wheelPath).existsSync()) {
+      return AnimatedScale(
+        scale: isSelected ? 1.0 : 0.88,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        alignment: Alignment.centerLeft,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Image.file(
+            File(wheelPath),
+            key: ValueKey(wheelPath),
+            height: 32.r,
+            cacheHeight: 128,
+            fit: BoxFit.contain,
+            alignment: Alignment.centerLeft,
+            errorBuilder: (_, _, _) => _buildTextLabel(game, isSelected, theme),
+          ),
+        ),
+      );
+    }
+
+    return _buildTextLabel(game, isSelected, theme);
+  }
+
+  Widget _buildTextLabel(GameModel game, bool isSelected, ThemeData theme) {
+    return AnimatedDefaultTextStyle(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      style: TextStyle(
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 11.r,
+        color: isSelected
+            ? theme.colorScheme.onPrimary
+            : theme.colorScheme.onSurface,
+        fontFamily: theme.textTheme.bodyMedium?.fontFamily,
+      ),
+      child: MarqueeText(
+        text: GameUtils.formatGameName(
+          game.name.isNotEmpty ? game.name : game.romname,
+        ),
+        isActive: isSelected,
+      ),
+    );
   }
 
   /// Renders a navigable subfolder row (icon + name + recursive game count).

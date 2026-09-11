@@ -894,6 +894,9 @@ class _SystemGamesListState extends State<SystemGamesList> {
                           } else if (configProvider.config.gameViewMode ==
                               'carousel') {
                             return _buildGamesCarousel();
+                          } else if (configProvider.config.gameViewMode ==
+                              'logoList') {
+                            return _buildGamesList(useMarqueeLogos: true);
                           }
                           return _buildGamesList();
                         },
@@ -1399,7 +1402,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// Divides the viewport into a specialized browsing panel (left) and a detailed
   /// info/preview panel (right). The selected game's fanart is rendered behind
   /// the entire viewport so it peeks through both panels.
-  Widget _buildGamesList() {
+  Widget _buildGamesList({bool useMarqueeLogos = false}) {
     final isMusic = widget.system.folderName == 'music';
 
     return Stack(
@@ -1471,7 +1474,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
                       context,
                     ).extension<CornerRadii>()?.radiusInternal ??
                     BorderRadius.circular(9.r),
-                child: _buildGamesListPanel(),
+                child: _buildGamesListPanel(useMarqueeLogos: useMarqueeLogos),
               ),
             ),
             // Main Viewport: Rich metadata, video previews, and launch controls.
@@ -1540,7 +1543,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
     );
   }
 
-  Widget _buildGamesListPanel() {
+  Widget _buildGamesListPanel({bool useMarqueeLogos = false}) {
     return Column(
       children: [
         Expanded(
@@ -1579,6 +1582,8 @@ class _SystemGamesListState extends State<SystemGamesList> {
                   folderEntries: _currentFolderEntries,
                   onFolderActivated: _descendToFolderIndex,
                   selectedItemKey: _selectedItemKey,
+                  useMarqueeLogos: useMarqueeLogos,
+                  fileProvider: _fileProvider,
                 ),
         ),
       ],

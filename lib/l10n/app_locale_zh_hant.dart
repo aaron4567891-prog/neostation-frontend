@@ -559,6 +559,7 @@ const Map<String, dynamic> appLocaleZhHant = {
   AppLocale.beta: '測試版',
   AppLocale.gridView: '網格檢視',
   AppLocale.listView: '列表檢視',
+  AppLocale.logoListView: '標誌列表',
   AppLocale.carouselView: '輪播檢視',
   AppLocale.alphabetical: '按字母順序',
   AppLocale.dateAdded: '新增日期',
