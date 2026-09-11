@@ -255,6 +255,8 @@ class SqliteConfigService {
                     ) ??
                     25)
                 .clamp(0, 100),
+        secondaryMediaMode:
+            userConfig?['secondary_media_mode']?.toString() ?? 'automatic',
         esdeFolderPath: userConfig?['esde_folder_path']?.toString() ?? '',
         showAchievementsBadge:
             (int.tryParse(
@@ -341,6 +343,7 @@ class SqliteConfigService {
         nowPlayingDimDelay: config.nowPlayingDimDelay,
         nowPlayingDimLevel: config.nowPlayingDimLevel,
         fanartDimLevel: config.fanartDimLevel,
+        secondaryMediaMode: config.secondaryMediaMode,
         esdeFolderPath: config.esdeFolderPath,
         showAchievementsBadge: config.showAchievementsBadge ? 1 : 0,
         showCloudSyncIcon: config.showCloudSyncIcon ? 1 : 0,

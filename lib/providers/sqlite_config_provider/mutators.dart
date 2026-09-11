@@ -287,6 +287,22 @@ extension SqliteConfigMutators on SqliteConfigProvider {
     _notify();
   }
 
+  /// Sets which media is shown on the secondary display while browsing games.
+  Future<void> updateSecondaryMediaMode(String mode) async {
+    const allowed = {
+      'automatic',
+      'fanart',
+      'screenshot',
+      'video',
+      'system',
+      'off',
+    };
+    final value = allowed.contains(mode) ? mode : 'automatic';
+    _config = _config.copyWith(secondaryMediaMode: value);
+    await SqliteConfigService.saveConfig(_config);
+    _notify();
+  }
+
   /// Persists the secondary app-dock slot assignments (one package name per
   /// slot, empty string = free) and pushes them to the secondary display.
   Future<void> updateDockApps(List<String> apps) async {

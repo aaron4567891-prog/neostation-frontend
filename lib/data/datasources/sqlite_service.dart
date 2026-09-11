@@ -459,7 +459,7 @@ class SqliteService {
   SqliteService._internal();
 
   // Database configuration
-  static const int _databaseVersion = 156;
+  static const int _databaseVersion = 157;
   static const String _databaseName = 'data.sqlite';
 
   DatabaseAdapter? _database;
@@ -1953,6 +1953,7 @@ class SqliteService {
         now_playing_dim_delay INTEGER DEFAULT 3,
         now_playing_dim_level INTEGER DEFAULT 100,
         fanart_dim_level INTEGER DEFAULT 25,
+        secondary_media_mode TEXT DEFAULT 'automatic',
         esde_folder_path TEXT DEFAULT '',
         show_achievements_badge INTEGER DEFAULT 0,
         show_cloud_sync_icon INTEGER DEFAULT 1,
@@ -2777,6 +2778,7 @@ class SqliteService {
     int? nowPlayingDimDelay,
     int? nowPlayingDimLevel,
     int? fanartDimLevel,
+    String? secondaryMediaMode,
     String? esdeFolderPath,
     int? showAchievementsBadge,
     int? showCloudSyncIcon,
@@ -2915,6 +2917,9 @@ class SqliteService {
     }
     if (fanartDimLevel != null) {
       updates['fanart_dim_level'] = fanartDimLevel;
+    }
+    if (secondaryMediaMode != null) {
+      updates['secondary_media_mode'] = secondaryMediaMode;
     }
     if (esdeFolderPath != null) {
       updates['esde_folder_path'] = esdeFolderPath;

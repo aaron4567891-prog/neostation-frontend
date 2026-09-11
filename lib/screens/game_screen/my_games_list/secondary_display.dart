@@ -165,9 +165,62 @@ extension _SecondaryDisplay on _SystemGamesListState {
         ? context.read<SqliteConfigProvider>()
         : null;
     final isVideoMuted = !configProvider!.config.videoSound;
+    final secondaryMediaMode = configProvider.config.secondaryMediaMode;
     final isScraperLoggedIn = await ScreenScraperService.hasSavedCredentials();
 
     final isMusicSystem = widget.system.folderName == 'music';
+    final hasFanart = !isMusicSystem && File(fanartPath).existsSync();
+    final hasScreenshot = !isMusicSystem && File(screenshotPath).existsSync();
+    final hasWheel = !isMusicSystem && File(wheelPath).existsSync();
+
+    String? displayFanart;
+    String? displayScreenshot;
+    String? displayWheel;
+    var showGameLayer = true;
+
+    switch (secondaryMediaMode) {
+      case 'fanart':
+        if (hasFanart) {
+          displayFanart = fanartPath;
+          displayWheel = hasWheel ? wheelPath : null;
+        } else if (hasScreenshot) {
+          displayScreenshot = screenshotPath;
+        }
+        break;
+      case 'screenshot':
+        if (hasScreenshot) {
+          displayScreenshot = screenshotPath;
+        } else if (hasFanart) {
+          displayFanart = fanartPath;
+          displayWheel = hasWheel ? wheelPath : null;
+        }
+        break;
+      case 'video':
+        // Keep static artwork visible until the delayed video preview starts,
+        // and as a fallback when this game has no video.
+        if (hasScreenshot) {
+          displayScreenshot = screenshotPath;
+        } else if (hasFanart) {
+          displayFanart = fanartPath;
+          displayWheel = hasWheel ? wheelPath : null;
+        }
+        break;
+      case 'system':
+        showGameLayer = false;
+        break;
+      case 'off':
+        // Keep the game layer active but empty, leaving the neutral app
+        // background rather than displaying game or system artwork.
+        break;
+      default:
+        displayFanart = hasFanart ? fanartPath : null;
+        displayScreenshot = hasScreenshot ? screenshotPath : null;
+        displayWheel = hasWheel ? wheelPath : null;
+    }
+
+    final videoAllowed =
+        secondaryMediaMode == 'automatic' || secondaryMediaMode == 'video';
+    final expectedVideo = videoAllowed && videoExists ? videoPath : null;
 
     // State optimization: Skip updates if metadata remains identical. A forced
     // media refresh (post re-scrape) always pushes — the paths are unchanged
@@ -181,47 +234,31 @@ extension _SecondaryDisplay on _SystemGamesListState {
             (isMusicSystem
                 ? MusicPlayerService().activeTrack?.romPath
                 : game.romPath) ||
-        currentState.gameFanart !=
-            (isMusicSystem
-                ? null
-                : (File(fanartPath).existsSync() ? fanartPath : null)) ||
-        currentState.gameScreenshot !=
-            (isMusicSystem
-                ? null
-                : (File(screenshotPath).existsSync()
-                      ? screenshotPath
-                      : null)) ||
-        currentState.gameVideo !=
-            (isMusicSystem ? null : (videoExists ? videoPath : null)) ||
-        currentState.gameWheel !=
-            (isMusicSystem
-                ? null
-                : (File(wheelPath).existsSync() ? wheelPath : null)) ||
+        currentState.gameFanart != displayFanart ||
+        currentState.gameScreenshot != displayScreenshot ||
+        currentState.gameVideo != expectedVideo ||
+        currentState.gameWheel != displayWheel ||
+        currentState.isGameSelected != showGameLayer ||
         currentState.isVideoMuted != isVideoMuted ||
         currentState.isGameLaunching != _isGameLaunching;
 
     if (shouldUpdate && !_isNavigatingBack) {
-      final bool hasFanart = !isMusicSystem && File(fanartPath).existsSync();
-      final bool hasScreenshot =
-          !isMusicSystem && File(screenshotPath).existsSync();
-      final bool hasWheel = !isMusicSystem && File(wheelPath).existsSync();
-
       // ignore: unawaited_futures
       _secondaryDisplayState?.updateState(
         systemName: widget.system.realName,
-        gameFanart: hasFanart ? fanartPath : null,
-        gameScreenshot: hasScreenshot ? screenshotPath : null,
-        clearFanart: !hasFanart,
-        clearScreenshot: !hasScreenshot,
-        gameWheel: hasWheel ? wheelPath : null,
-        clearWheel: !hasWheel,
+        gameFanart: displayFanart,
+        gameScreenshot: displayScreenshot,
+        clearFanart: displayFanart == null,
+        clearScreenshot: displayScreenshot == null,
+        gameWheel: displayWheel,
+        clearWheel: displayWheel == null,
         gameVideo: null, // Reset video state during active scrolling.
         clearVideo: true,
         gameImageBytes: null,
         clearImageBytes: isMusicSystem
             ? (MusicPlayerService().activeTrack == null)
             : true,
-        isGameSelected: true,
+        isGameSelected: showGameLayer,
         isVideoMuted: isVideoMuted,
         backgroundColor: mounted
             ? Theme.of(context).scaffoldBackgroundColor.toARGB32()
@@ -303,6 +340,12 @@ extension _SecondaryDisplay on _SystemGamesListState {
         _selectedGame != game) {
       return;
     }
+
+    final mediaMode = context
+        .read<SqliteConfigProvider>()
+        .config
+        .secondaryMediaMode;
+    if (mediaMode != 'automatic' && mediaMode != 'video') return;
 
     final videoPath = _getVideoPath(game);
     final videoExists = await _fileProvider.fileExists(videoPath);

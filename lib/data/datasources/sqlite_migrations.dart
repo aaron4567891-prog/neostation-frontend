@@ -606,6 +606,9 @@ class SqliteMigrations {
       case 156:
         await _migrateToVersion156(db);
         break;
+      case 157:
+        await _migrateToVersion157(db);
+        break;
       default:
         _log.w('No migration defined for version $version');
     }
@@ -6953,6 +6956,29 @@ class SqliteMigrations {
       _log.i('Migration v156 completed');
     } catch (e, stackTrace) {
       _log.e('Error in migration v156: $e');
+      _log.e('   StackTrace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Migration v157: Adds the saved secondary-screen browsing media choice.
+  static Future<void> _migrateToVersion157(Database db) async {
+    _log.i('Migration v157: Adding secondary_media_mode to user_config');
+    try {
+      final tableInfo = db.select('PRAGMA table_info(user_config)');
+      final columns = tableInfo.map((c) => c['name'].toString()).toList();
+      if (!columns.contains('secondary_media_mode')) {
+        db.execute(
+          "ALTER TABLE user_config ADD COLUMN secondary_media_mode "
+          "TEXT DEFAULT 'automatic'",
+        );
+        _log.i('Column secondary_media_mode added via v157');
+      } else {
+        _log.i('Column secondary_media_mode already exists');
+      }
+      _log.i('Migration v157 completed');
+    } catch (e, stackTrace) {
+      _log.e('Error in migration v157: $e');
       _log.e('   StackTrace: $stackTrace');
       rethrow;
     }

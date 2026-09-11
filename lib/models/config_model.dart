@@ -154,6 +154,10 @@ class ConfigModel {
   /// the logo at full brightness so it stands out against busy fanart.
   final int fanartDimLevel;
 
+  /// Media shown on the secondary display while browsing games.
+  /// One of: automatic, fanart, screenshot, video, system, off.
+  final String secondaryMediaMode;
+
   /// Package names occupying the secondary "Now Playing" app dock, one entry
   /// per slot. Always [dockMaxSlots] long; an empty string marks a free slot.
   final List<String> dockApps;
@@ -261,6 +265,7 @@ class ConfigModel {
     this.nowPlayingDimDelay = 3,
     this.nowPlayingDimLevel = 100,
     this.fanartDimLevel = 25,
+    this.secondaryMediaMode = 'automatic',
     this.dockApps = const ['', '', '', '', ''],
     this.dockEnabled = true,
     this.dockSlotCount = 3,
@@ -449,6 +454,11 @@ class ConfigModel {
                 .toString(),
           ) ??
           25,
+      secondaryMediaMode:
+          (json['secondaryMediaMode'] ??
+                  json['secondary_media_mode'] ??
+                  'automatic')
+              .toString(),
       dockApps: normalizeDock(json['dockApps'] ?? json['dock_apps']),
       dockEnabled:
           (json['dockEnabled'] ?? true).toString().toLowerCase() == 'true' ||
@@ -544,6 +554,7 @@ class ConfigModel {
       'nowPlayingDimDelay': nowPlayingDimDelay,
       'nowPlayingDimLevel': nowPlayingDimLevel,
       'fanartDimLevel': fanartDimLevel,
+      'secondaryMediaMode': secondaryMediaMode,
       'dockApps': dockApps,
       'dockEnabled': dockEnabled,
       'dockSlotCount': dockSlotCount,
@@ -596,6 +607,7 @@ class ConfigModel {
     int? nowPlayingDimDelay,
     int? nowPlayingDimLevel,
     int? fanartDimLevel,
+    String? secondaryMediaMode,
     List<String>? dockApps,
     bool? dockEnabled,
     int? dockSlotCount,
@@ -646,6 +658,7 @@ class ConfigModel {
       nowPlayingDimDelay: nowPlayingDimDelay ?? this.nowPlayingDimDelay,
       nowPlayingDimLevel: nowPlayingDimLevel ?? this.nowPlayingDimLevel,
       fanartDimLevel: fanartDimLevel ?? this.fanartDimLevel,
+      secondaryMediaMode: secondaryMediaMode ?? this.secondaryMediaMode,
       dockApps: dockApps ?? this.dockApps,
       dockEnabled: dockEnabled ?? this.dockEnabled,
       dockSlotCount: dockSlotCount ?? this.dockSlotCount,
