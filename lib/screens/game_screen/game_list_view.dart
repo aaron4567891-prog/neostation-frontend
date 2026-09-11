@@ -95,7 +95,7 @@ class GameListViewState extends State<GameListView>
 
   // Constants for pixel-perfect highlight positioning.
   static const double _itemHeightBase = 26.0;
-  static const double _logoItemHeightBase = 42.0;
+  static const double _logoItemHeightBase = 58.0;
 
   /// Slack under the last row, so the list does not sit on the panel's edge.
   /// Mirrors the value the details footer keeps under its RA pill.
@@ -613,7 +613,7 @@ class GameListViewState extends State<GameListView>
 
     if (wheelPath.isNotEmpty && File(wheelPath).existsSync()) {
       return AnimatedScale(
-        scale: isSelected ? 1.0 : 0.88,
+        scale: isSelected ? 1.0 : 0.94,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
         alignment: Alignment.centerLeft,
@@ -622,7 +622,7 @@ class GameListViewState extends State<GameListView>
           child: Image.file(
             File(wheelPath),
             key: ValueKey(wheelPath),
-            height: 32.r,
+            height: 48.r,
             cacheHeight: 128,
             fit: BoxFit.contain,
             alignment: Alignment.centerLeft,
