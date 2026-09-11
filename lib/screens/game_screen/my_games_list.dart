@@ -1443,31 +1443,33 @@ class _SystemGamesListState extends State<SystemGamesList> {
               curve: Curves.easeOutCubic,
               width: 200.r,
               margin: EdgeInsets.only(left: 12.r, top: 12.r, bottom: 12.r),
-              decoration: BoxDecoration(
-                // A horizontal wash rather than a flat fill: the panel stays
-                // opaque where the row text sits and thins out towards its
-                // right edge, so the fanart bleeds through and it reads as a
-                // pane laid over the artwork instead of a cut-out block.
-                gradient: ChromeSurface.fade(context),
-                borderRadius:
-                    Theme.of(
-                      context,
-                    ).extension<CornerRadii>()?.radiusExternal ??
-                    BorderRadius.circular(14.r),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 1.r,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.shadow.withValues(alpha: 0.5),
-                    blurRadius: 3.r,
-                    offset: Offset(2.r, 2.r),
-                  ),
-                ],
-              ),
+              decoration: useMarqueeLogos
+                  ? null
+                  : BoxDecoration(
+                      // A horizontal wash rather than a flat fill: the panel stays
+                      // opaque where the row text sits and thins out towards its
+                      // right edge, so the fanart bleeds through and it reads as a
+                      // pane laid over the artwork instead of a cut-out block.
+                      gradient: ChromeSurface.fade(context),
+                      borderRadius:
+                          Theme.of(
+                            context,
+                          ).extension<CornerRadii>()?.radiusExternal ??
+                          BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 1.r,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.shadow.withValues(alpha: 0.5),
+                          blurRadius: 3.r,
+                          offset: Offset(2.r, 2.r),
+                        ),
+                      ],
+                    ),
               child: ClipRRect(
                 borderRadius:
                     Theme.of(
