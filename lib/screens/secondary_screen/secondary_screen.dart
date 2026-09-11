@@ -23,6 +23,7 @@ import 'widgets/achievement_comments.dart';
 import 'widgets/achievement_panel.dart';
 import 'widgets/app_dock.dart';
 import 'widgets/now_playing_panel.dart';
+import 'widgets/secondary_action.dart';
 
 class SecondaryScreen extends StatefulWidget {
   const SecondaryScreen({
@@ -164,6 +165,8 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       // [_deviceAwake] for why the shared-state flag alone isn't trusted.
       SecondaryAppsService.listenForScreenState();
       SecondaryAppsService.deviceScreenOn.addListener(_onScreenPowerChanged);
+      SecondaryAppsService.inputFocused.addListener(_onInputFocusChanged);
+      SecondaryAppsService.backTrigger.addListener(_onSecondaryBack);
       // Signal that the secondary screen is active — but only after the initial
       // state sync. Pushing it while the synced value is still null makes
       // updateState fall back to the WELCOME default and clobber the real
@@ -178,6 +181,38 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
           setState(() => _dockRevealed = true);
         }
       });
+    }
+  }
+
+  /// Seeds controller traversal when a touch gives the bottom display focus.
+  void _onInputFocusChanged() {
+    if (!SecondaryAppsService.inputFocused.value) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final focusContext = _l10nContext;
+      if (mounted && focusContext != null) {
+        FocusScope.of(focusContext).nextFocus();
+      }
+    });
+  }
+
+  /// Handles Back/B locally, unwinding the visible bottom-screen layer while
+  /// leaving controller focus on the bottom display.
+  void _onSecondaryBack() {
+    if (!mounted || !SecondaryAppsService.inputFocused.value) return;
+    if (_accessDialogVisible) {
+      _dismissAccessibilityDialog();
+    } else if (_pickerVisible) {
+      _closeAppPicker();
+    } else if (_selectedAchievement != null || _inGamePanelPage == 2) {
+      setState(() {
+        _selectedAchievement = null;
+        _inGamePanelPage = 1;
+      });
+    } else if (_inGamePanelPage != 0) {
+      setState(() => _inGamePanelPage = 0);
     }
   }
 
@@ -710,6 +745,8 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
     // Shared singleton — detach our listener, never dispose the instance.
     _secondaryDisplayState?.removeListener(_onStateChanged);
     SecondaryAppsService.deviceScreenOn.removeListener(_onScreenPowerChanged);
+    SecondaryAppsService.inputFocused.removeListener(_onInputFocusChanged);
+    SecondaryAppsService.backTrigger.removeListener(_onSecondaryBack);
     _celebrationTimer?.cancel();
     _playTimeTicker?.cancel();
     _dimTimer?.cancel();
@@ -1023,7 +1060,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                               Positioned(
                                 bottom: 24.r,
                                 right: 24.r,
-                                child: GestureDetector(
+                                child: SecondaryAction(
                                   onTap: () {
                                     SfxService().playNavSound();
                                     _toggleMute();
@@ -1448,7 +1485,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       top: 0,
       bottom: 0,
       child: Center(
-        child: GestureDetector(
+        child: SecondaryAction(
           onTap: () {
             SfxService().playNavSound();
             _wakeInGamePanel();
@@ -1513,7 +1550,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   Widget _buildAccessibilityDialog(SecondaryDisplayStateData value) {
     final scheme = panelScheme(value);
     return Positioned.fill(
-      child: GestureDetector(
+      child: SecondaryAction(
         behavior: HitTestBehavior.opaque,
         onTap: _dismissAccessibilityDialog,
         child: ColoredBox(
@@ -1615,7 +1652,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
     required ColorScheme scheme,
     required bool filled,
   }) {
-    return GestureDetector(
+    return SecondaryAction(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.r, vertical: 12.r),
@@ -1675,7 +1712,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                         ),
                       ),
                       const Spacer(),
-                      GestureDetector(
+                      SecondaryAction(
                         // Opaque + generous padding so the whole ~50px corner
                         // region closes the picker, not just the 26px glyph.
                         // (Now that the backdrop no longer dismisses, a near-miss
@@ -1752,7 +1789,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   }
 
   Widget _buildPickerTile(String package, String name) {
-    return GestureDetector(
+    return SecondaryAction(
       onTap: package.isEmpty ? null : () => _onPickerTileTap(package),
       child: Column(
         mainAxisSize: MainAxisSize.min,

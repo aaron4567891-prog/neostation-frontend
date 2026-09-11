@@ -90,6 +90,18 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         return SecondaryAppsPresentation(this, display, getSubScreenEntryPoint())
     }
 
+    /** Called by the secondary presentation when Back/B returns controller focus. */
+    internal fun requestMainInputFocus() {
+        runOnUiThread { window.decorView.requestFocus() }
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            (subScreenPresentation as? SecondaryAppsPresentation)?.releaseInputFocus()
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
     override fun onLaunchSubScreen(display: Display) {
         if (isSecondaryDisplayHiddenInDb()) {
             // The sub_screen package may have already auto-created and shown the

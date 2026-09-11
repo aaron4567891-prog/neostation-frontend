@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'secondary_action.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import '../../../models/secondary_display_state.dart';
@@ -151,7 +152,7 @@ class NowPlayingPanel extends StatelessWidget {
   /// Tappable pill that asks the main engine to capture a system screenshot of
   /// the main screen.
   Widget _buildScreenshotButton(ColorScheme scheme) {
-    return GestureDetector(
+    return SecondaryAction(
       onTap: onRequestScreenshot,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.r, vertical: 12.r),

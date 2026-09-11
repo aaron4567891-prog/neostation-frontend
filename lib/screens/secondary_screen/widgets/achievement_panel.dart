@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'secondary_action.dart';
 import 'package:flutter_localization/flutter_localization.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -119,7 +120,7 @@ class AchievementPanel extends StatelessWidget {
                   // Touch toggle: grid <-> list. Shows the icon of the view
                   // you'll switch to. The bottom screen is touch-only since
                   // the gamepad is driving the game on the main screen.
-                  GestureDetector(
+                  SecondaryAction(
                     onTap: onToggleListView,
                     child: Container(
                       padding: EdgeInsets.all(8.r),
@@ -234,7 +235,7 @@ class AchievementPanel extends StatelessWidget {
       itemBuilder: (context, i) {
         final a = achievements[i];
         final isNew = newlyEarned.contains(a.id);
-        return GestureDetector(
+        return SecondaryAction(
           behavior: HitTestBehavior.opaque,
           onTap: () => onSelectAchievement(a),
           child: Container(
@@ -431,7 +432,7 @@ Widget buildAchievementBadge(
   }
   return onTap == null
       ? result
-      : GestureDetector(
+      : SecondaryAction(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: Padding(padding: EdgeInsets.all(3.r), child: result),

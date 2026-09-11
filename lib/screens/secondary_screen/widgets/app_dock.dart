@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'secondary_action.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:neostation/services/secondary_apps_service.dart';
@@ -79,7 +80,7 @@ class AppDock extends StatelessWidget {
   ) {
     final filled = package.isNotEmpty;
     final guarded = filled && !accessOk;
-    return GestureDetector(
+    return SecondaryAction(
       onTap: () {
         if (!filled) {
           onPickSlot(index);
@@ -161,7 +162,7 @@ class DockLauncherButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = panelScheme(value);
     final accessOk = value.screenshotAccessEnabled;
-    return GestureDetector(
+    return SecondaryAction(
       onTap: accessOk ? onOpenLauncher : onOpenAccessibilitySettings,
       child: Stack(
         clipBehavior: Clip.none,

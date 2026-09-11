@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Display
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.WindowManager
 import com.hcoderlee.subscreen.sub_screen.FlutterPresentation
 import io.flutter.embedding.engine.FlutterEngine
@@ -33,6 +34,7 @@ class SecondaryAppsPresentation(
     }
 
     private var appsChannel: MethodChannel? = null
+    private var inputFocused = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,9 +88,42 @@ class SecondaryAppsPresentation(
         }
     }
 
+    /** Temporarily gives the bottom display controller focus after a touch. */
+    private fun acquireInputFocus() {
+        if (inputFocused) return
+        inputFocused = true
+        window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        window?.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+        window?.decorView?.requestFocus()
+        appsChannel?.invokeMethod("onSecondaryInputFocusChanged", true)
+    }
+
+    /** Returns controller input to the main display without dismissing us. */
+    fun releaseInputFocus() {
+        if (!inputFocused) return
+        inputFocused = false
+        window?.addFlags(
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+        )
+        activity.requestMainInputFocus()
+        appsChannel?.invokeMethod("onSecondaryInputFocusChanged", false)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) acquireInputFocus()
+        return super.dispatchTouchEvent(event)
+    }
+
     /** Never let BACK reach Dialog's cancel path, focused or not. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_BACK) return true
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            (event.keyCode == KeyEvent.KEYCODE_BACK ||
+                event.keyCode == KeyEvent.KEYCODE_BUTTON_B)
+        ) {
+            appsChannel?.invokeMethod("onSecondaryBack", null)
+            return true
+        }
         return super.dispatchKeyEvent(event)
     }
 
@@ -133,6 +168,10 @@ class SecondaryAppsPresentation(
                         result.success(null)
                     }
                     "isDisplayOn" -> result.success(isDisplayOn())
+                    "releaseInputFocus" -> {
+                        releaseInputFocus()
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

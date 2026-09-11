@@ -102,6 +102,12 @@ class SecondaryAppsService {
   /// [refreshScreenState] seed arrives.
   static final ValueNotifier<bool> deviceScreenOn = ValueNotifier<bool>(true);
 
+  /// True while touch/controller focus belongs to the bottom display.
+  static final ValueNotifier<bool> inputFocused = ValueNotifier<bool>(false);
+
+  /// Increments whenever Back/B is pressed while the bottom display has focus.
+  static final ValueNotifier<int> backTrigger = ValueNotifier<int>(0);
+
   static bool _screenStateWired = false;
 
   /// Subscribes to native screen on/off edges and seeds [deviceScreenOn] from
@@ -119,12 +125,27 @@ class SecondaryAppsService {
         case 'onDeviceScreenOff':
           deviceScreenOn.value = false;
           break;
+        case 'onSecondaryInputFocusChanged':
+          inputFocused.value = call.arguments == true;
+          break;
+        case 'onSecondaryBack':
+          backTrigger.value++;
+          break;
       }
       return null;
     });
     // Edges alone would leave an engine that started while the device was
     // already asleep stuck on the `true` default, so read the display up front.
     unawaited(refreshScreenState());
+  }
+
+  /// Explicitly returns controller focus to the top display.
+  static Future<void> releaseInputFocus() async {
+    try {
+      await _channel.invokeMethod<void>('releaseInputFocus');
+    } on PlatformException catch (e) {
+      _log.e("Secondary: failed to release input focus: '${e.message}'.");
+    }
   }
 
   /// Re-reads the bottom display's live power state into [deviceScreenOn].
