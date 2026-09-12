@@ -29,7 +29,6 @@ extension _GamepadNav on _SystemGamesListState {
   /// D-pad; [_handleBButton] is the matching way back out.
   void _handleAButton() {
     if (_activateDetailsPanel?.call() ?? false) return;
-    if (_inAppScreensSwapped) _setInAppScreensSwapped(false);
     _selectCurrentGame();
   }
 

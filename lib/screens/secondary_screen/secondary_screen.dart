@@ -167,7 +167,6 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       SecondaryAppsService.deviceScreenOn.addListener(_onScreenPowerChanged);
       SecondaryAppsService.inputFocused.addListener(_onInputFocusChanged);
       SecondaryAppsService.backTrigger.addListener(_onSecondaryBack);
-      SecondaryAppsService.inAppSwap.addListener(_onInAppSwapChanged);
       // Signal that the secondary screen is active — but only after the initial
       // state sync. Pushing it while the synced value is still null makes
       // updateState fall back to the WELCOME default and clobber the real
@@ -215,10 +214,6 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
     } else if (_inGamePanelPage != 0) {
       setState(() => _inGamePanelPage = 0);
     }
-  }
-
-  void _onInAppSwapChanged() {
-    if (mounted) setState(() {});
   }
 
   /// Marks the secondary display active once [SecondaryDisplayState] has pulled
@@ -752,7 +747,6 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
     SecondaryAppsService.deviceScreenOn.removeListener(_onScreenPowerChanged);
     SecondaryAppsService.inputFocused.removeListener(_onInputFocusChanged);
     SecondaryAppsService.backTrigger.removeListener(_onSecondaryBack);
-    SecondaryAppsService.inAppSwap.removeListener(_onInAppSwapChanged);
     _celebrationTimer?.cancel();
     _playTimeTicker?.cancel();
     _dimTimer?.cancel();
@@ -1114,13 +1108,6 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                                 ),
                               ),
 
-                            if (SecondaryAppsService.inAppSwap.value)
-                              SecondaryAppsService.inAppGameListSwap.value &&
-                                      value.isGameSelected &&
-                                      !value.nowPlayingActive
-                                  ? _buildSwappedRemotePanel(value)
-                                  : _buildGlobalRemotePanel(value),
-
                             // Persistent app dock + all-apps launcher. Drawn at
                             // the top level (not inside the in-game panel) so it
                             // stays visible while browsing systems and on the
@@ -1129,8 +1116,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                             // Stays mounted for one animation after being
                             // disabled so it can slide back out (see
                             // [_syncDockMount]).
-                            if (!SecondaryAppsService.inAppSwap.value &&
-                                (_dockShown(value) || _dockSlidingOut))
+                            if (_dockShown(value) || _dockSlidingOut)
                               _buildDockOverlay(value),
 
                             // Scraping Overlay
@@ -1145,10 +1131,6 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                             // the dock and picker.
                             if (_accessDialogVisible)
                               _buildAccessibilityDialog(value),
-
-                            // Always available over NeoStation-owned bottom
-                            // screen surfaces, including pickers and dialogs.
-                            _buildScreenSwapButton(value),
                           ],
                         ),
                 );
@@ -1156,201 +1138,6 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildScreenSwapButton(SecondaryDisplayStateData value) {
-    final scheme = panelScheme(value);
-    return Positioned(
-      left: 18.r,
-      top: 18.r,
-      child: SecondaryAction(
-        onTap: () {
-          SfxService().playNavSound();
-          SecondaryAppsService.sendNeoStationAction('toggleSwap');
-        },
-        child: Container(
-          width: 52.r,
-          height: 52.r,
-          decoration: BoxDecoration(
-            color: Color.alphaBlend(
-              scheme.onSurface.withValues(alpha: 0.14),
-              scheme.surface,
-            ),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: scheme.onSurface.withValues(alpha: 0.55),
-              width: 1.5.r,
-            ),
-          ),
-          child: Icon(
-            Symbols.swap_vert_rounded,
-            color: scheme.onSurface,
-            size: 28.r,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSwappedRemotePanel(SecondaryDisplayStateData value) {
-    final scheme = panelScheme(value);
-    return Positioned.fill(
-      child: ColoredBox(
-        color: scheme.surface,
-        child: Center(
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 14.r,
-            runSpacing: 14.r,
-            children: [
-              _buildRemoteAction(
-                Symbols.skip_previous_rounded,
-                'PREVIOUS',
-                'previous',
-                scheme,
-              ),
-              _buildRemoteAction(
-                Symbols.play_arrow_rounded,
-                'PLAY',
-                'play',
-                scheme,
-              ),
-              _buildRemoteAction(
-                Symbols.skip_next_rounded,
-                'NEXT',
-                'next',
-                scheme,
-              ),
-              _buildRemoteAction(
-                Symbols.favorite_rounded,
-                'FAVOURITE',
-                'favorite',
-                scheme,
-              ),
-              _buildRemoteAction(
-                Symbols.settings_rounded,
-                'SETTINGS',
-                'settings',
-                scheme,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGlobalRemotePanel(SecondaryDisplayStateData value) {
-    final scheme = panelScheme(value);
-    return Positioned.fill(
-      child: ColoredBox(
-        color: scheme.surface,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRemoteAction(
-                Symbols.keyboard_arrow_up_rounded,
-                'UP',
-                'remoteUp',
-                scheme,
-              ),
-              SizedBox(height: 12.r),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildRemoteAction(
-                    Symbols.keyboard_arrow_left_rounded,
-                    'LEFT',
-                    'remoteLeft',
-                    scheme,
-                  ),
-                  SizedBox(width: 12.r),
-                  _buildRemoteAction(
-                    Symbols.check_circle_rounded,
-                    'SELECT',
-                    'remoteSelect',
-                    scheme,
-                  ),
-                  SizedBox(width: 12.r),
-                  _buildRemoteAction(
-                    Symbols.keyboard_arrow_right_rounded,
-                    'RIGHT',
-                    'remoteRight',
-                    scheme,
-                  ),
-                ],
-              ),
-              SizedBox(height: 12.r),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildRemoteAction(
-                    Symbols.arrow_back_rounded,
-                    'BACK',
-                    'remoteBack',
-                    scheme,
-                  ),
-                  SizedBox(width: 12.r),
-                  _buildRemoteAction(
-                    Symbols.keyboard_arrow_down_rounded,
-                    'DOWN',
-                    'remoteDown',
-                    scheme,
-                  ),
-                  SizedBox(width: 12.r),
-                  _buildRemoteAction(
-                    Symbols.settings_rounded,
-                    'SETTINGS',
-                    'remoteSettings',
-                    scheme,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRemoteAction(
-    IconData icon,
-    String label,
-    String action,
-    ColorScheme scheme,
-  ) {
-    return SecondaryAction(
-      onTap: () {
-        SfxService().playNavSound();
-        SecondaryAppsService.sendNeoStationAction(action);
-      },
-      child: Container(
-        width: 108.r,
-        padding: EdgeInsets.symmetric(vertical: 16.r, horizontal: 10.r),
-        decoration: BoxDecoration(
-          color: scheme.onSurface.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.25)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: scheme.onSurface, size: 28.r),
-            SizedBox(height: 8.r),
-            Text(
-              label,
-              maxLines: 1,
-              style: TextStyle(
-                color: scheme.onSurface,
-                fontSize: 11.r,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

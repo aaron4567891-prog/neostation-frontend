@@ -35,7 +35,6 @@ class SecondaryAppsPresentation(
 
     private var appsChannel: MethodChannel? = null
     private var inputFocused = false
-    private var swapL2Down = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,44 +111,14 @@ class SecondaryAppsPresentation(
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        // Let Flutter receive the complete DOWN -> UP gesture before changing
-        // this Presentation's focus flags. Changing window focus on DOWN can
-        // cancel the gesture, making a visible bottom-screen button appear
-        // unresponsive on the first tap.
+        // Preserve Flutter's complete tap gesture before changing window focus.
         val handled = super.dispatchTouchEvent(event)
         if (event.actionMasked == MotionEvent.ACTION_UP) acquireInputFocus()
         return handled
     }
 
-    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-        val l2Value = maxOf(
-            event.getAxisValue(MotionEvent.AXIS_LTRIGGER),
-            event.getAxisValue(MotionEvent.AXIS_BRAKE)
-        )
-        val l2Pressed = l2Value > 0.6f
-        if (l2Pressed && !swapL2Down) {
-            swapL2Down = true
-            activity.forwardSecondaryUiAction("toggleSwap")
-            return true
-        }
-        if (!l2Pressed && swapL2Down) {
-            swapL2Down = false
-            return true
-        }
-        return super.dispatchGenericMotionEvent(event)
-    }
-
     /** Never let BACK reach Dialog's cancel path, focused or not. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L2) {
-            if (event.action == KeyEvent.ACTION_DOWN && !swapL2Down) {
-                swapL2Down = true
-                activity.forwardSecondaryUiAction("toggleSwap")
-            } else if (event.action == KeyEvent.ACTION_UP) {
-                swapL2Down = false
-            }
-            return true
-        }
         if (event.action == KeyEvent.ACTION_DOWN &&
             (event.keyCode == KeyEvent.KEYCODE_BACK ||
                 event.keyCode == KeyEvent.KEYCODE_BUTTON_B)
@@ -205,23 +174,10 @@ class SecondaryAppsPresentation(
                         releaseInputFocus()
                         result.success(null)
                     }
-                    "sendNeoStationAction" -> {
-                        val action = call.argument<String>("action")
-                        if (action == null) {
-                            result.error("INVALID_ARGUMENTS", "Action is required", null)
-                        } else {
-                            activity.forwardSecondaryUiAction(action)
-                            result.success(null)
-                        }
-                    }
                     else -> result.notImplemented()
                 }
             }
         }
-        notifyInAppSwap(
-            activity.inAppSwapActive,
-            activity.inAppGameListSwapActive
-        )
     }
 
     /**
@@ -259,13 +215,6 @@ class SecondaryAppsPresentation(
         } catch (e: Exception) {
             Log.e(TAG, "notifyScreenState failed: ${e.message}")
         }
-    }
-
-    fun notifyInAppSwap(swapped: Boolean, gameListMode: Boolean) {
-        appsChannel?.invokeMethod(
-            "onInAppSwapChanged",
-            mapOf("swapped" to swapped, "gameListMode" to gameListMode)
-        )
     }
 
     /** Reads the base class's private engine field created during onCreate. */

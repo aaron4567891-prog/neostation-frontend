@@ -107,10 +107,6 @@ class SecondaryAppsService {
 
   /// Increments whenever Back/B is pressed while the bottom display has focus.
   static final ValueNotifier<int> backTrigger = ValueNotifier<int>(0);
-  static final ValueNotifier<bool> inAppSwap = ValueNotifier<bool>(false);
-  static final ValueNotifier<bool> inAppGameListSwap = ValueNotifier<bool>(
-    false,
-  );
 
   static bool _screenStateWired = false;
 
@@ -135,32 +131,12 @@ class SecondaryAppsService {
         case 'onSecondaryBack':
           backTrigger.value++;
           break;
-        case 'onInAppSwapChanged':
-          final arguments = call.arguments;
-          if (arguments is Map) {
-            inAppSwap.value = arguments['swapped'] == true;
-            inAppGameListSwap.value = arguments['gameListMode'] == true;
-          } else {
-            inAppSwap.value = arguments == true;
-            inAppGameListSwap.value = false;
-          }
-          break;
       }
       return null;
     });
     // Edges alone would leave an engine that started while the device was
     // already asleep stuck on the `true` default, so read the display up front.
     unawaited(refreshScreenState());
-  }
-
-  static Future<void> sendNeoStationAction(String action) async {
-    try {
-      await _channel.invokeMethod<void>('sendNeoStationAction', {
-        'action': action,
-      });
-    } on PlatformException catch (e) {
-      _log.e("Secondary: failed to send '$action': '${e.message}'.");
-    }
   }
 
   /// Explicitly returns controller focus to the top display.

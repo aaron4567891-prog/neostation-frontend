@@ -483,45 +483,6 @@ class GamepadNavigation {
     return true;
   }
 
-  /// Dispatches a touch action from the secondary display to whichever
-  /// navigation layer currently owns the primary NeoStation interface.
-  static bool triggerRemoteAction(String action) {
-    final navigator = _activeNavigator;
-    if (navigator == null || !navigator._isActive) return false;
-
-    final VoidCallback? callback = switch (action) {
-      'up' =>
-        navigator.onNavigateUp == null
-            ? null
-            : () => navigator.onNavigateUp!.call(),
-      'down' =>
-        navigator.onNavigateDown == null
-            ? null
-            : () => navigator.onNavigateDown!.call(),
-      'left' =>
-        navigator.onNavigateLeft == null
-            ? null
-            : () => navigator.onNavigateLeft!.call(),
-      'right' =>
-        navigator.onNavigateRight == null
-            ? null
-            : () => navigator.onNavigateRight!.call(),
-      'select' => navigator.onSelectItem,
-      'back' => navigator.onBack,
-      'settings' => navigator.onSettings,
-      _ => null,
-    };
-    if (callback == null) return false;
-
-    if (action == 'back') {
-      SfxService().playBackSound();
-    } else {
-      SfxService().playNavSound();
-    }
-    callback();
-    return true;
-  }
-
   /// Manually triggers a refresh of the connected gamepads list.
   Future<void> refreshGamepadInfo() async {
     await _initializeGamepadInfo();
