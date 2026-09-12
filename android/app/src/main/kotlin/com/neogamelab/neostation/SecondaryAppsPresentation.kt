@@ -55,31 +55,17 @@ class SecondaryAppsPresentation(
      * dismissed Presentation. MainActivity already swallows BACK, but that only
      * covers its own window — this one is separate and never saw the key.
      *
-     * Focus is the deeper problem: a focusable window here also makes the
-     * bottom display the top-focused display, which is why HOME could relaunch
-     * NeoStation onto the bottom screen (or re-prompt for the default launcher)
-     * and why gamepad keys stopped reaching MainActivity after a tap. The
-     * bottom screen is a touch-only status/dock surface with no text fields or
-     * key handling of its own, so it never needs key focus: FLAG_NOT_FOCUSABLE
-     * keeps touch working while leaving every key event, and the focused
-     * display, with the main activity on top.
-     *
-     * FLAG_ALT_FOCUSABLE_IM rides along because FLAG_NOT_FOCUSABLE on its own
-     * also declares "this window does not interact with the input method", and
-     * such a window is layered *above* the IME window on its display. Dual-screen
-     * handhelds can pin the keyboard to the bottom screen (on the AYN Thor,
-     * Settings.System `ime_show_on_second`), and there the IME window is created
-     * on this display while the edit field stays on the main one — so our
-     * full-screen panel simply covered it and typing anywhere in NeoStation
-     * showed no keyboard at all. Adding the flag inverts only that IME
-     * relationship ("behind/away from the IME") and leaves key focus where it
-     * is: still not focusable, so this window can never become the IME target.
+     * Keep the Presentation focusable when it is first shown. Some dual-screen
+     * Android builds do not route touch to a non-focusable Presentation, which
+     * means it can never receive the touch that would make it focusable again.
+     * Tapping the main window still calls [releaseInputFocus], so controller
+     * focus returns to the top display normally.
      */
     private fun hardenAgainstDismissal() {
         setCancelable(false)
         setCanceledOnTouchOutside(false)
         try {
-            window?.addFlags(
+            window?.clearFlags(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
             )
@@ -92,8 +78,10 @@ class SecondaryAppsPresentation(
     private fun acquireInputFocus() {
         if (inputFocused) return
         inputFocused = true
-        window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-        window?.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+        window?.clearFlags(
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+        )
         window?.decorView?.requestFocus()
         appsChannel?.invokeMethod("onSecondaryInputFocusChanged", true)
     }
@@ -111,10 +99,10 @@ class SecondaryAppsPresentation(
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        // Preserve Flutter's complete tap gesture before changing window focus.
-        val handled = super.dispatchTouchEvent(event)
-        if (event.actionMasked == MotionEvent.ACTION_UP) acquireInputFocus()
-        return handled
+        // Acquire focus before Flutter receives ACTION_DOWN so the complete
+        // gesture is delivered to the secondary engine on affected devices.
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) acquireInputFocus()
+        return super.dispatchTouchEvent(event)
     }
 
     /** Never let BACK reach Dialog's cancel path, focused or not. */
