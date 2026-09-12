@@ -1002,6 +1002,10 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
                     itemCount: allSystems.length,
                     initialIndex: _currentIndex,
                     footerHeight: 60.r,
+                    // Keep navigation continuous across the systems row.
+                    // Left on the first system jumps to the last; right on the
+                    // last system jumps back to the first.
+                    wrap: true,
                     // System cards are height-bound (square art + footer)
                     // so ~3.6 of them fit across the screen. With the
                     // default envelope the 4th card is already down to
