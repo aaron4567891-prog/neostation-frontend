@@ -11,6 +11,7 @@ const List<String> scrapedArtworkTypes = [
   'wheels',
   'box2d',
   'screenshots',
+  'media',
 ];
 
 /// Resolves every artwork file a scrape may have written for [game].

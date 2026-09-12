@@ -24,7 +24,14 @@ class MediaContent extends StatefulWidget {
 }
 
 class MediaContentState extends State<MediaContent> {
-  static const _orderedKeys = ['fanart', 'ss', 'wheel', 'box2D', 'video'];
+  static const _orderedKeys = [
+    'fanart',
+    'ss',
+    'wheel',
+    'box2D',
+    'support2D',
+    'video',
+  ];
 
   void selectItem(int index) {
     if (index >= 0 && index < _orderedKeys.length) {
@@ -49,6 +56,8 @@ class MediaContentState extends State<MediaContent> {
         return AppLocale.scrapeWheel.getString(context);
       case 'box2D':
         return AppLocale.scrapeBox2D.getString(context);
+      case 'support2D':
+        return 'Game Media';
       case 'video':
         return AppLocale.scrapeVideo.getString(context);
       default:
@@ -66,6 +75,8 @@ class MediaContentState extends State<MediaContent> {
         return AppLocale.scrapeWheelDesc.getString(context);
       case 'box2D':
         return AppLocale.scrapeBox2DDesc.getString(context);
+      case 'support2D':
+        return 'Download physical media artwork such as discs and cartridges.';
       case 'video':
         return AppLocale.scrapeVideoDesc.getString(context);
       default:

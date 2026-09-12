@@ -53,6 +53,8 @@ class ScreenscraperMediaResolver {
         return 'wheels';
       case 'box2D':
         return 'box2d';
+      case 'support2D':
+        return 'media';
       default:
         return mediaType;
     }
@@ -73,7 +75,11 @@ class ScreenscraperMediaResolver {
         ? ['wheel-hd', 'wheel']
         : (mediaType == 'ss'
               ? ['ss-hd', 'ss']
-              : (mediaType == 'box2D' ? ['box-2D'] : [mediaType]));
+              : (mediaType == 'box2D'
+                    ? ['box-2D']
+                    : (mediaType == 'support2D'
+                          ? ['support-2D']
+                          : [mediaType])));
 
     const defaultLanguageHierarchy = ['en', 'es', 'fr', 'de', 'it', 'pt', 'jp'];
 

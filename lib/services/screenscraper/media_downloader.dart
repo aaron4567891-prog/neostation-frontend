@@ -81,7 +81,8 @@ class ScreenscraperMediaDownloader {
     final userDataDir = await ScreenscraperMediaResolver.getMediaDirectory();
     final regionPriority = await ScreenscraperRegionConfig.getRegionPriority();
     final mediaTypes =
-        allowedMediaTypes ?? ['fanart', 'ss', 'video', 'wheel', 'box2D'];
+        allowedMediaTypes ??
+        ['fanart', 'ss', 'video', 'wheel', 'box2D', 'support2D'];
 
     final downloadTasks = <Map<String, dynamic>>[];
     for (final mediaType in mediaTypes) {

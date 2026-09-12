@@ -70,9 +70,9 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
   static const int _idxSave = 11;
   static const int _totalDataItems = 12;
 
-  // Media tab: screenshot, wheel, fanart, boxart, video.
+  // Media tab: screenshot, wheel, fanart, boxart, physical media, video.
   static const int _idxImageStart = 0;
-  static const int _totalMediaItems = 5;
+  static const int _totalMediaItems = 6;
 
   static const _descLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt'];
   static const _mediaTypes = [
@@ -80,6 +80,7 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
     'wheels',
     'fanarts',
     'box2d',
+    'media',
     'videos',
   ];
 
@@ -772,6 +773,8 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
         return AppLocale.fanart.getString(context);
       case 'box2d':
         return AppLocale.boxart.getString(context);
+      case 'media':
+        return 'Game Media';
       case 'videos':
         return 'Video';
       default:

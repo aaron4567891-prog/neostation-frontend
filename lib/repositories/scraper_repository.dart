@@ -404,7 +404,8 @@ class ScraperRepository {
         'scrape_metadata': 1,
         'scrape_images': 1,
         'scrape_videos': 1,
-        'scrape_media_types': '["fanart","ss","wheel","box2D","video"]',
+        'scrape_media_types':
+            '["fanart","ss","wheel","box2D","support2D","video"]',
       });
 
       return {
@@ -424,7 +425,8 @@ class ScraperRepository {
         'scrape_videos': true,
         'region_priority':
             '["wor","us","eu","jp","sp","fr","de","it","kr","cn"]',
-        'scrape_media_types': '["fanart","ss","wheel","box2D","video"]',
+        'scrape_media_types':
+            '["fanart","ss","wheel","box2D","support2D","video"]',
       };
     }
   }
@@ -1086,7 +1088,7 @@ class ScraperRepository {
   }
 
   static const String defaultScrapeMediaTypes =
-      '["fanart","ss","wheel","box2D","video"]';
+      '["fanart","ss","wheel","box2D","support2D","video"]';
 
   static String _parseMediaTypes(Map<String, dynamic> row) {
     final jsonStr = row['scrape_media_types']?.toString();
@@ -1098,7 +1100,9 @@ class ScraperRepository {
         (int.tryParse(row['scrape_videos']?.toString() ?? '1') ?? 1) == 1;
 
     final types = <String>[];
-    if (imagesEnabled) types.addAll(['fanart', 'ss', 'wheel', 'box2D']);
+    if (imagesEnabled) {
+      types.addAll(['fanart', 'ss', 'wheel', 'box2D', 'support2D']);
+    }
     if (videosEnabled) types.add('video');
     return jsonEncode(types);
   }
@@ -1112,7 +1116,7 @@ class ScraperRepository {
       return decoded.cast<String>();
     } catch (e) {
       _log.e('Error getting enabled media types: $e');
-      return ['fanart', 'ss', 'wheel', 'box2D', 'video'];
+      return ['fanart', 'ss', 'wheel', 'box2D', 'support2D', 'video'];
     }
   }
 

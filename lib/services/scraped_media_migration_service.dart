@@ -13,6 +13,7 @@ class ScrapedMediaMigrationService {
     'screenshots',
     'wheels',
     'box2d',
+    'media',
     'videos',
   ];
 

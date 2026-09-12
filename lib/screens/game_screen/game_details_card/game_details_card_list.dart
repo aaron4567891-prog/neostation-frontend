@@ -34,6 +34,7 @@ import 'detail_tab.dart';
 import 'widgets/scraping_progress_panel.dart';
 import 'tabs/game_details_general_tab.dart';
 import 'tabs/game_details_box2d_tab.dart';
+import 'tabs/game_details_media_tab.dart';
 import 'tabs/game_details_screenshot_video_tab.dart';
 import 'tabs/game_details_game_info_tab.dart';
 import 'tabs/game_details_achievements_tab.dart';
@@ -919,6 +920,17 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
                     _slidingPanel(
                       DetailTab.box2d,
                       GameDetailsBox2dTab(
+                        bottomOffset: panelBottomOffset,
+                        system: _effectiveSystem,
+                        game: _game,
+                        fileProvider: widget.fileProvider,
+                        imageVersion: _artworkImageVersion,
+                      ),
+                    ),
+                  if (_isPanelMounted(DetailTab.media))
+                    _slidingPanel(
+                      DetailTab.media,
+                      GameDetailsMediaTab(
                         bottomOffset: panelBottomOffset,
                         system: _effectiveSystem,
                         game: _game,

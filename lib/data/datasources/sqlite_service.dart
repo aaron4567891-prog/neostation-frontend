@@ -1692,7 +1692,7 @@ class SqliteService {
       }
       if (!columns.contains('scrape_media_types')) {
         await db.execute(
-          "ALTER TABLE user_screenscraper_config ADD COLUMN scrape_media_types TEXT DEFAULT '[\"fanart\",\"ss\",\"wheel\",\"box2D\",\"video\"]'",
+          "ALTER TABLE user_screenscraper_config ADD COLUMN scrape_media_types TEXT DEFAULT '[\"fanart\",\"ss\",\"wheel\",\"box2D\",\"support2D\",\"video\"]'",
         );
       }
 
@@ -2061,7 +2061,7 @@ class SqliteService {
         scrape_images INTEGER DEFAULT 1,
         scrape_videos INTEGER DEFAULT 1,
         region_priority TEXT DEFAULT '["wor","us","eu","jp","sp","fr","de","it","kr","cn"]',
-        scrape_media_types TEXT DEFAULT '["fanart","ss","wheel","box2D","video"]',
+        scrape_media_types TEXT DEFAULT '["fanart","ss","wheel","box2D","support2D","video"]',
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
       ''',

@@ -36,6 +36,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
   static const List<DetailTab> _baseTabs = [
     DetailTab.wheel,
     DetailTab.box2d,
+    DetailTab.media,
     DetailTab.screenshotVideo,
     DetailTab.gameInfo,
   ];
@@ -171,6 +172,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
     return switch (tab) {
       DetailTab.wheel => Symbols.branding_watermark_rounded,
       DetailTab.box2d => Symbols.filter_frames_rounded,
+      DetailTab.media => Symbols.album_rounded,
       DetailTab.screenshotVideo => Symbols.image_rounded,
       DetailTab.gameInfo => Symbols.info_rounded,
       DetailTab.achievements => Symbols.emoji_events_rounded,

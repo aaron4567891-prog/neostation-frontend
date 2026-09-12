@@ -4785,7 +4785,7 @@ class SqliteMigrations {
 
       if (!columns.contains('scrape_media_types')) {
         db.execute(
-          "ALTER TABLE user_screenscraper_config ADD COLUMN scrape_media_types TEXT DEFAULT '[\"fanart\",\"ss\",\"wheel\",\"box2D\",\"video\"]'",
+          "ALTER TABLE user_screenscraper_config ADD COLUMN scrape_media_types TEXT DEFAULT '[\"fanart\",\"ss\",\"wheel\",\"box2D\",\"support2D\",\"video\"]'",
         );
         _log.i('Column scrape_media_types added via v86');
       } else {
