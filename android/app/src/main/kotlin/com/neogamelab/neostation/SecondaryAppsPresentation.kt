@@ -1,6 +1,8 @@
 package com.neogamelab.neostation
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Display
 import android.view.KeyEvent
@@ -35,6 +37,16 @@ class SecondaryAppsPresentation(
 
     private var appsChannel: MethodChannel? = null
     private var inputFocused = false
+    private var leftShoulderDown = false
+    private var rightShoulderDown = false
+    private var swapChordFired = false
+    private val swapChordHandler = Handler(Looper.getMainLooper())
+    private val swapChordRunnable = Runnable {
+        if (leftShoulderDown && rightShoulderDown && !swapChordFired) {
+            swapChordFired = true
+            activity.forwardSecondaryUiAction("toggleSwap")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,6 +129,23 @@ class SecondaryAppsPresentation(
 
     /** Never let BACK reach Dialog's cancel path, focused or not. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1 ||
+            event.keyCode == KeyEvent.KEYCODE_BUTTON_R1
+        ) {
+            val down = event.action == KeyEvent.ACTION_DOWN
+            if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1) {
+                leftShoulderDown = down
+            } else {
+                rightShoulderDown = down
+            }
+            if (leftShoulderDown && rightShoulderDown && !swapChordFired) {
+                swapChordHandler.removeCallbacks(swapChordRunnable)
+                swapChordHandler.postDelayed(swapChordRunnable, 650L)
+            } else if (!leftShoulderDown || !rightShoulderDown) {
+                swapChordHandler.removeCallbacks(swapChordRunnable)
+                if (!leftShoulderDown && !rightShoulderDown) swapChordFired = false
+            }
+        }
         if (event.action == KeyEvent.ACTION_DOWN &&
             (event.keyCode == KeyEvent.KEYCODE_BACK ||
                 event.keyCode == KeyEvent.KEYCODE_BUTTON_B)
@@ -172,10 +201,20 @@ class SecondaryAppsPresentation(
                         releaseInputFocus()
                         result.success(null)
                     }
+                    "sendNeoStationAction" -> {
+                        val action = call.argument<String>("action")
+                        if (action == null) {
+                            result.error("INVALID_ARGUMENTS", "Action is required", null)
+                        } else {
+                            activity.forwardSecondaryUiAction(action)
+                            result.success(null)
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
         }
+        notifyInAppSwap(activity.inAppSwapActive)
     }
 
     /**
@@ -215,6 +254,10 @@ class SecondaryAppsPresentation(
         }
     }
 
+    fun notifyInAppSwap(swapped: Boolean) {
+        appsChannel?.invokeMethod("onInAppSwapChanged", swapped)
+    }
+
     /** Reads the base class's private engine field created during onCreate. */
     private fun resolveEngine(): FlutterEngine? {
         return try {
@@ -228,6 +271,7 @@ class SecondaryAppsPresentation(
     }
 
     override fun dismiss() {
+        swapChordHandler.removeCallbacks(swapChordRunnable)
         appsChannel?.setMethodCallHandler(null)
         appsChannel = null
         super.dismiss()

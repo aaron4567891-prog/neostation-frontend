@@ -162,6 +162,8 @@ extension _LaunchFlow on _SystemGamesListState {
       return;
     }
 
+    if (_inAppScreensSwapped) _setInAppScreensSwapped(false);
+
     // Guard: Prevent launch if an overlay (e.g., Settings) is blocking interaction.
     if (_isPlayingGameBlocked != null && _isPlayingGameBlocked!()) {
       _triggerOverlayAction?.call();

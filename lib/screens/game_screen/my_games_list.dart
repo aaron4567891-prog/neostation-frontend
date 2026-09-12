@@ -285,6 +285,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
   String? _lastGameViewMode; // Memoizes 'gameViewMode' config state.
   bool _isGameLaunching =
       false; // Critical flag to suppress media tasks during transitions.
+  bool _inAppScreensSwapped = false;
   bool _standaloneSyncTriggered = false;
 
   // Task orchestration timers.
@@ -385,6 +386,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
     MusicPlayerService().addListener(_onMusicPlayerStateChanged);
 
     GameService.deviceScreenOn.addListener(_onDeviceScreenPowerChanged);
+    GameService.secondaryUiAction.addListener(_onSecondaryUiAction);
 
     if (Platform.isAndroid) {
       _secondaryDisplayState = SecondaryDisplayState.instance;
@@ -461,6 +463,39 @@ class _SystemGamesListState extends State<SystemGamesList> {
     }
   }
 
+  void _setInAppScreensSwapped(bool swapped) {
+    if (!mounted || _inAppScreensSwapped == swapped) return;
+    setState(() => _inAppScreensSwapped = swapped);
+    unawaited(GameService.setInAppSwap(swapped));
+  }
+
+  void _onSecondaryUiAction() {
+    if (!mounted) return;
+    switch (GameService.secondaryUiAction.value?['action']) {
+      case 'toggleSwap':
+        _setInAppScreensSwapped(!_inAppScreensSwapped);
+        break;
+      case 'previous':
+        if (_inAppScreensSwapped) _navigateUp();
+        break;
+      case 'next':
+        if (_inAppScreensSwapped) _navigateDown();
+        break;
+      case 'play':
+        if (_inAppScreensSwapped) {
+          _setInAppScreensSwapped(false);
+          _selectCurrentGame();
+        }
+        break;
+      case 'favorite':
+        if (_inAppScreensSwapped) _toggleFavorite();
+        break;
+      case 'settings':
+        if (_inAppScreensSwapped) _openGameSettingsDialog();
+        break;
+    }
+  }
+
   @override
   void dispose() {
     // Detach listeners before disposal.
@@ -469,6 +504,8 @@ class _SystemGamesListState extends State<SystemGamesList> {
     _scrapingProvider.removeListener(_onScrapingUpdated);
     MusicPlayerService().removeListener(_onMusicPlayerStateChanged);
     GameService.deviceScreenOn.removeListener(_onDeviceScreenPowerChanged);
+    GameService.secondaryUiAction.removeListener(_onSecondaryUiAction);
+    if (_inAppScreensSwapped) unawaited(GameService.setInAppSwap(false));
 
     // Shared singleton — detach our listener, never dispose the instance.
     _secondaryDisplayState?.removeListener(_onSecondaryDisplayChanged);
@@ -878,7 +915,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
               ),
 
             // Content Layer: hide entirely while game dialog is active.
-            if (!_isGameLaunching)
+            if (!_isGameLaunching && !_inAppScreensSwapped)
               SizedBox(
                 child: _isLoading
                     ? _buildLoadingState()
@@ -907,12 +944,53 @@ class _SystemGamesListState extends State<SystemGamesList> {
                       ),
               ),
 
+            if (_inAppScreensSwapped) _buildSwappedTopMedia(),
+
             // Navigation Layer: Visual alphabetical feedback for rapid scrolling.
-            if (_currentLetter != null && !_isGameLaunching)
+            if (_currentLetter != null &&
+                !_isGameLaunching &&
+                !_inAppScreensSwapped)
               _buildLetterIndicator(),
-            GameViewModeDropdown(),
+            if (!_inAppScreensSwapped) GameViewModeDropdown(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSwappedTopMedia() {
+    final value = _secondaryDisplayState?.value;
+    if (value == null) return const ColoredBox(color: Colors.black);
+    final screenshot = value.gameScreenshot;
+    final fanart = value.gameFanart;
+    final wheel = value.gameWheel;
+    return ColoredBox(
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_showVideo && _videoController != null)
+            FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(
+                width: _videoController!.value.size.width,
+                height: _videoController!.value.size.height,
+                child: VideoPlayer(_videoController!),
+              ),
+            )
+          else if (screenshot != null && File(screenshot).existsSync())
+            Image.file(File(screenshot), fit: BoxFit.contain)
+          else if (fanart != null && File(fanart).existsSync())
+            Image.file(File(fanart), fit: BoxFit.cover),
+          if (wheel != null && File(wheel).existsSync())
+            Center(
+              child: FractionallySizedBox(
+                widthFactor: 0.55,
+                heightFactor: 0.35,
+                child: Image.file(File(wheel), fit: BoxFit.contain),
+              ),
+            ),
+        ],
       ),
     );
   }

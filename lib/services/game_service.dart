@@ -23,6 +23,13 @@ export 'game/game_launch_service.dart' show GameLaunchResult;
 /// [GameLaunchService]. Holds only the Android game-lifecycle listener wiring
 /// and the [onScreenStateChanged] callback slot.
 class GameService {
+  static const MethodChannel _platform = MethodChannel(
+    'com.neogamelab.neostation/game',
+  );
+
+  static final ValueNotifier<Map<String, dynamic>?> secondaryUiAction =
+      ValueNotifier<Map<String, dynamic>?>(null);
+
   /// Whether a game process is currently active.
   /// Delegates to [GameSessionManager].
   static bool get isGameLaunched => GameSessionManager.isGameLaunched;
@@ -61,8 +68,7 @@ class GameService {
   static void initializeAndroidGameListener() {
     if (!Platform.isAndroid) return;
 
-    const platform = MethodChannel('com.neogamelab.neostation/game');
-    platform.setMethodCallHandler((call) async {
+    _platform.setMethodCallHandler((call) async {
       if (call.method == 'onGameReturned') {
         final elapsedSeconds =
             int.tryParse(call.arguments['elapsedSeconds']?.toString() ?? '0') ??
@@ -90,8 +96,18 @@ class GameService {
           MusicPlayerService().appResumed();
           onScreenStateChanged?.call(true);
         }
+      } else if (call.method == 'onSecondaryUiAction') {
+        final raw = Map<Object?, Object?>.from(call.arguments as Map);
+        secondaryUiAction.value = raw.map(
+          (key, value) => MapEntry(key.toString(), value),
+        );
       }
     });
+  }
+
+  static Future<void> setInAppSwap(bool swapped) async {
+    if (!Platform.isAndroid) return;
+    await _platform.invokeMethod<void>('setInAppSwap', {'swapped': swapped});
   }
 
   /// Recovers playtime from a previously interrupted game session.
