@@ -1243,6 +1243,42 @@ extension SqliteConfigScanning on SqliteConfigProvider {
     final sortBy = _config.systemSortBy;
     final isAsc = _config.systemSortOrder == 'asc';
 
+    // A drag/drop order includes virtual and ordinary systems alike. Systems
+    // introduced by a later scan/update are appended in their existing order
+    // until the user places them.
+    if (sortBy.startsWith('custom:')) {
+      try {
+        final decoded = jsonDecode(sortBy.substring('custom:'.length));
+        final order = decoded is List
+            ? decoded.map((item) => item.toString()).toList()
+            : const <String>[];
+        final positions = <String, int>{
+          for (var i = 0; i < order.length; i++) order[i]: i,
+        };
+        final fallbackPositions = <String, int>{
+          for (var i = 0; i < _detectedSystems.length; i++)
+            _detectedSystems[i].folderName: i,
+        };
+        _detectedSystems.sort((a, b) {
+          final aPosition = positions[a.folderName];
+          final bPosition = positions[b.folderName];
+          if (aPosition != null && bPosition != null) {
+            return aPosition.compareTo(bPosition);
+          }
+          if (aPosition != null) return -1;
+          if (bPosition != null) return 1;
+          return (fallbackPositions[a.folderName] ?? 0).compareTo(
+            fallbackPositions[b.folderName] ?? 0,
+          );
+        });
+        return;
+      } catch (e) {
+        SqliteConfigProvider._log.w(
+          'Invalid custom system order; falling back to alphabetical: $e',
+        );
+      }
+    }
+
     // Map priority folders that should NEVER be sorted
     final priorityMap = <String, int>{
       'all': 1,

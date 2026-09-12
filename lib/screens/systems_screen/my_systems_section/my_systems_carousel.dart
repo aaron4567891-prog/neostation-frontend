@@ -59,6 +59,7 @@ class MySystemsCarousel extends StatefulWidget {
     this.onBackPressed,
     this.onXPressed,
     this.onRightStickPressed,
+    this.onReorderRequested,
     this.navLayerId = kSystemsCarouselNavLayerId,
     this.cardOverrideBuilder,
     this.blockSystemBack = true,
@@ -100,6 +101,9 @@ class MySystemsCarousel extends StatefulWidget {
 
   /// R3. Opens Android Apps directly on the main systems screen.
   final VoidCallback? onRightStickPressed;
+
+  /// Opens the persistent system-card ordering screen.
+  final VoidCallback? onReorderRequested;
 
   /// Anchor for a menu opened on the centred card.
   ///
@@ -292,6 +296,7 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
       onNavigateLeft: _navigatePrevious,
       onNavigateRight: _navigateNext,
       onSelectItem: _selectCurrentSystem,
+      onSelectItemLongPress: widget.onReorderRequested,
       onSettings: _openSystemSettingsFromCarousel,
       // Resolved on every press: the host rebuilds this callback around the
       // currently selected card, so holding the closure captured here would

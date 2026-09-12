@@ -37,6 +37,7 @@ extension _GamepadGridNav on _SystemCardGridViewState {
         _navigateGrid('right');
       },
       onSelectItem: () => widget.onEnterPressed?.call(),
+      onSelectItemLongPress: widget.onReorderRequested,
       onSettings: () => widget.onEscapePressed?.call(),
       // Read through `widget` on every press, exactly as A and START above do.
       // The host rebuilds this callback each frame around the *currently*

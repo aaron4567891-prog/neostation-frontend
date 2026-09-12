@@ -70,6 +70,7 @@ class GamepadNavigation {
   final VoidCallback? onPreviousTab;
   final VoidCallback? onNextTab;
   final VoidCallback? onSelectItem;
+  final VoidCallback? onSelectItemLongPress;
   final VoidCallback? onBack;
   final VoidCallback? onFavorite;
   final VoidCallback? onSettings;
@@ -255,6 +256,13 @@ class GamepadNavigation {
 
   final Map<dynamic, Timer?> _repeatTimers = {};
 
+  /// Optional A-button hold detector. It is only enabled on screens that bind
+  /// [onSelectItemLongPress], so every existing A action keeps firing on its
+  /// original edge and timing.
+  Timer? _selectItemHoldTimer;
+  bool _selectItemLongPressFired = false;
+  static const Duration _selectItemLongPressDelay = Duration(milliseconds: 650);
+
   DateTime? _lastEventTime;
   static const int _throttleDelayMs = 128;
   bool _isActive = false;
@@ -353,6 +361,7 @@ class GamepadNavigation {
     this.onPreviousTab,
     this.onNextTab,
     this.onSelectItem,
+    this.onSelectItemLongPress,
     this.onBack,
     this.onFavorite,
     this.onSettings,
@@ -526,6 +535,9 @@ class GamepadNavigation {
   void deactivate() {
     _isActive = false;
     _activationTime = null;
+    _selectItemHoldTimer?.cancel();
+    _selectItemHoldTimer = null;
+    _selectItemLongPressFired = false;
     _resetSelectModifier();
     cancelAllRepeatTimers();
     // Leave [_shoulderHoldTimer] alone: a tab switch deactivates this layer
@@ -646,6 +658,8 @@ class GamepadNavigation {
     _subscription?.cancel();
     _subscription = null;
     _resetSelectModifier();
+    _selectItemHoldTimer?.cancel();
+    _selectItemHoldTimer = null;
     cancelAllRepeatTimers();
     if (identical(_activeNavigator, this)) {
       _activeNavigator = null;
@@ -892,6 +906,32 @@ class GamepadNavigation {
     // Swallow the matching release so the normal action never fires for a button
     // already consumed by a combo (order-independent of when Select is released).
     if (event.isReleased && _comboConsumed.remove(event.inputType)) return;
+
+    // Screens that provide an A-hold action defer the ordinary A tap until
+    // release. Holding for the threshold fires the alternate action once;
+    // releasing sooner preserves the normal select/open behavior.
+    if (event.inputType == GamepadInputType.buttonA &&
+        onSelectItemLongPress != null) {
+      if (event.isPressed) {
+        _selectItemHoldTimer?.cancel();
+        _selectItemLongPressFired = false;
+        _selectItemHoldTimer = Timer(_selectItemLongPressDelay, () {
+          if (!_isActive) return;
+          _selectItemLongPressFired = true;
+          SfxService().playNavSound();
+          onSelectItemLongPress?.call();
+        });
+      } else if (event.isReleased) {
+        _selectItemHoldTimer?.cancel();
+        _selectItemHoldTimer = null;
+        if (!_selectItemLongPressFired) {
+          SfxService().playEnterSound();
+          onSelectItem?.call();
+        }
+        _selectItemLongPressFired = false;
+      }
+      return;
+    }
 
     bool shouldProcess;
 

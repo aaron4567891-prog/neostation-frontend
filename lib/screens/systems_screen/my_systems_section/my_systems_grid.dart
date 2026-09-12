@@ -45,6 +45,7 @@ import 'package:neostation/providers/system_background_provider.dart';
 import 'package:neostation/providers/retro_achievements_provider.dart';
 import 'package:neostation/services/secondary_achievements_controller.dart';
 import 'system_list_builder.dart';
+import '../system_order_screen.dart';
 
 part 'my_systems_grid/gamepad_grid_nav.dart';
 part 'my_systems_grid/theme_background.dart';
@@ -60,6 +61,7 @@ const String _menuSettings = 'settings';
 const String _menuViewMode = 'view_mode';
 const String _menuViewGrid = 'view_grid';
 const String _menuViewCarousel = 'view_carousel';
+const String _menuReorder = 'reorder_systems';
 
 /// Primary widget for the 'My Systems' view, supporting both Grid and Carousel layouts.
 ///
@@ -125,6 +127,8 @@ class MySystems extends StatelessWidget {
                       selectedItemKey: _cardAnchorKey,
                       onRightStickPressed: () =>
                           _openAndroidApps(context, configProvider, allSystems),
+                      onReorderRequested: () =>
+                          _openSystemOrder(context, allSystems),
                       onYPressed: () => _openSystemContextMenu(
                         context,
                         currentSystem,
@@ -239,6 +243,7 @@ class MySystems extends StatelessWidget {
               systems: allSystems,
               onRightStickPressed: () =>
                   _openAndroidApps(context, configProvider, allSystems),
+              onReorderRequested: () => _openSystemOrder(context, allSystems),
               onYPressed: () => _openSystemContextMenu(
                 context,
                 currentSystem,
@@ -283,6 +288,19 @@ class MySystems extends StatelessWidget {
     );
     if (androidSystems.isEmpty) return;
     _navigateToSystem(context, androidSystems.first, configProvider);
+  }
+
+  Future<void> _openSystemOrder(
+    BuildContext context,
+    List<SystemInfo> systems,
+  ) async {
+    final reorderable = systems.where((system) => !system.isGame).toList();
+    if (reorderable.length < 2) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SystemOrderScreen(systems: reorderable),
+      ),
+    );
   }
 
   /// The card context menu, opened by Y or by a long press on the card.
@@ -335,6 +353,12 @@ class MySystems extends StatelessWidget {
           ),
         ],
       ),
+      const ContextMenuItem(
+        id: _menuReorder,
+        label: 'Reorder systems',
+        icon: Symbols.swap_vert_rounded,
+        separatorBefore: true,
+      ),
     ];
 
     final result = await showAnchoredContextMenu(
@@ -357,6 +381,11 @@ class MySystems extends StatelessWidget {
         await configProvider.updateSystemViewMode('grid');
       case _menuViewCarousel:
         await configProvider.updateSystemViewMode('carousel');
+      case _menuReorder:
+        await _openSystemOrder(
+          context,
+          _buildAllSystems(context, configProvider),
+        );
     }
   }
 
@@ -699,6 +728,7 @@ class SystemCardGridView extends StatefulWidget {
     this.onBackPressed,
     this.onXPressed,
     this.onRightStickPressed,
+    this.onReorderRequested,
     this.systems = const [],
     this.recentCardSize = RecentCardSizes.defaultSize,
     this.navLayerId = kSystemsGridNavLayerId,
@@ -744,6 +774,9 @@ class SystemCardGridView extends StatefulWidget {
 
   /// R3. Opens Android Apps directly on the main systems screen.
   final VoidCallback? onRightStickPressed;
+
+  /// Opens the persistent system-card ordering screen.
+  final VoidCallback? onReorderRequested;
 
   final List<dynamic> systems;
 

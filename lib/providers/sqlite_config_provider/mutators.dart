@@ -373,6 +373,23 @@ extension SqliteConfigMutators on SqliteConfigProvider {
     _notify();
   }
 
+  /// Saves an explicit system-card order. The order is encoded into the
+  /// existing `system_sort_by` preference so older databases need no schema
+  /// migration; choosing a normal sort from the header replaces it normally.
+  Future<void> updateCustomSystemOrder(List<String> folderNames) async {
+    final seen = <String>{};
+    final normalized = folderNames
+        .where((folder) => folder.isNotEmpty && seen.add(folder))
+        .toList();
+    _config = _config.copyWith(
+      systemSortBy: 'custom:${jsonEncode(normalized)}',
+      systemSortOrder: 'asc',
+    );
+    _sortDetectedSystems();
+    await SqliteConfigService.saveConfig(_config);
+    _notify();
+  }
+
   /// Updates how the collections browser orders its cards.
   ///
   /// No `_sortDetectedSystems()` here: this setting says nothing about the
