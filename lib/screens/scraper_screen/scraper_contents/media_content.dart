@@ -33,6 +33,37 @@ class MediaContentState extends State<MediaContent> {
     'video',
   ];
 
+  final List<GlobalKey> _itemKeys = List.generate(
+    _orderedKeys.length,
+    (_) => GlobalKey(),
+  );
+
+  @override
+  void didUpdateWidget(covariant MediaContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isContentFocused &&
+        (!oldWidget.isContentFocused ||
+            oldWidget.selectedContentIndex != widget.selectedContentIndex)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _ensureSelectedItemVisible();
+      });
+    }
+  }
+
+  void _ensureSelectedItemVisible() {
+    final index = widget.selectedContentIndex;
+    if (index < 0 || index >= _itemKeys.length) return;
+    final itemContext = _itemKeys[index].currentContext;
+    if (itemContext == null) return;
+    Scrollable.ensureVisible(
+      itemContext,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeInOut,
+      alignment: 0.5,
+    );
+  }
+
   void selectItem(int index) {
     if (index >= 0 && index < _orderedKeys.length) {
       final key = _orderedKeys[index];
@@ -89,6 +120,7 @@ class MediaContentState extends State<MediaContent> {
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,6 +137,7 @@ class MediaContentState extends State<MediaContent> {
                 widget.isContentFocused && widget.selectedContentIndex == index;
 
             return Container(
+              key: _itemKeys[index],
               padding: EdgeInsets.only(
                 left: 12.r,
                 right: 12.r,
