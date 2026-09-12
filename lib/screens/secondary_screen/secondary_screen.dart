@@ -1114,13 +1114,12 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                                 ),
                               ),
 
-                            if (value.isGameSelected &&
-                                !value.nowPlayingActive &&
-                                SecondaryAppsService.inAppSwap.value)
-                              _buildSwappedRemotePanel(value),
-
-                            if (value.isGameSelected && !value.nowPlayingActive)
-                              _buildScreenSwapButton(value),
+                            if (SecondaryAppsService.inAppSwap.value)
+                              SecondaryAppsService.inAppGameListSwap.value &&
+                                      value.isGameSelected &&
+                                      !value.nowPlayingActive
+                                  ? _buildSwappedRemotePanel(value)
+                                  : _buildGlobalRemotePanel(value),
 
                             // Persistent app dock + all-apps launcher. Drawn at
                             // the top level (not inside the in-game panel) so it
@@ -1146,6 +1145,10 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                             // the dock and picker.
                             if (_accessDialogVisible)
                               _buildAccessibilityDialog(value),
+
+                            // Always available over NeoStation-owned bottom
+                            // screen surfaces, including pickers and dialogs.
+                            _buildScreenSwapButton(value),
                           ],
                         ),
                 );
@@ -1231,6 +1234,80 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                 'SETTINGS',
                 'settings',
                 scheme,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlobalRemotePanel(SecondaryDisplayStateData value) {
+    final scheme = panelScheme(value);
+    return Positioned.fill(
+      child: ColoredBox(
+        color: scheme.surface,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildRemoteAction(
+                Symbols.keyboard_arrow_up_rounded,
+                'UP',
+                'remoteUp',
+                scheme,
+              ),
+              SizedBox(height: 12.r),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildRemoteAction(
+                    Symbols.keyboard_arrow_left_rounded,
+                    'LEFT',
+                    'remoteLeft',
+                    scheme,
+                  ),
+                  SizedBox(width: 12.r),
+                  _buildRemoteAction(
+                    Symbols.check_circle_rounded,
+                    'SELECT',
+                    'remoteSelect',
+                    scheme,
+                  ),
+                  SizedBox(width: 12.r),
+                  _buildRemoteAction(
+                    Symbols.keyboard_arrow_right_rounded,
+                    'RIGHT',
+                    'remoteRight',
+                    scheme,
+                  ),
+                ],
+              ),
+              SizedBox(height: 12.r),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildRemoteAction(
+                    Symbols.arrow_back_rounded,
+                    'BACK',
+                    'remoteBack',
+                    scheme,
+                  ),
+                  SizedBox(width: 12.r),
+                  _buildRemoteAction(
+                    Symbols.keyboard_arrow_down_rounded,
+                    'DOWN',
+                    'remoteDown',
+                    scheme,
+                  ),
+                  SizedBox(width: 12.r),
+                  _buildRemoteAction(
+                    Symbols.settings_rounded,
+                    'SETTINGS',
+                    'remoteSettings',
+                    scheme,
+                  ),
+                ],
               ),
             ],
           ),

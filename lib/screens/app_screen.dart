@@ -139,6 +139,7 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
     _currentInstance = this;
     WidgetsBinding.instance.addObserver(this);
     GameSessionManager.addSessionEndListener(_onGameSessionEnded);
+    GameService.secondaryUiAction.addListener(_onSecondaryUiAction);
 
     // Initialize the navigation bridge with core application callbacks.
     _gamepadNav = GamepadNavigation(
@@ -392,12 +393,20 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _currentInstance = null;
+    GameService.secondaryUiAction.removeListener(_onSecondaryUiAction);
     GameSessionManager.removeSessionEndListener(_onGameSessionEnded);
     WidgetsBinding.instance.removeObserver(this);
     _themeProvider?.removeListener(_onThemeChanged);
     GamepadNavigationManager.popLayer('app_screen');
     _gamepadNav.dispose();
     super.dispose();
+  }
+
+  void _onSecondaryUiAction() {
+    final action = GameService.secondaryUiAction.value?['action']?.toString();
+    if (action == null || !action.startsWith('remote')) return;
+    final command = action.substring('remote'.length).toLowerCase();
+    GamepadNavigation.triggerRemoteAction(command);
   }
 
   @override

@@ -108,6 +108,9 @@ class SecondaryAppsService {
   /// Increments whenever Back/B is pressed while the bottom display has focus.
   static final ValueNotifier<int> backTrigger = ValueNotifier<int>(0);
   static final ValueNotifier<bool> inAppSwap = ValueNotifier<bool>(false);
+  static final ValueNotifier<bool> inAppGameListSwap = ValueNotifier<bool>(
+    false,
+  );
 
   static bool _screenStateWired = false;
 
@@ -133,7 +136,14 @@ class SecondaryAppsService {
           backTrigger.value++;
           break;
         case 'onInAppSwapChanged':
-          inAppSwap.value = call.arguments == true;
+          final arguments = call.arguments;
+          if (arguments is Map) {
+            inAppSwap.value = arguments['swapped'] == true;
+            inAppGameListSwap.value = arguments['gameListMode'] == true;
+          } else {
+            inAppSwap.value = arguments == true;
+            inAppGameListSwap.value = false;
+          }
           break;
       }
       return null;

@@ -1,8 +1,6 @@
 package com.neogamelab.neostation
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.Display
 import android.view.KeyEvent
@@ -37,16 +35,7 @@ class SecondaryAppsPresentation(
 
     private var appsChannel: MethodChannel? = null
     private var inputFocused = false
-    private var leftShoulderDown = false
-    private var rightShoulderDown = false
-    private var swapChordFired = false
-    private val swapChordHandler = Handler(Looper.getMainLooper())
-    private val swapChordRunnable = Runnable {
-        if (leftShoulderDown && rightShoulderDown && !swapChordFired) {
-            swapChordFired = true
-            activity.forwardSecondaryUiAction("toggleSwap")
-        }
-    }
+    private var swapL2Down = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,24 +116,34 @@ class SecondaryAppsPresentation(
         return super.dispatchTouchEvent(event)
     }
 
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        val l2Value = maxOf(
+            event.getAxisValue(MotionEvent.AXIS_LTRIGGER),
+            event.getAxisValue(MotionEvent.AXIS_BRAKE)
+        )
+        val l2Pressed = l2Value > 0.6f
+        if (l2Pressed && !swapL2Down) {
+            swapL2Down = true
+            activity.forwardSecondaryUiAction("toggleSwap")
+            return true
+        }
+        if (!l2Pressed && swapL2Down) {
+            swapL2Down = false
+            return true
+        }
+        return super.dispatchGenericMotionEvent(event)
+    }
+
     /** Never let BACK reach Dialog's cancel path, focused or not. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1 ||
-            event.keyCode == KeyEvent.KEYCODE_BUTTON_R1
-        ) {
-            val down = event.action == KeyEvent.ACTION_DOWN
-            if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1) {
-                leftShoulderDown = down
-            } else {
-                rightShoulderDown = down
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L2) {
+            if (event.action == KeyEvent.ACTION_DOWN && !swapL2Down) {
+                swapL2Down = true
+                activity.forwardSecondaryUiAction("toggleSwap")
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                swapL2Down = false
             }
-            if (leftShoulderDown && rightShoulderDown && !swapChordFired) {
-                swapChordHandler.removeCallbacks(swapChordRunnable)
-                swapChordHandler.postDelayed(swapChordRunnable, 650L)
-            } else if (!leftShoulderDown || !rightShoulderDown) {
-                swapChordHandler.removeCallbacks(swapChordRunnable)
-                if (!leftShoulderDown && !rightShoulderDown) swapChordFired = false
-            }
+            return true
         }
         if (event.action == KeyEvent.ACTION_DOWN &&
             (event.keyCode == KeyEvent.KEYCODE_BACK ||
@@ -214,7 +213,10 @@ class SecondaryAppsPresentation(
                 }
             }
         }
-        notifyInAppSwap(activity.inAppSwapActive)
+        notifyInAppSwap(
+            activity.inAppSwapActive,
+            activity.inAppGameListSwapActive
+        )
     }
 
     /**
@@ -254,8 +256,11 @@ class SecondaryAppsPresentation(
         }
     }
 
-    fun notifyInAppSwap(swapped: Boolean) {
-        appsChannel?.invokeMethod("onInAppSwapChanged", swapped)
+    fun notifyInAppSwap(swapped: Boolean, gameListMode: Boolean) {
+        appsChannel?.invokeMethod(
+            "onInAppSwapChanged",
+            mapOf("swapped" to swapped, "gameListMode" to gameListMode)
+        )
     }
 
     /** Reads the base class's private engine field created during onCreate. */
@@ -271,7 +276,6 @@ class SecondaryAppsPresentation(
     }
 
     override fun dismiss() {
-        swapChordHandler.removeCallbacks(swapChordRunnable)
         appsChannel?.setMethodCallHandler(null)
         appsChannel = null
         super.dismiss()

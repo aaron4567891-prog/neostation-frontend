@@ -73,18 +73,11 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     // handler instance: removeCallbacks only matches the handler that posted.
     private val dockLaunchHandler = Handler(Looper.getMainLooper())
     private var dockLaunchWatchdog: Runnable? = null
-    private var swapLeftShoulderDown = false
-    private var swapRightShoulderDown = false
-    private var swapChordFired = false
     internal var inAppSwapActive = false
         private set
-    private val swapChordHandler = Handler(Looper.getMainLooper())
-    private val swapChordRunnable = Runnable {
-        if (swapLeftShoulderDown && swapRightShoulderDown && !swapChordFired) {
-            swapChordFired = true
-            forwardSecondaryUiAction("toggleSwap")
-        }
-    }
+    internal var inAppGameListSwapActive = false
+        private set
+    private var swapL2Down = false
 
     // Usar directorio por defecto para cores; no verificar existencia por permisos
     private fun getDefaultLibretroDirectory(retroArchPackage: String): String {
@@ -268,7 +261,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     }
 
     override fun onDestroy() {
-        swapChordHandler.removeCallbacks(swapChordRunnable)
         super.onDestroy()
         // The watch callback and the watchdog both capture this activity; a
         // stale one would try to restore a presentation that died with it.
@@ -330,8 +322,9 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                 "setInAppSwap" -> {
                     val swapped = call.argument<Boolean>("swapped") ?: false
                     inAppSwapActive = swapped
+                    inAppGameListSwapActive = swapped
                     (subScreenPresentation as? SecondaryAppsPresentation)
-                        ?.notifyInAppSwap(swapped)
+                        ?.notifyInAppSwap(swapped, inAppGameListSwapActive)
                     result.success(null)
                 }
 
@@ -985,30 +978,34 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
 
     // Gamepad event forwarding / blocking
     override fun dispatchGenericMotionEvent(motionEvent: MotionEvent): Boolean {
+        val l2Value = maxOf(
+            motionEvent.getAxisValue(MotionEvent.AXIS_LTRIGGER),
+            motionEvent.getAxisValue(MotionEvent.AXIS_BRAKE)
+        )
+        val l2Pressed = l2Value > 0.6f
+        if (l2Pressed && !swapL2Down) {
+            swapL2Down = true
+            forwardSecondaryUiAction("toggleSwap")
+            return true
+        }
+        if (!l2Pressed && swapL2Down) {
+            swapL2Down = false
+            return true
+        }
         if (gamepadBlocked) return true
         val handled = motionListener?.invoke(motionEvent) ?: false
         return if (handled) true else super.dispatchGenericMotionEvent(motionEvent)
     }
 
     override fun dispatchKeyEvent(keyEvent: KeyEvent): Boolean {
-        if (keyEvent.keyCode == KeyEvent.KEYCODE_BUTTON_L1 ||
-            keyEvent.keyCode == KeyEvent.KEYCODE_BUTTON_R1
-        ) {
-            val down = keyEvent.action == KeyEvent.ACTION_DOWN
-            if (keyEvent.keyCode == KeyEvent.KEYCODE_BUTTON_L1) {
-                swapLeftShoulderDown = down
-            } else {
-                swapRightShoulderDown = down
+        if (keyEvent.keyCode == KeyEvent.KEYCODE_BUTTON_L2) {
+            if (keyEvent.action == KeyEvent.ACTION_DOWN && !swapL2Down) {
+                swapL2Down = true
+                forwardSecondaryUiAction("toggleSwap")
+            } else if (keyEvent.action == KeyEvent.ACTION_UP) {
+                swapL2Down = false
             }
-            if (swapLeftShoulderDown && swapRightShoulderDown && !swapChordFired) {
-                swapChordHandler.removeCallbacks(swapChordRunnable)
-                swapChordHandler.postDelayed(swapChordRunnable, 650L)
-            } else if (!swapLeftShoulderDown || !swapRightShoulderDown) {
-                swapChordHandler.removeCallbacks(swapChordRunnable)
-                if (!swapLeftShoulderDown && !swapRightShoulderDown) {
-                    swapChordFired = false
-                }
-            }
+            return true
         }
         // BLOQUEAR COMPLETAMENTE el botón BACK (tanto del sistema como del gamepad)
         if (keyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
@@ -1021,6 +1018,12 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     }
 
     internal fun forwardSecondaryUiAction(action: String) {
+        if (action == "toggleSwap") {
+            inAppSwapActive = !inAppSwapActive
+            inAppGameListSwapActive = false
+            (subScreenPresentation as? SecondaryAppsPresentation)
+                ?.notifyInAppSwap(inAppSwapActive, false)
+        }
         methodChannel?.invokeMethod(
             "onSecondaryUiAction",
             mapOf("action" to action, "time" to System.currentTimeMillis())
