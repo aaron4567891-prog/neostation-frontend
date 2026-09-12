@@ -3,6 +3,7 @@ package com.neogamelab.neostation
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
+import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -118,6 +119,12 @@ class SecondaryAppsPresentation(
         super.dispatchGenericMotionEvent(event)
     }
 
+    private fun isControllerSource(source: Int): Boolean {
+        return source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
+            source and InputDevice.SOURCE_DPAD == InputDevice.SOURCE_DPAD ||
+            source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+    }
+
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         // Acquire focus before Flutter receives ACTION_DOWN so the complete
         // gesture is delivered to the secondary engine on affected devices.
@@ -134,6 +141,19 @@ class SecondaryAppsPresentation(
 
     /** Never let BACK reach Dialog's cancel path, focused or not. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Once the bottom Presentation owns Android focus, controller events
+        // arrive here instead of MainActivity. Forward them explicitly to the
+        // secondary Flutter engine through its MethodChannel.
+        if (inputFocused && isControllerSource(event.source)) {
+            if (event.keyCode == KeyEvent.KEYCODE_BACK ||
+                event.keyCode == KeyEvent.KEYCODE_BUTTON_B
+            ) {
+                appsChannel?.invokeMethod("onSecondaryBack", null)
+            } else {
+                forwardControllerKey(event)
+            }
+            return true
+        }
         if (event.action == KeyEvent.ACTION_DOWN &&
             (event.keyCode == KeyEvent.KEYCODE_BACK ||
                 event.keyCode == KeyEvent.KEYCODE_BUTTON_B)
