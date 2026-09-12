@@ -11,6 +11,7 @@ import 'logger_service.dart';
 import 'screenscraper/media_resolver.dart';
 import 'screenscraper/rom_hasher.dart';
 import 'steamgriddb_service.dart';
+import 'scraper_provider_preferences.dart';
 
 /// Optional metadata provider backed by TheGamesDB.
 ///
@@ -181,6 +182,7 @@ class TheGamesDbService {
     required String systemFolder,
     required String romName,
     required bool overwrite,
+    bool preferSteamGridDb = false,
   }) async {
     final response = await _getJson('/v1/Games/Images', {
       'games_id': gameId.toString(),
@@ -205,12 +207,13 @@ class TheGamesDbService {
     );
     final enabled = await ScraperRepository.getEnabledMediaTypes();
     final choices = <String, Map<String, dynamic>?>{
-      if (enabled.contains('box2D')) 'box2d': _firstImage(rawImages, 'boxart'),
-      if (enabled.contains('fanart'))
+      if (!preferSteamGridDb && enabled.contains('box2D'))
+        'box2d': _firstImage(rawImages, 'boxart'),
+      if (!preferSteamGridDb && enabled.contains('fanart'))
         'fanarts': _firstImage(rawImages, 'fanart'),
       if (enabled.contains('ss'))
         'screenshots': _firstImage(rawImages, 'screenshot'),
-      if (enabled.contains('wheel'))
+      if (!preferSteamGridDb && enabled.contains('wheel'))
         'wheels': _firstImage(rawImages, 'clearlogo'),
     };
     for (final entry in choices.entries) {
@@ -289,6 +292,17 @@ class TheGamesDbService {
       );
 
       final id = int.tryParse(game['id']?.toString() ?? '');
+      final artworkPriority =
+          await ScraperProviderPreferences.getArtworkPriority();
+      if (artworkPriority == ArtworkScraperPriority.steamGridDbFirst) {
+        await SteamGridDbService.downloadGameArtwork(
+          appSystemId: appSystemId,
+          systemFolder: systemFolder,
+          romName: romName,
+          gameName: game['game_title']?.toString() ?? gameName,
+          forceOverwrite: forceOverwrite,
+        );
+      }
       if (id != null) {
         onProgress?.call('Downloading images', 0.35);
         await _downloadMedia(
@@ -296,16 +310,22 @@ class TheGamesDbService {
           appSystemId: appSystemId,
           systemFolder: systemFolder,
           romName: romName,
-          overwrite: forceOverwrite,
+          overwrite:
+              forceOverwrite &&
+              artworkPriority == ArtworkScraperPriority.primaryScraperFirst,
+          preferSteamGridDb:
+              artworkPriority == ArtworkScraperPriority.steamGridDbFirst,
         );
       }
-      await SteamGridDbService.downloadGameArtwork(
-        appSystemId: appSystemId,
-        systemFolder: systemFolder,
-        romName: romName,
-        gameName: game['game_title']?.toString() ?? gameName,
-        forceOverwrite: forceOverwrite,
-      );
+      if (artworkPriority != ArtworkScraperPriority.steamGridDbFirst) {
+        await SteamGridDbService.downloadGameArtwork(
+          appSystemId: appSystemId,
+          systemFolder: systemFolder,
+          romName: romName,
+          gameName: game['game_title']?.toString() ?? gameName,
+          forceOverwrite: false,
+        );
+      }
       onProgress?.call('Completed', 1);
       return {'success': true, 'message': 'Scrape successful'};
     } catch (e) {

@@ -19,6 +19,7 @@ import '../l10n/app_locale.dart';
 import '../widgets/scraping_summary_dialog.dart';
 import 'thegamesdb_service.dart';
 import 'steamgriddb_service.dart';
+import 'scraper_provider_preferences.dart';
 
 /// Service responsible for scraping game metadata and media from the
 /// ScreenScraper.fr API.
@@ -49,6 +50,20 @@ class ScreenScraperService {
 
   static Map<String, dynamic>? _cachedCredentials;
   static bool _isMetadataScrapingRunning = false;
+
+  static Future<bool> _shouldUseTheGamesDb() async {
+    final preferred = await ScraperProviderPreferences.getMetadataProvider();
+    final hasScreenScraper = await getSavedCredentials() != null;
+    final hasTheGamesDb = await TheGamesDbService.hasApiKey();
+    if (preferred == MetadataScraperProvider.theGamesDb && hasTheGamesDb) {
+      return true;
+    }
+    if (preferred == MetadataScraperProvider.screenScraper &&
+        hasScreenScraper) {
+      return false;
+    }
+    return !hasScreenScraper && hasTheGamesDb;
+  }
 
   /// Authenticates user credentials against the ScreenScraper API.
   static Future<Map<String, dynamic>?> verifyCredentials(
@@ -251,8 +266,7 @@ class ScreenScraperService {
     try {
       // TheGamesDB uses its own static platform catalogue and needs no remote
       // ScreenScraper system-id synchronization.
-      if (await getSavedCredentials() == null &&
-          await TheGamesDbService.hasApiKey()) {
+      if (await _shouldUseTheGamesDb()) {
         await ScraperRepository.initializeScraperSystemConfig();
         return true;
       }
@@ -691,8 +705,7 @@ class ScreenScraperService {
       // Prefer the established ScreenScraper account when both providers are
       // configured. TheGamesDB becomes an independent fallback, allowing a
       // user without ScreenScraper developer access to scrape immediately.
-      if (await getSavedCredentials() == null &&
-          await TheGamesDbService.hasApiKey()) {
+      if (await _shouldUseTheGamesDb()) {
         return await TheGamesDbService.scrapeSingleGame(
           appSystemId: appSystemId,
           romName: romName,
@@ -768,6 +781,26 @@ class ScreenScraperService {
       }
 
       final medias = gameInfo['medias'] as List<dynamic>? ?? [];
+      final artworkPriority =
+          await ScraperProviderPreferences.getArtworkPriority();
+      if (artworkPriority == ArtworkScraperPriority.steamGridDbFirst) {
+        await SteamGridDbService.downloadGameArtwork(
+          appSystemId: appSystemId,
+          systemFolder: systemFolder,
+          romName: romName,
+          gameName: gameName,
+          forceOverwrite: forceOverwrite,
+        );
+      }
+      final primaryMediaTypes =
+          artworkPriority == ArtworkScraperPriority.steamGridDbFirst
+          ? allowedMediaTypes
+                .where(
+                  (type) =>
+                      type != 'box2D' && type != 'fanart' && type != 'wheel',
+                )
+                .toList()
+          : allowedMediaTypes;
       final downloadResult =
           await ScreenscraperMediaDownloader.downloadGameMedia(
             systemFolder,
@@ -776,20 +809,24 @@ class ScreenScraperService {
             1,
             appSystemId: appSystemId,
             preferredLanguage: preferredLanguage,
-            allowedMediaTypes: allowedMediaTypes,
-            forceOverwrite: forceOverwrite,
+            allowedMediaTypes: primaryMediaTypes,
+            forceOverwrite:
+                forceOverwrite &&
+                artworkPriority == ArtworkScraperPriority.primaryScraperFirst,
             maxDailyRequests: null,
             onProgress: (p) =>
                 onProgress?.call(AppLocale.downloadingImages, 0.2 + (p * 0.8)),
           );
 
-      await SteamGridDbService.downloadGameArtwork(
-        appSystemId: appSystemId,
-        systemFolder: systemFolder,
-        romName: romName,
-        gameName: gameName,
-        forceOverwrite: forceOverwrite,
-      );
+      if (artworkPriority != ArtworkScraperPriority.steamGridDbFirst) {
+        await SteamGridDbService.downloadGameArtwork(
+          appSystemId: appSystemId,
+          systemFolder: systemFolder,
+          romName: romName,
+          gameName: gameName,
+          forceOverwrite: false,
+        );
+      }
 
       return {
         'success': downloadResult['success'] == true,
@@ -815,8 +852,7 @@ class ScreenScraperService {
     bool Function()? shouldCancel,
   }) async {
     try {
-      if (await getSavedCredentials() == null &&
-          await TheGamesDbService.hasApiKey()) {
+      if (await _shouldUseTheGamesDb()) {
         return await TheGamesDbService.startMetadataScraping(
           scrapingProvider,
           shouldCancel: shouldCancel,
@@ -1117,6 +1153,29 @@ class ScreenScraperService {
         final allowedTypes = await ScraperRepository.getEnabledMediaTypes();
 
         if (allowedTypes.isNotEmpty) {
+          final artworkPriority =
+              await ScraperProviderPreferences.getArtworkPriority();
+          final forceArtwork = scraperConfig['scrape_mode'].toString() == 'all';
+          if (artworkPriority == ArtworkScraperPriority.steamGridDbFirst) {
+            await SteamGridDbService.downloadGameArtwork(
+              appSystemId: appSystemId,
+              systemFolder: systemFolder,
+              romName: filename,
+              gameName: rom['title_name']?.toString(),
+              forceOverwrite: forceArtwork,
+            );
+          }
+          final primaryMediaTypes =
+              artworkPriority == ArtworkScraperPriority.steamGridDbFirst
+              ? allowedTypes
+                    .where(
+                      (type) =>
+                          type != 'box2D' &&
+                          type != 'fanart' &&
+                          type != 'wheel',
+                    )
+                    .toList()
+              : allowedTypes;
           scrapingProvider.updateThreadProgress(
             threadId: threadId,
             gameName: filename,
@@ -1134,17 +1193,21 @@ class ScreenScraperService {
             appSystemId: appSystemId,
             preferredLanguage: preferredLanguage,
             shouldCancel: shouldCancel,
-            allowedMediaTypes: allowedTypes,
+            allowedMediaTypes: primaryMediaTypes,
             maxDailyRequests: maxDailyRequests,
-            forceOverwrite: scraperConfig['scrape_mode'].toString() == 'all',
+            forceOverwrite:
+                forceArtwork &&
+                artworkPriority == ArtworkScraperPriority.primaryScraperFirst,
           );
-          await SteamGridDbService.downloadGameArtwork(
-            appSystemId: appSystemId,
-            systemFolder: systemFolder,
-            romName: filename,
-            gameName: rom['title_name']?.toString(),
-            forceOverwrite: scraperConfig['scrape_mode'].toString() == 'all',
-          );
+          if (artworkPriority != ArtworkScraperPriority.steamGridDbFirst) {
+            await SteamGridDbService.downloadGameArtwork(
+              appSystemId: appSystemId,
+              systemFolder: systemFolder,
+              romName: filename,
+              gameName: rom['title_name']?.toString(),
+              forceOverwrite: false,
+            );
+          }
           if (res['cancelled'] == true) {
             return {
               'success': false,

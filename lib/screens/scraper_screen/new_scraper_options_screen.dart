@@ -11,6 +11,7 @@ import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/repositories/scraper_repository.dart';
 import 'package:neostation/services/thegamesdb_service.dart';
 import 'package:neostation/services/steamgriddb_service.dart';
+import 'package:neostation/services/scraper_provider_preferences.dart';
 import 'scraper_contents/account_content.dart';
 import 'scraper_contents/language_content.dart';
 import 'scraper_contents/region_content.dart';
@@ -67,6 +68,10 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   String? _currentLanguage;
   List<String> _currentEnabledMediaTypes = [];
   bool _steamGridDbConnected = false;
+  MetadataScraperProvider _metadataProvider =
+      MetadataScraperProvider.screenScraper;
+  ArtworkScraperPriority _artworkPriority =
+      ArtworkScraperPriority.primaryScraperFirst;
 
   @override
   void initState() {
@@ -77,6 +82,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     _loadCurrentLanguage();
     _loadCurrentMediaConfig();
     _loadSteamGridDbStatus();
+    _loadProviderPreferences();
   }
 
   @override
@@ -223,6 +229,95 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   Future<void> _loadSteamGridDbStatus() async {
     final connected = await SteamGridDbService.hasApiKey();
     if (mounted) setState(() => _steamGridDbConnected = connected);
+  }
+
+  Future<void> _loadProviderPreferences() async {
+    final metadata = await ScraperProviderPreferences.getMetadataProvider();
+    final artwork = await ScraperProviderPreferences.getArtworkPriority();
+    if (!mounted) return;
+    setState(() {
+      _metadataProvider = metadata;
+      _artworkPriority = artwork;
+    });
+  }
+
+  String get _metadataProviderLabel =>
+      _metadataProvider == MetadataScraperProvider.screenScraper
+      ? 'ScreenScraper'
+      : 'TheGamesDB';
+
+  String get _artworkPriorityLabel {
+    switch (_artworkPriority) {
+      case ArtworkScraperPriority.primaryScraperFirst:
+        return 'Primary scraper first';
+      case ArtworkScraperPriority.steamGridDbFirst:
+        return 'SteamGridDB first';
+      case ArtworkScraperPriority.fillMissingOnly:
+        return 'Keep existing artwork; fill missing';
+    }
+  }
+
+  Future<void> _chooseMetadataProvider() async {
+    final selected = await showDialog<MetadataScraperProvider>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Primary metadata scraper'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              MetadataScraperProvider.screenScraper,
+            ),
+            child: const Text('ScreenScraper'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              MetadataScraperProvider.theGamesDb,
+            ),
+            child: const Text('TheGamesDB'),
+          ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    await ScraperProviderPreferences.setMetadataProvider(selected);
+    await _loadProviderPreferences();
+  }
+
+  Future<void> _chooseArtworkPriority() async {
+    final selected = await showDialog<ArtworkScraperPriority>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Artwork scraper priority'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              ArtworkScraperPriority.primaryScraperFirst,
+            ),
+            child: const Text('Primary scraper first'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              ArtworkScraperPriority.steamGridDbFirst,
+            ),
+            child: const Text('SteamGridDB first'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              ArtworkScraperPriority.fillMissingOnly,
+            ),
+            child: const Text('Keep existing artwork; fill missing'),
+          ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    await ScraperProviderPreferences.setArtworkPriority(selected);
+    await _loadProviderPreferences();
   }
 
   Future<void> _configureSteamGridDb() async {
@@ -416,7 +511,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     if (selectedKey == AppLocale.systems) {
       return _systemsKey.currentState?.getItemCount() ?? 0;
     }
-    if (selectedKey == AppLocale.account) return 2;
+    if (selectedKey == AppLocale.account) return 4;
     return 0;
   }
 
@@ -439,6 +534,10 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
         _handleLogout();
       } else if (_selectedContentIndex == 1) {
         _configureSteamGridDb();
+      } else if (_selectedContentIndex == 2) {
+        _chooseMetadataProvider();
+      } else if (_selectedContentIndex == 3) {
+        _chooseArtworkPriority();
       }
     }
   }
@@ -715,6 +814,10 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
         onLogout: _handleLogout,
         steamGridDbConnected: _steamGridDbConnected,
         onConfigureSteamGridDb: _configureSteamGridDb,
+        metadataProvider: _metadataProviderLabel,
+        artworkPriority: _artworkPriorityLabel,
+        onChooseMetadataProvider: _chooseMetadataProvider,
+        onChooseArtworkPriority: _chooseArtworkPriority,
       );
     } else {
       return Center(

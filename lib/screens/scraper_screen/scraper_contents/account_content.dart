@@ -11,6 +11,10 @@ class AccountContent extends StatelessWidget {
   final VoidCallback onLogout;
   final bool steamGridDbConnected;
   final VoidCallback onConfigureSteamGridDb;
+  final String metadataProvider;
+  final String artworkPriority;
+  final VoidCallback onChooseMetadataProvider;
+  final VoidCallback onChooseArtworkPriority;
 
   const AccountContent({
     super.key,
@@ -20,6 +24,10 @@ class AccountContent extends StatelessWidget {
     required this.onLogout,
     required this.steamGridDbConnected,
     required this.onConfigureSteamGridDb,
+    required this.metadataProvider,
+    required this.artworkPriority,
+    required this.onChooseMetadataProvider,
+    required this.onChooseArtworkPriority,
   });
 
   String _getContributionLevel(BuildContext context, String? contribution) {
@@ -89,7 +97,56 @@ class AccountContent extends StatelessWidget {
             SizedBox(height: 16.h),
           ],
           _buildSteamGridDbButton(context, theme),
+          SizedBox(height: 10.h),
+          _buildChoiceButton(
+            context,
+            theme,
+            index: 2,
+            icon: Symbols.database_rounded,
+            title: 'Primary metadata scraper',
+            value: metadataProvider,
+            onPressed: onChooseMetadataProvider,
+          ),
+          SizedBox(height: 10.h),
+          _buildChoiceButton(
+            context,
+            theme,
+            index: 3,
+            icon: Symbols.layers_rounded,
+            title: 'Artwork scraper priority',
+            value: artworkPriority,
+            onPressed: onChooseArtworkPriority,
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildChoiceButton(
+    BuildContext context,
+    ThemeData theme, {
+    required int index,
+    required IconData icon,
+    required String title,
+    required String value,
+    required VoidCallback onPressed,
+  }) {
+    final selected = isContentFocused && selectedContentIndex == index;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: selected ? theme.colorScheme.primary : Colors.transparent,
+          width: 2.r,
+        ),
+      ),
+      child: ListTile(
+        onTap: onPressed,
+        leading: Icon(icon, color: theme.colorScheme.primary),
+        title: Text(title, style: TextStyle(fontSize: 11.r)),
+        subtitle: Text(value, style: TextStyle(fontSize: 9.r)),
+        trailing: const Icon(Symbols.chevron_right_rounded),
       ),
     );
   }
