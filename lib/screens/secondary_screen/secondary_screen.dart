@@ -222,13 +222,6 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   /// Handles controller keys explicitly because Android keeps the real input
   /// focus on the primary display of this dual-screen device.
   void _onSecondaryControllerKey() {
-    debugPrint(
-      'BOTTOM_CONTROLLER_HANDLER keyCode='
-      '${SecondaryAppsService.lastControllerKeyCode} '
-      'mounted=$mounted inputFocused='
-      '${SecondaryAppsService.inputFocused.value} '
-      'primaryFocus=${FocusManager.instance.primaryFocus}',
-    );
     if (!mounted || !SecondaryAppsService.inputFocused.value) return;
     var focus = FocusManager.instance.primaryFocus;
     final hasActionableFocus =

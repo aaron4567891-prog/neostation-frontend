@@ -27,7 +27,6 @@ class _SecondaryActionState extends State<SecondaryAction> {
   bool _focused = false;
 
   void _activate() {
-    debugPrint('BOTTOM_TOUCH_BUTTON_ACTIVATED');
     widget.onTap?.call();
   }
 
@@ -70,9 +69,6 @@ class _SecondaryActionState extends State<SecondaryAction> {
       },
       child: GestureDetector(
         behavior: widget.behavior,
-        onTapDown: enabled
-            ? (_) => debugPrint('BOTTOM_TOUCH_FLUTTER_DOWN')
-            : null,
         onTap: widget.onTap == null ? null : _activate,
         onLongPress: widget.onLongPress,
         child: AnimatedContainer(

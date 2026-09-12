@@ -139,10 +139,6 @@ class SecondaryAppsService {
           break;
         case 'onSecondaryControllerKey':
           final args = Map<Object?, Object?>.from(call.arguments as Map);
-          debugPrint(
-            'BOTTOM_CONTROLLER_CHANNEL keyCode=${args['keyCode']} '
-            'action=${args['action']} repeat=${args['repeatCount']}',
-          );
           if ((args['action'] as int? ?? 1) == 0) {
             lastControllerKeyCode = args['keyCode'] as int? ?? 0;
             controllerKeyTrigger.value++;
