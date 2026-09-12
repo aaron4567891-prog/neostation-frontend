@@ -45,7 +45,11 @@ class TheGamesDbService {
           .timeout(const Duration(seconds: 20));
       if (response.statusCode != 200) return false;
       final body = jsonDecode(response.body) as Map<String, dynamic>;
-      return body['code'] == 200 || body['status'] == 'Success';
+      // The current API/Limit response contains only allowance fields, while
+      // older responses also included code/status. Accept either shape.
+      return body['remaining_monthly_allowance'] != null ||
+          body['code'] == 200 ||
+          body['status'] == 'Success';
     } catch (e) {
       _log.e('TheGamesDB API-key verification failed: $e');
       return false;
