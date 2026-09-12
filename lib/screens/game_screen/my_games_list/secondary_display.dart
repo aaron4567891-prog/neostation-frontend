@@ -175,14 +175,16 @@ extension _SecondaryDisplay on _SystemGamesListState {
 
     String? displayFanart;
     String? displayScreenshot;
-    String? displayWheel;
+    // Keep the wheel available independently of the selected bottom-screen
+    // media. The in-app swap view uses it as the game-logo overlay even when
+    // the chosen media is a screenshot or video.
+    String? displayWheel = hasWheel ? wheelPath : null;
     var showGameLayer = true;
 
     switch (secondaryMediaMode) {
       case 'fanart':
         if (hasFanart) {
           displayFanart = fanartPath;
-          displayWheel = hasWheel ? wheelPath : null;
         } else if (hasScreenshot) {
           displayScreenshot = screenshotPath;
         }
@@ -192,7 +194,6 @@ extension _SecondaryDisplay on _SystemGamesListState {
           displayScreenshot = screenshotPath;
         } else if (hasFanart) {
           displayFanart = fanartPath;
-          displayWheel = hasWheel ? wheelPath : null;
         }
         break;
       case 'video':
@@ -215,7 +216,6 @@ extension _SecondaryDisplay on _SystemGamesListState {
       default:
         displayFanart = hasFanart ? fanartPath : null;
         displayScreenshot = hasScreenshot ? screenshotPath : null;
-        displayWheel = hasWheel ? wheelPath : null;
     }
 
     final videoAllowed =
