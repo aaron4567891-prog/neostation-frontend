@@ -42,6 +42,9 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
   late final String _navLayerId = 'android_apps_grid#${++_navLayerSeq}';
 
   List<GameModel> _apps = [];
+  List<GameModel> _allApps = [];
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
   bool _isLoading = true;
   int _selectedIndex = 0;
   late GamepadNavigation _gamepadNav;
@@ -72,6 +75,8 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
     GamepadNavigationManager.popLayer(_navLayerId);
     _gamepadNav.dispose();
     _scrollController.dispose();
+    _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -84,9 +89,12 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
       onNavigateRight: _navigateRight,
       onSelectItem: _launchSelectedApp,
       onBack: _goBack,
+      onXButton: () => _searchFocus.requestFocus(),
+      isTextFieldFocused: () => _searchFocus.hasFocus,
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _gamepadNav.initialize();
 
       // Registered, not just locally activated. Launching an app backgrounds
@@ -112,7 +120,12 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
       final apps = await GameService.loadGamesForSystem(widget.system);
       if (mounted) {
         setState(() {
-          _apps = apps;
+          _allApps = apps;
+          final query = _searchController.text.trim().toLowerCase();
+          _apps = apps
+              .where((app) => app.name.toLowerCase().contains(query))
+              .toList();
+          _selectedIndex = 0;
           _isLoading = false;
         });
       }
@@ -245,6 +258,10 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
 
   /// Standard exit handler with gamepad input management.
   void _goBack() {
+    if (_searchFocus.hasFocus) {
+      _searchFocus.unfocus();
+      return;
+    }
     if (_isNavigatingBack) return;
     _isNavigatingBack = true;
 
@@ -301,6 +318,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
             Column(
               children: [
                 _buildCompactHeader(),
+                _buildSearchBar(),
 
                 Expanded(
                   child: _isLoading
@@ -351,7 +369,9 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
           ),
           const Spacer(),
           Text(
-            '${_apps.length} ITEMS',
+            _searchController.text.trim().isEmpty
+                ? '${_apps.length} ITEMS'
+                : '${_apps.length} / ${_allApps.length} ITEMS',
             style: TextStyle(
               fontSize: 9.r,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
@@ -420,6 +440,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
                       app: _apps[index],
                       isSelected: _selectedIndex == index,
                       onTap: () {
+                        _searchFocus.unfocus();
                         // Touch users have no A button: tapping the app that is
                         // already selected launches it. (_launchSelectedApp
                         // plays the enter sound itself.)
@@ -469,6 +490,14 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
 
   /// Placeholder visual for empty app libraries.
   Widget _buildEmptyState() {
+    if (_searchController.text.trim().isNotEmpty) {
+      return Center(
+        child: Text(
+          'No apps match your search.',
+          style: TextStyle(fontSize: 12.r),
+        ),
+      );
+    }
     return Center(
       child: Opacity(
         opacity: 0.2,
@@ -476,6 +505,55 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
           Symbols.apps_rounded,
           size: 48.r,
           color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+    );
+  }
+
+  void _filterApps(String value) {
+    final query = value.trim().toLowerCase();
+    setState(() {
+      _apps = _allApps
+          .where((app) => app.name.toLowerCase().contains(query))
+          .toList();
+      _selectedIndex = 0;
+      _isNavigatingFast = false;
+      _lastNavTime = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+      }
+    });
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 6.r),
+      child: TextField(
+        controller: _searchController,
+        focusNode: _searchFocus,
+        onChanged: _filterApps,
+        onSubmitted: (_) => _searchFocus.unfocus(),
+        textInputAction: TextInputAction.search,
+        autocorrect: false,
+        enableSuggestions: false,
+        style: TextStyle(fontSize: 12.r),
+        decoration: InputDecoration(
+          hintText: 'Search apps… (X)',
+          prefixIcon: const Icon(Symbols.search_rounded),
+          suffixIcon: _searchController.text.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Symbols.close_rounded),
+                  onPressed: () {
+                    _searchController.clear();
+                    _filterApps('');
+                  },
+                ),
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
         ),
       ),
     );
