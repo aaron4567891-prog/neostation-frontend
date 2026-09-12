@@ -55,6 +55,14 @@ enum LetterJumpAxis { vertical, horizontal }
 ///
 /// Handles input translation, debouncing, auto-repeat logic, and callback dispatching.
 class GamepadNavigation {
+  /// App-wide fallback for R3. Individual navigation layers may override it
+  /// with [onRightStickClick]; otherwise the active layer dispatches here.
+  ///
+  /// This keeps global shortcuts working on tabs that own their own navigator
+  /// (Search, Achievements, RomM, and others) without allowing inactive layers
+  /// to respond to the same button press.
+  static VoidCallback? globalRightStickClick;
+
   final Function? onNavigateUp;
   final Function? onNavigateDown;
   final Function? onNavigateLeft;
@@ -1040,7 +1048,7 @@ class GamepadNavigation {
         break;
 
       case GamepadInputType.rightStickButton:
-        onRightStickClick?.call();
+        (onRightStickClick ?? globalRightStickClick)?.call();
         break;
 
       default:

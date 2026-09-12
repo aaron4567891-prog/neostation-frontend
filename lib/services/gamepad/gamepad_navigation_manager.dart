@@ -26,6 +26,11 @@ class GamepadNavigationManager {
   static final _log = LoggerService.instance;
   static final List<NavLayer> _stack = [];
 
+  /// Whether a dialog or other modal surface currently owns controller input.
+  /// Global route shortcuts should wait until it closes so a newly pushed
+  /// non-modal route cannot appear underneath the modal input layer.
+  static bool get isModalActive => _stack.isNotEmpty && _stack.last.modal;
+
   /// Pushes a new navigation layer to the top of the stack and activates it.
   ///
   /// Automatically deactivates the previously active layer.

@@ -16,6 +16,7 @@ import 'package:neostation/l10n/app_locale.dart';
 import 'package:flutter_localization/flutter_localization.dart';
 import '../widgets/fixed_header.dart';
 import 'systems_screen/system_content.dart';
+import 'game_screen/android_apps/android_apps_grid.dart';
 import 'systems_screen/my_systems_section/initial_setup_widget.dart';
 import 'search_screen/search_screen.dart';
 import 'retro_achievements_screen/ra_content.dart';
@@ -103,6 +104,9 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
   /// Input orchestration layer for gamepad and keyboard support.
   late GamepadNavigation _gamepadNav;
 
+  /// Prevents a bounced or repeated R3 press from stacking app-browser routes.
+  bool _openingAndroidApps = false;
+
   /// Static reference to the currently active instance for global access.
   static AppScreenState? _currentInstance;
 
@@ -139,6 +143,7 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
     _currentInstance = this;
     WidgetsBinding.instance.addObserver(this);
     GameSessionManager.addSessionEndListener(_onGameSessionEnded);
+    GamepadNavigation.globalRightStickClick = _openAndroidAppsGlobally;
 
     // Initialize the navigation bridge with core application callbacks.
     _gamepadNav = GamepadNavigation(
@@ -391,6 +396,7 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    GamepadNavigation.globalRightStickClick = null;
     _currentInstance = null;
     GameSessionManager.removeSessionEndListener(_onGameSessionEnded);
     WidgetsBinding.instance.removeObserver(this);
@@ -462,6 +468,41 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
 
   static void _selectTabStatic(int index) {
     _currentInstance?._onTabSelected(index);
+  }
+
+  /// Opens Android Apps from R3 regardless of which top-level tab currently
+  /// owns gamepad focus. The global gamepad fallback calls this only from the
+  /// active navigation layer, and the guard keeps R3 inert while this route is
+  /// already open.
+  Future<void> _openAndroidAppsGlobally() async {
+    if (_openingAndroidApps ||
+        !mounted ||
+        GameService.isGameLaunchInProgress ||
+        GamepadNavigationManager.isModalActive) {
+      return;
+    }
+
+    final configProvider = Provider.of<SqliteConfigProvider>(
+      context,
+      listen: false,
+    );
+    final androidSystems = configProvider.detectedSystems.where(
+      (system) => system.folderName == 'android',
+    );
+    if (androidSystems.isEmpty) return;
+
+    _openingAndroidApps = true;
+    GamepadNavigationManager.deactivateAll();
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => AndroidAppsGrid(system: androidSystems.first),
+        ),
+      );
+    } finally {
+      _openingAndroidApps = false;
+      GamepadNavigationManager.reactivate();
+    }
   }
 
   // ==========================================
