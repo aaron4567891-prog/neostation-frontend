@@ -108,6 +108,12 @@ class SecondaryAppsService {
   /// Increments whenever Back/B is pressed while the bottom display has focus.
   static final ValueNotifier<int> backTrigger = ValueNotifier<int>(0);
 
+  /// Android key code most recently forwarded from the main Activity.
+  static int lastControllerKeyCode = 0;
+
+  /// Increments for every forwarded controller key-down, including repeats.
+  static final ValueNotifier<int> controllerKeyTrigger = ValueNotifier<int>(0);
+
   static bool _screenStateWired = false;
 
   /// Subscribes to native screen on/off edges and seeds [deviceScreenOn] from
@@ -130,6 +136,13 @@ class SecondaryAppsService {
           break;
         case 'onSecondaryBack':
           backTrigger.value++;
+          break;
+        case 'onSecondaryControllerKey':
+          final args = Map<Object?, Object?>.from(call.arguments as Map);
+          if ((args['action'] as int? ?? 1) == 0) {
+            lastControllerKeyCode = args['keyCode'] as int? ?? 0;
+            controllerKeyTrigger.value++;
+          }
           break;
       }
       return null;

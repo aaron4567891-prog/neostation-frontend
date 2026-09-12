@@ -167,6 +167,9 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       SecondaryAppsService.deviceScreenOn.addListener(_onScreenPowerChanged);
       SecondaryAppsService.inputFocused.addListener(_onInputFocusChanged);
       SecondaryAppsService.backTrigger.addListener(_onSecondaryBack);
+      SecondaryAppsService.controllerKeyTrigger.addListener(
+        _onSecondaryControllerKey,
+      );
       // Signal that the secondary screen is active — but only after the initial
       // state sync. Pushing it while the synced value is still null makes
       // updateState fall back to the WELCOME default and clobber the real
@@ -213,6 +216,39 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       });
     } else if (_inGamePanelPage != 0) {
       setState(() => _inGamePanelPage = 0);
+    }
+  }
+
+  /// Handles controller keys explicitly because Android keeps the real input
+  /// focus on the primary display of this dual-screen device.
+  void _onSecondaryControllerKey() {
+    if (!mounted || !SecondaryAppsService.inputFocused.value) return;
+    final focus = FocusManager.instance.primaryFocus;
+    switch (SecondaryAppsService.lastControllerKeyCode) {
+      case 19: // KEYCODE_DPAD_UP
+        focus?.focusInDirection(TraversalDirection.up);
+        break;
+      case 20: // KEYCODE_DPAD_DOWN
+        focus?.focusInDirection(TraversalDirection.down);
+        break;
+      case 21: // KEYCODE_DPAD_LEFT
+        focus?.focusInDirection(TraversalDirection.left);
+        break;
+      case 22: // KEYCODE_DPAD_RIGHT
+        focus?.focusInDirection(TraversalDirection.right);
+        break;
+      case 23: // KEYCODE_DPAD_CENTER
+      case 66: // KEYCODE_ENTER
+      case 96: // KEYCODE_BUTTON_A
+        final context = focus?.context;
+        if (context != null) {
+          Actions.maybeInvoke(context, const ActivateIntent());
+        }
+        break;
+      case 4: // KEYCODE_BACK
+      case 97: // KEYCODE_BUTTON_B
+        _onSecondaryBack();
+        break;
     }
   }
 
@@ -747,6 +783,9 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
     SecondaryAppsService.deviceScreenOn.removeListener(_onScreenPowerChanged);
     SecondaryAppsService.inputFocused.removeListener(_onInputFocusChanged);
     SecondaryAppsService.backTrigger.removeListener(_onSecondaryBack);
+    SecondaryAppsService.controllerKeyTrigger.removeListener(
+      _onSecondaryControllerKey,
+    );
     _celebrationTimer?.cancel();
     _playTimeTicker?.cancel();
     _dimTimer?.cancel();

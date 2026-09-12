@@ -103,7 +103,14 @@ class SecondaryAppsPresentation(
 
     /** Delivers a controller key that Android routed to the main display. */
     fun forwardControllerKey(event: KeyEvent) {
-        dispatchKeyEvent(event)
+        appsChannel?.invokeMethod(
+            "onSecondaryControllerKey",
+            mapOf(
+                "keyCode" to event.keyCode,
+                "action" to event.action,
+                "repeatCount" to event.repeatCount
+            )
+        )
     }
 
     /** Delivers controller axis/hat motion routed to the main display. */
