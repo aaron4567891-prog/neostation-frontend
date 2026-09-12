@@ -36,6 +36,8 @@ class SecondaryAppsPresentation(
 
     private var appsChannel: MethodChannel? = null
     private var inputFocused = false
+    private var lastHatX = 0
+    private var lastHatY = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,13 +118,60 @@ class SecondaryAppsPresentation(
 
     /** Delivers controller axis/hat motion routed to the main display. */
     fun forwardControllerMotion(event: MotionEvent) {
-        super.dispatchGenericMotionEvent(event)
+        if (!handleControllerMotion(event)) {
+            super.dispatchGenericMotionEvent(event)
+        }
+    }
+
+    private fun sendControllerKeyDown(keyCode: Int) {
+        appsChannel?.invokeMethod(
+            "onSecondaryControllerKey",
+            mapOf("keyCode" to keyCode, "action" to KeyEvent.ACTION_DOWN, "repeatCount" to 0)
+        )
+    }
+
+    private fun handleControllerMotion(event: MotionEvent): Boolean {
+        if (!inputFocused ||
+            !isControllerSource(event.source) ||
+            event.actionMasked != MotionEvent.ACTION_MOVE
+        ) return false
+
+        val hatXValue = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+        val hatYValue = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+        val hatX = when {
+            hatXValue < -0.5f -> -1
+            hatXValue > 0.5f -> 1
+            else -> 0
+        }
+        val hatY = when {
+            hatYValue < -0.5f -> -1
+            hatYValue > 0.5f -> 1
+            else -> 0
+        }
+
+        if (hatX != 0 && hatX != lastHatX) {
+            sendControllerKeyDown(
+                if (hatX < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
+            )
+        }
+        if (hatY != 0 && hatY != lastHatY) {
+            sendControllerKeyDown(
+                if (hatY < 0) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN
+            )
+        }
+        lastHatX = hatX
+        lastHatY = hatY
+        return hatX != 0 || hatY != 0
     }
 
     private fun isControllerSource(source: Int): Boolean {
         return source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
             source and InputDevice.SOURCE_DPAD == InputDevice.SOURCE_DPAD ||
             source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        return if (handleControllerMotion(event)) true else super.dispatchGenericMotionEvent(event)
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {

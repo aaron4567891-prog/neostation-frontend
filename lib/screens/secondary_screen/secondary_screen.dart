@@ -230,7 +230,16 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       'primaryFocus=${FocusManager.instance.primaryFocus}',
     );
     if (!mounted || !SecondaryAppsService.inputFocused.value) return;
-    final focus = FocusManager.instance.primaryFocus;
+    var focus = FocusManager.instance.primaryFocus;
+    final hasActionableFocus =
+        focus != null && focus is! FocusScopeNode && focus.context != null;
+    if (!hasActionableFocus) {
+      final focusContext = _l10nContext;
+      if (focusContext != null) {
+        FocusScope.of(focusContext).nextFocus();
+        focus = FocusManager.instance.primaryFocus;
+      }
+    }
     switch (SecondaryAppsService.lastControllerKeyCode) {
       case 19: // KEYCODE_DPAD_UP
         focus?.focusInDirection(TraversalDirection.up);
@@ -248,7 +257,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       case 66: // KEYCODE_ENTER
       case 96: // KEYCODE_BUTTON_A
         final context = focus?.context;
-        if (context != null) {
+        if (context != null && focus is! FocusScopeNode) {
           Actions.maybeInvoke(context, const ActivateIntent());
         }
         break;
