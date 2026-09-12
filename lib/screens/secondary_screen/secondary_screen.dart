@@ -149,6 +149,11 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   List<Map<String, dynamic>>? _pickerApps;
   bool _loadingPickerApps = false;
 
+  /// Search state for the dock app picker and full app launcher.
+  final TextEditingController _appSearchController = TextEditingController();
+  final FocusNode _appSearchFocusNode = FocusNode();
+  String _appSearchQuery = '';
+
   /// Guards the one-shot background warm of the installed-app list + dock icons.
   /// Deliberately deferred until *after* the dock has revealed (`appReady`), so
   /// the heavy `getInstalledApps` scan can never contend with the cross-engine
@@ -800,6 +805,8 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
     _dimTimer?.cancel();
     _dockRevealFallback?.cancel();
     _dockSlideOutTimer?.cancel();
+    _appSearchController.dispose();
+    _appSearchFocusNode.dispose();
     _stopVideo();
     super.dispose();
   }
@@ -847,6 +854,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   Future<void> _openAppPicker(int slot) async {
     _wakeInGamePanel();
     SfxService().playNavSound();
+    _clearAppSearch();
     setState(() {
       _pickerSlot = slot;
       _launcherOpen = false;
@@ -859,6 +867,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   Future<void> _openAppLauncher() async {
     _wakeInGamePanel();
     SfxService().playNavSound();
+    _clearAppSearch();
     setState(() {
       _launcherOpen = true;
       _pickerSlot = null;
@@ -880,10 +889,17 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   }
 
   void _closeAppPicker() {
+    _appSearchFocusNode.unfocus();
+    _clearAppSearch();
     setState(() {
       _pickerSlot = null;
       _launcherOpen = false;
     });
+  }
+
+  void _clearAppSearch() {
+    _appSearchController.clear();
+    _appSearchQuery = '';
   }
 
   /// Assigns [package] to the pending picker slot and closes the picker.
@@ -1778,6 +1794,73 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                       ),
                     ],
                   ),
+                  SizedBox(height: 12.r),
+                  TextField(
+                    controller: _appSearchController,
+                    focusNode: _appSearchFocusNode,
+                    autofocus: false,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.search,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    style: TextStyle(color: Colors.white, fontSize: 14.r),
+                    cursorColor: Colors.white,
+                    onChanged: (value) {
+                      if (!mounted) return;
+                      setState(() => _appSearchQuery = value.trim());
+                    },
+                    onTapOutside: (_) => _appSearchFocusNode.unfocus(),
+                    decoration: InputDecoration(
+                      hintText: 'Search apps',
+                      hintStyle: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 14.r,
+                      ),
+                      prefixIcon: Icon(
+                        Symbols.search_rounded,
+                        color: Colors.white70,
+                        size: 22.r,
+                      ),
+                      suffixIcon: _appSearchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Clear search',
+                              onPressed: () {
+                                _clearAppSearch();
+                                setState(() {});
+                                _appSearchFocusNode.requestFocus();
+                              },
+                              icon: Icon(
+                                Symbols.close_rounded,
+                                color: Colors.white70,
+                                size: 20.r,
+                              ),
+                            ),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.10),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.r,
+                        vertical: 12.r,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.16),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.65),
+                          width: 1.5.r,
+                        ),
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 16.r),
                   Expanded(child: _buildAppPickerGrid()),
                 ],
@@ -1795,11 +1878,18 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
         child: CircularProgressIndicator(color: Colors.white),
       );
     }
-    final apps = _pickerApps!;
+    final query = _appSearchQuery.toLowerCase();
+    final apps = query.isEmpty
+        ? _pickerApps!
+        : _pickerApps!.where((app) {
+            final package = (app['package'] ?? '').toString().toLowerCase();
+            final name = (app['name'] ?? package).toString().toLowerCase();
+            return name.contains(query) || package.contains(query);
+          }).toList();
     if (apps.isEmpty) {
       return Center(
         child: Text(
-          'No apps found',
+          query.isEmpty ? 'No apps found' : 'No matching apps',
           style: TextStyle(color: Colors.white70, fontSize: 14.r),
         ),
       );
