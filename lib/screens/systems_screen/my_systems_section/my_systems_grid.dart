@@ -45,7 +45,7 @@ import 'package:neostation/providers/system_background_provider.dart';
 import 'package:neostation/providers/retro_achievements_provider.dart';
 import 'package:neostation/services/secondary_achievements_controller.dart';
 import 'system_list_builder.dart';
-import '../system_order_screen.dart';
+import 'inline_system_reorder_card.dart';
 
 part 'my_systems_grid/gamepad_grid_nav.dart';
 part 'my_systems_grid/theme_background.dart';
@@ -67,10 +67,8 @@ const String _menuReorder = 'reorder_systems';
 ///
 /// Orchestrates the selection and navigation of gaming systems, including handling
 /// of 'Recent Games', 'Android Apps', and logical collections like 'All Games'.
-class MySystems extends StatelessWidget {
+class MySystems extends StatefulWidget {
   const MySystems({super.key, this.selectedIndex = 0, this.onCardTapped});
-
-  static final _log = LoggerService.instance;
 
   /// Static lock to prevent race conditions during heavy navigation transitions.
   static bool isNavigating = false;
@@ -78,16 +76,126 @@ class MySystems extends StatelessWidget {
   /// Notifier to hide the systems grid while a game launch dialog is active.
   static final gridLaunchNotifier = ValueNotifier<bool>(false);
 
-  /// Anchor for the card context menu: both layouts move this key onto
-  /// whichever card is selected, so the menu opens beside that card rather
-  /// than in the middle of the screen.
-  static final GlobalKey _cardAnchorKey = GlobalKey();
-
   /// Currently selected system index in the active layout (Grid or Carousel).
   final int selectedIndex;
 
   /// Callback for system selection via pointer interaction.
   final Function(int index)? onCardTapped;
+
+  @override
+  State<MySystems> createState() => _MySystemsState();
+}
+
+class _MySystemsState extends State<MySystems> {
+  static final _log = LoggerService.instance;
+  final GlobalKey _cardAnchorKey = GlobalKey();
+  List<String>? _draftOrder;
+  String? _movingFolder;
+  int? _inlineIndex;
+  int _originalIndex = 0;
+  bool _savingOrder = false;
+
+  int get selectedIndex => _inlineIndex ?? widget.selectedIndex;
+  ValueChanged<int> get onCardTapped => _handleSelection;
+
+  @override
+  void didUpdateWidget(covariant MySystems oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_movingFolder == null &&
+        widget.selectedIndex != oldWidget.selectedIndex) {
+      _inlineIndex = null;
+    }
+  }
+
+  void _beginMove(int index) {
+    if (_savingOrder) return;
+    if (_movingFolder != null) return;
+    final provider = context.read<SqliteConfigProvider>();
+    final systems = _buildAllSystems(context, provider);
+    if (index < 0 ||
+        index >= systems.length ||
+        systems[index].isGame ||
+        systems[index].folderName == null) {
+      return;
+    }
+    if (systems.where((system) => !system.isGame).length < 2) return;
+    setState(() {
+      _draftOrder = systems
+          .where((system) => !system.isGame)
+          .map((system) => system.folderName)
+          .whereType<String>()
+          .toList();
+      _movingFolder = systems[index].folderName;
+      _originalIndex = index;
+      _inlineIndex = index;
+    });
+    widget.onCardTapped?.call(index);
+  }
+
+  void _handleSelection(int index) {
+    if (_savingOrder) return;
+    if (_movingFolder == null) {
+      _inlineIndex = null;
+      widget.onCardTapped?.call(index);
+      return;
+    }
+    final systems = _buildAllSystems(
+      context,
+      context.read<SqliteConfigProvider>(),
+    );
+    if (index < 0 || index >= systems.length || systems[index].isGame) return;
+    final order = _draftOrder!;
+    final oldIndex = order.indexOf(_movingFolder!);
+    final targetFolder = systems[index].folderName;
+    if (targetFolder == null) return;
+    final newIndex = order.indexOf(targetFolder);
+    if (oldIndex < 0 || newIndex < 0 || oldIndex == newIndex) return;
+    setState(() {
+      order.insert(newIndex, order.removeAt(oldIndex));
+      _inlineIndex = index;
+    });
+    widget.onCardTapped?.call(index);
+  }
+
+  Future<void> _dropMove() async {
+    if (_movingFolder == null || _savingOrder) return;
+    final provider = context.read<SqliteConfigProvider>();
+    final order = List<String>.of(_draftOrder!);
+    // Retain hidden systems instead of deleting their ordering preference.
+    final hiddenFolders = provider.detectedSystems
+        .map((system) => system.folderName)
+        .where((folder) => !order.contains(folder))
+        .toList();
+    order.addAll(hiddenFolders);
+    setState(() => _savingOrder = true);
+    try {
+      await provider.updateCustomSystemOrder(order);
+      if (!mounted) return;
+      setState(() {
+        _movingFolder = null;
+        _draftOrder = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      AppNotification.showNotification(
+        context,
+        'Could not save the system order. Press A to retry or B to cancel.',
+        type: NotificationType.error,
+      );
+    } finally {
+      if (mounted) setState(() => _savingOrder = false);
+    }
+  }
+
+  void _cancelMove() {
+    if (_movingFolder == null || _savingOrder) return;
+    setState(() {
+      _movingFolder = null;
+      _draftOrder = null;
+      _inlineIndex = null;
+    });
+    widget.onCardTapped?.call(_originalIndex);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,13 +230,17 @@ class MySystems extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.only(top: 42.r),
                     child: MySystemsCarousel(
+                      items: allSystems,
                       selectedIndex: selectedIndex,
                       onCardTapped: onCardTapped,
                       selectedItemKey: _cardAnchorKey,
                       onRightStickPressed: () =>
                           _openAndroidApps(context, configProvider, allSystems),
-                      onReorderRequested: () =>
-                          _openSystemOrder(context, allSystems),
+                      onReorderRequested: _toggleInlineReorder,
+                      movingSystemFolder: _movingFolder,
+                      onReorderStarted: _beginMove,
+                      onReorderDrop: _dropMove,
+                      onBackPressed: _cancelMove,
                       onYPressed: () => _openSystemContextMenu(
                         context,
                         currentSystem,
@@ -141,7 +253,11 @@ class MySystems extends StatelessWidget {
                   system: currentSystem,
                   onEnter: () {
                     SfxService().playEnterSound();
-                    _navigateToSystem(context, currentSystem, configProvider);
+                    if (_movingFolder != null) {
+                      _dropMove();
+                    } else {
+                      _navigateToSystem(context, currentSystem, configProvider);
+                    }
                   },
                   onOptions: () => _openSystemContextMenu(
                     context,
@@ -160,7 +276,7 @@ class MySystems extends StatelessWidget {
           // same treatment: it is the other half of "the library is still
           // settling", and it is deliberately on this branch and not the
           // isGlobalScanning one above, so it never blocks the grid.
-          return ValueListenableBuilder<RaMatchProgress?>(
+          final content = ValueListenableBuilder<RaMatchProgress?>(
             valueListenable: RaLibraryMatchRunner.progress,
             builder: (context, raProgress, _) {
               // A splash-holding pass is never seen here — the startup screen
@@ -189,6 +305,33 @@ class MySystems extends StatelessWidget {
               );
             },
           );
+          return Stack(
+            children: [
+              content,
+              if (_movingFolder != null)
+                Positioned(
+                  left: 12.r,
+                  right: 12.r,
+                  top: 42.r,
+                  child: IgnorePointer(
+                    child: Material(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8.r),
+                      child: Padding(
+                        padding: EdgeInsets.all(6.r),
+                        child: Text(
+                          _savingOrder
+                              ? 'Saving system order…'
+                              : 'Move card: D-pad • A: drop • B: cancel',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10.r),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
         },
       ),
     );
@@ -200,13 +343,26 @@ class MySystems extends StatelessWidget {
     SqliteConfigProvider configProvider,
   ) {
     final fileProvider = Provider.of<FileProvider>(context, listen: false);
-    final dbProvider = Provider.of<SqliteDatabaseProvider>(context);
-    return buildSystemsList(
+    final dbProvider = Provider.of<SqliteDatabaseProvider>(
+      context,
+      listen: false,
+    );
+    final systems = buildSystemsList(
       context: context,
       configProvider: configProvider,
       dbProvider: dbProvider,
       fileProvider: fileProvider,
     );
+    final order = _draftOrder;
+    if (order == null) return systems;
+    final cards = systems.where((system) => !system.isGame).toList();
+    final ranks = {for (var i = 0; i < order.length; i++) order[i]: i};
+    cards.sort(
+      (a, b) => (ranks[a.folderName] ?? order.length).compareTo(
+        ranks[b.folderName] ?? order.length,
+      ),
+    );
+    return [...systems.where((system) => system.isGame), ...cards];
   }
 
   /// Builds the high-density grid layout for system selection.
@@ -243,13 +399,21 @@ class MySystems extends StatelessWidget {
               systems: allSystems,
               onRightStickPressed: () =>
                   _openAndroidApps(context, configProvider, allSystems),
-              onReorderRequested: () => _openSystemOrder(context, allSystems),
+              onReorderRequested: _toggleInlineReorder,
+              movingSystemFolder: _movingFolder,
+              onReorderStarted: _beginMove,
+              onReorderDrop: _dropMove,
+              onBackPressed: _cancelMove,
               onYPressed: () => _openSystemContextMenu(
                 context,
                 currentSystem,
                 configProvider,
               ),
               onEnterPressed: () {
+                if (_movingFolder != null) {
+                  _dropMove();
+                  return;
+                }
                 final current = selectedIndex < allSystems.length
                     ? allSystems[selectedIndex]
                     : allSystems[0];
@@ -268,6 +432,10 @@ class MySystems extends StatelessWidget {
         SystemsGridFooter(
           system: currentSystem,
           onEnter: () {
+            if (_movingFolder != null) {
+              _dropMove();
+              return;
+            }
             SfxService().playEnterSound();
             _navigateToSystem(context, currentSystem, configProvider);
           },
@@ -290,17 +458,12 @@ class MySystems extends StatelessWidget {
     _navigateToSystem(context, androidSystems.first, configProvider);
   }
 
-  Future<void> _openSystemOrder(
-    BuildContext context,
-    List<SystemInfo> systems,
-  ) async {
-    final reorderable = systems.where((system) => !system.isGame).toList();
-    if (reorderable.length < 2) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => SystemOrderScreen(systems: reorderable),
-      ),
-    );
+  Future<void> _toggleInlineReorder() async {
+    if (_movingFolder != null) {
+      await _dropMove();
+    } else {
+      _beginMove(selectedIndex);
+    }
   }
 
   /// The card context menu, opened by Y or by a long press on the card.
@@ -382,10 +545,7 @@ class MySystems extends StatelessWidget {
       case _menuViewCarousel:
         await configProvider.updateSystemViewMode('carousel');
       case _menuReorder:
-        await _openSystemOrder(
-          context,
-          _buildAllSystems(context, configProvider),
-        );
+        await _toggleInlineReorder();
     }
   }
 
@@ -729,6 +889,9 @@ class SystemCardGridView extends StatefulWidget {
     this.onXPressed,
     this.onRightStickPressed,
     this.onReorderRequested,
+    this.movingSystemFolder,
+    this.onReorderStarted,
+    this.onReorderDrop,
     this.systems = const [],
     this.recentCardSize = RecentCardSizes.defaultSize,
     this.navLayerId = kSystemsGridNavLayerId,
@@ -775,8 +938,11 @@ class SystemCardGridView extends StatefulWidget {
   /// R3. Opens Android Apps directly on the main systems screen.
   final VoidCallback? onRightStickPressed;
 
-  /// Opens the persistent system-card ordering screen.
+  /// Picks up the selected system card without leaving this view.
   final VoidCallback? onReorderRequested;
+  final String? movingSystemFolder;
+  final ValueChanged<int>? onReorderStarted;
+  final VoidCallback? onReorderDrop;
 
   final List<dynamic> systems;
 
@@ -824,6 +990,36 @@ class SystemCardGridView extends StatefulWidget {
 
 class _SystemCardGridViewState extends State<SystemCardGridView> {
   final ScrollController _scrollController = ScrollController();
+  DateTime? _lastDragScroll;
+
+  void _scrollAtDragEdge(Offset globalPosition) {
+    if (!_scrollController.hasClients) return;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    final local = box.globalToLocal(globalPosition);
+    final direction = local.dy < 48
+        ? -1
+        : local.dy > box.size.height - 48
+        ? 1
+        : 0;
+    if (direction == 0) return;
+    final now = DateTime.now();
+    if (_lastDragScroll != null &&
+        now.difference(_lastDragScroll!).inMilliseconds < 100) {
+      return;
+    }
+    _lastDragScroll = now;
+    final position = _scrollController.position;
+    final target = (position.pixels + direction * 70).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.linear,
+    );
+  }
 
   /// Orchestrator for hardware input.
   late GamepadNavigation _gamepadNav;
@@ -1309,13 +1505,18 @@ class _SystemCardGridViewState extends State<SystemCardGridView> {
                   info: card,
                   isSelected: cardIsSelected,
                   onTap: handleTap,
-                  onLongPress: widget.onYPressed == null
+                  onLongPress: widget.onReorderStarted != null
+                      ? null
+                      : widget.onYPressed == null
                       ? null
                       : () => _openMenuFor(cardIdx),
                 );
 
             cardWidgets.add(
               Positioned(
+                key: ValueKey(
+                  'system_position_${card.isGame ? card.title : card.folderName}',
+                ),
                 left: left,
                 top: top,
                 width: width,
@@ -1332,7 +1533,17 @@ class _SystemCardGridViewState extends State<SystemCardGridView> {
                   child: Stack(
                     fit: StackFit.passthrough,
                     children: [
-                      cardWidget,
+                      InlineSystemReorderCard(
+                        enabled:
+                            widget.onReorderStarted != null && !card.isGame,
+                        folderName: card.folderName,
+                        lifted: widget.movingSystemFolder == card.folderName,
+                        onLift: () => widget.onReorderStarted?.call(cardIdx),
+                        onMoveHere: () => widget.onCardTapped?.call(cardIdx),
+                        onDrop: widget.onReorderDrop,
+                        onDragUpdate: _scrollAtDragEdge,
+                        child: cardWidget,
+                      ),
                       Positioned.fill(
                         child: IgnorePointer(
                           child: SizedBox.expand(

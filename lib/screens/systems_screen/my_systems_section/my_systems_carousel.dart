@@ -31,6 +31,7 @@ import 'package:neostation/models/secondary_display_state.dart';
 import 'package:neostation/widgets/header_sort_dropdown.dart';
 import 'package:neostation/widgets/native_carousel.dart';
 import 'system_list_builder.dart';
+import 'inline_system_reorder_card.dart';
 import 'system_card.dart';
 
 /// Navigation-layer id the systems screen's own carousel registers under.
@@ -60,6 +61,9 @@ class MySystemsCarousel extends StatefulWidget {
     this.onXPressed,
     this.onRightStickPressed,
     this.onReorderRequested,
+    this.movingSystemFolder,
+    this.onReorderStarted,
+    this.onReorderDrop,
     this.navLayerId = kSystemsCarouselNavLayerId,
     this.cardOverrideBuilder,
     this.blockSystemBack = true,
@@ -102,8 +106,11 @@ class MySystemsCarousel extends StatefulWidget {
   /// R3. Opens Android Apps directly on the main systems screen.
   final VoidCallback? onRightStickPressed;
 
-  /// Opens the persistent system-card ordering screen.
+  /// Picks up the selected system card without leaving this view.
   final VoidCallback? onReorderRequested;
+  final String? movingSystemFolder;
+  final ValueChanged<int>? onReorderStarted;
+  final VoidCallback? onReorderDrop;
 
   /// Anchor for a menu opened on the centred card.
   ///
@@ -339,11 +346,21 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
 
   /// Logic for smooth previous item navigation.
   void _navigatePrevious() {
+    if (widget.movingSystemFolder != null) {
+      final target = (_currentIndex - 1).clamp(0, _getSystemsList().length - 1);
+      widget.onCardTapped?.call(target);
+      return;
+    }
     SfxService().playNavSound();
     _carouselKey.currentState?.previousPage();
   }
 
   void _navigateNext() {
+    if (widget.movingSystemFolder != null) {
+      final target = (_currentIndex + 1).clamp(0, _getSystemsList().length - 1);
+      widget.onCardTapped?.call(target);
+      return;
+    }
     SfxService().playNavSound();
     _carouselKey.currentState?.nextPage();
   }
@@ -376,6 +393,10 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
   /// Executes navigation for the currently focused carousel item.
   void _selectCurrentSystem() {
     if (!mounted) return;
+    if (widget.movingSystemFolder != null) {
+      widget.onReorderDrop?.call();
+      return;
+    }
 
     final allSystems = _getSystemsList();
     if (_currentIndex < 0 || _currentIndex >= allSystems.length) return;
@@ -1060,7 +1081,9 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
                             // painted outside the page slot the viewport
                             // hit-tests it by, so the gesture would never
                             // reach it anyway; swipe or tap to centre first.
-                            onLongPress: isSelected && widget.onYPressed != null
+                            onLongPress: widget.onReorderStarted != null
+                                ? null
+                                : isSelected && widget.onYPressed != null
                                 ? widget.onYPressed
                                 : null,
                             showCount: widget.showCardCounts,
@@ -1077,7 +1100,18 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
                       return Stack(
                         fit: StackFit.passthrough,
                         children: [
-                          card,
+                          InlineSystemReorderCard(
+                            enabled:
+                                widget.onReorderStarted != null &&
+                                !system.isGame,
+                            folderName: system.folderName,
+                            lifted:
+                                widget.movingSystemFolder == system.folderName,
+                            onLift: () => widget.onReorderStarted?.call(index),
+                            onMoveHere: () => widget.onCardTapped?.call(index),
+                            onDrop: widget.onReorderDrop,
+                            child: card,
+                          ),
                           Positioned.fill(
                             child: IgnorePointer(
                               child: SizedBox.expand(
