@@ -966,11 +966,26 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     // Gamepad event forwarding / blocking
     override fun dispatchGenericMotionEvent(motionEvent: MotionEvent): Boolean {
         if (gamepadBlocked) return true
+        val secondary = subScreenPresentation as? SecondaryAppsPresentation
+        if (secondary?.wantsControllerInput() == true &&
+            isControllerSource(motionEvent.source)
+        ) {
+            secondary.forwardControllerMotion(motionEvent)
+            return true
+        }
         val handled = motionListener?.invoke(motionEvent) ?: false
         return if (handled) true else super.dispatchGenericMotionEvent(motionEvent)
     }
 
     override fun dispatchKeyEvent(keyEvent: KeyEvent): Boolean {
+        val secondary = subScreenPresentation as? SecondaryAppsPresentation
+        if (secondary?.wantsControllerInput() == true &&
+            isControllerSource(keyEvent.source)
+        ) {
+            secondary.forwardControllerKey(keyEvent)
+            return true
+        }
+
         // BLOQUEAR COMPLETAMENTE el botón BACK (tanto del sistema como del gamepad)
         if (keyEvent.keyCode == KeyEvent.KEYCODE_BACK) {
             return true // Consumir completamente, no pasar a ningún lado
@@ -979,6 +994,12 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         if (gamepadBlocked) return true
         val handled = keyListener?.invoke(keyEvent) ?: false
         return if (handled) true else super.dispatchKeyEvent(keyEvent)
+    }
+
+    private fun isControllerSource(source: Int): Boolean {
+        return source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
+            source and InputDevice.SOURCE_DPAD == InputDevice.SOURCE_DPAD ||
+            source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
     }
 
     // Launcher methods

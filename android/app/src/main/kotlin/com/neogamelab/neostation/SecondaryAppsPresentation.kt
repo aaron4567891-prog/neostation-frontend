@@ -98,6 +98,19 @@ class SecondaryAppsPresentation(
         appsChannel?.invokeMethod("onSecondaryInputFocusChanged", false)
     }
 
+    /** Whether controller events received by the main Activity belong here. */
+    fun wantsControllerInput(): Boolean = inputFocused
+
+    /** Delivers a controller key that Android routed to the main display. */
+    fun forwardControllerKey(event: KeyEvent) {
+        dispatchKeyEvent(event)
+    }
+
+    /** Delivers controller axis/hat motion routed to the main display. */
+    fun forwardControllerMotion(event: MotionEvent) {
+        super.dispatchGenericMotionEvent(event)
+    }
+
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         // Acquire focus before Flutter receives ACTION_DOWN so the complete
         // gesture is delivered to the secondary engine on affected devices.
