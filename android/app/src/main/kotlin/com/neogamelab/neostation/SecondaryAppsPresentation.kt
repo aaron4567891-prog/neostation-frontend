@@ -141,6 +141,10 @@ class SecondaryAppsPresentation(
 
     /** Never let BACK reach Dialog's cancel path, focused or not. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        Log.i(
+            TAG,
+            "BOTTOM_CONTROLLER_ANDROID keyCode=${event.keyCode} action=${event.action} source=${event.source} focused=$inputFocused controller=${isControllerSource(event.source)}"
+        )
         // Once the bottom Presentation owns Android focus, controller events
         // arrive here instead of MainActivity. Forward them explicitly to the
         // secondary Flutter engine through its MethodChannel.
