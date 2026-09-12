@@ -19,6 +19,7 @@ import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/services/screenscraper_service.dart';
 import 'package:neostation/services/sfx_service.dart';
 import 'package:neostation/utils/artwork_cache.dart';
+import 'package:neostation/widgets/confirm_action_dialog.dart';
 import 'package:neostation/widgets/custom_notification.dart';
 
 /// Sub-tabs inside the Scrapping tab of [GameSettingsDialog].
@@ -69,12 +70,18 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
   static const int _idxSave = 11;
   static const int _totalDataItems = 12;
 
-  // Media tab: screenshot, wheel, fanart, boxart.
+  // Media tab: screenshot, wheel, fanart, boxart, video.
   static const int _idxImageStart = 0;
-  static const int _totalMediaItems = 4;
+  static const int _totalMediaItems = 5;
 
   static const _descLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt'];
-  static const _imageTypes = ['screenshots', 'wheels', 'fanarts', 'box2d'];
+  static const _mediaTypes = [
+    'screenshots',
+    'wheels',
+    'fanarts',
+    'box2d',
+    'videos',
+  ];
 
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
@@ -324,6 +331,10 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
       ? widget.game.getScreenshotPath(_folder, widget.fileProvider)
       : widget.game.getImagePath(_folder, type, widget.fileProvider);
 
+  String _pathForMediaType(String type) => type == 'videos'
+      ? widget.game.getVideoPath(_folder, widget.fileProvider)
+      : _pathForImageType(type);
+
   Future<void> _replaceImage(String type) async {
     final result = await FilePicker.pickFile(type: FileType.image);
     final srcPath = result?.path;
@@ -366,6 +377,57 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
       );
     } catch (e) {
       _log.e('Artwork replacement failed: $e');
+      if (mounted) {
+        AppNotification.showNotification(
+          context,
+          AppLocale.failedToSaveSetting.getString(context),
+          type: NotificationType.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _removeMedia(String type) async {
+    final mediaPath = _pathForMediaType(type);
+    final mediaFile = File(mediaPath);
+    if (!await mediaFile.exists() || !mounted) {
+      AppNotification.showNotification(
+        context,
+        'No ${_mediaTypeLabel(context, type).toLowerCase()} to remove.',
+        type: NotificationType.info,
+      );
+      return;
+    }
+
+    final label = _mediaTypeLabel(context, type);
+    final confirmed = await ConfirmActionDialog.show(
+      context,
+      title: 'Remove $label?',
+      body:
+          'This removes only this game\'s $label file. '
+          'Other artwork and metadata will not be changed.',
+      confirmLabel: AppLocale.delete.getString(context),
+      icon: Symbols.delete_rounded,
+    );
+    if (!confirmed || !mounted) return;
+
+    try {
+      if (type != 'videos') {
+        await evictScrapedArtwork([mediaPath]);
+      }
+      await mediaFile.delete();
+      GamesGrid.evictArtworkCaches([mediaPath]);
+      GamesCarousel.evictArtworkCaches([mediaPath]);
+      if (!mounted) return;
+      setState(() => _thumbsVersion++);
+      widget.onGameUpdated?.call();
+      AppNotification.showNotification(
+        context,
+        '$label removed.',
+        type: NotificationType.success,
+      );
+    } catch (e) {
+      _log.e('Media removal failed for $mediaPath: $e');
       if (mounted) {
         AppNotification.showNotification(
           context,
@@ -446,7 +508,8 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
       }
     } else {
       if (idx >= _idxImageStart && idx < _totalMediaItems) {
-        _replaceImage(_imageTypes[idx]);
+        final type = _mediaTypes[idx];
+        if (type != 'videos') _replaceImage(type);
       }
     }
   }
@@ -673,17 +736,25 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
             icon: Symbols.image_rounded,
             label: AppLocale.systemArt.getString(context),
           ),
-          for (int i = 0; i < _imageTypes.length; i++)
+          for (int i = 0; i < _mediaTypes.length; i++)
             _ArtworkRow(
               key: _itemKey(_idxImageStart + i),
               isSelected: _selectedIndex == _idxImageStart + i,
-              label: _imageTypeLabel(context, _imageTypes[i]),
-              imagePath: _pathForImageType(_imageTypes[i]),
+              label: _mediaTypeLabel(context, _mediaTypes[i]),
+              mediaPath: _pathForMediaType(_mediaTypes[i]),
+              isVideo: _mediaTypes[i] == 'videos',
               thumbsVersion: _thumbsVersion,
-              onTap: () {
+              onChange: _mediaTypes[i] == 'videos'
+                  ? null
+                  : () {
+                      SfxService().playNavSound();
+                      setState(() => _selectedIndex = _idxImageStart + i);
+                      _replaceImage(_mediaTypes[i]);
+                    },
+              onRemove: () {
                 SfxService().playNavSound();
                 setState(() => _selectedIndex = _idxImageStart + i);
-                _replaceImage(_imageTypes[i]);
+                _removeMedia(_mediaTypes[i]);
               },
             ),
         ],
@@ -691,7 +762,7 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
     );
   }
 
-  String _imageTypeLabel(BuildContext context, String type) {
+  String _mediaTypeLabel(BuildContext context, String type) {
     switch (type) {
       case 'screenshots':
         return AppLocale.screenshot.getString(context);
@@ -701,6 +772,8 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
         return AppLocale.fanart.getString(context);
       case 'box2d':
         return AppLocale.boxart.getString(context);
+      case 'videos':
+        return 'Video';
       default:
         return type;
     }
@@ -1016,27 +1089,31 @@ class _MetadataFieldRow extends StatelessWidget {
 class _ArtworkRow extends StatelessWidget {
   final bool isSelected;
   final String label;
-  final String imagePath;
+  final String mediaPath;
+  final bool isVideo;
   final int thumbsVersion;
-  final VoidCallback onTap;
+  final VoidCallback? onChange;
+  final VoidCallback onRemove;
 
   const _ArtworkRow({
     super.key,
     required this.isSelected,
     required this.label,
-    required this.imagePath,
+    required this.mediaPath,
+    required this.isVideo,
     required this.thumbsVersion,
-    required this.onTap,
+    required this.onChange,
+    required this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final file = File(imagePath);
+    final file = File(mediaPath);
     final exists = file.existsSync();
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: onChange,
       child: Container(
         margin: EdgeInsets.only(bottom: 4.r),
         decoration: BoxDecoration(
@@ -1054,10 +1131,10 @@ class _ArtworkRow extends StatelessWidget {
                 width: 40.r,
                 height: 40.r,
                 color: theme.colorScheme.surfaceContainerHighest,
-                child: exists
+                child: exists && !isVideo
                     ? Image.file(
                         file,
-                        key: ValueKey('thumb_${imagePath}_$thumbsVersion'),
+                        key: ValueKey('thumb_${mediaPath}_$thumbsVersion'),
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Icon(
                           Symbols.broken_image_rounded,
@@ -1068,7 +1145,7 @@ class _ArtworkRow extends StatelessWidget {
                         ),
                       )
                     : Icon(
-                        Symbols.image_rounded,
+                        isVideo ? Symbols.movie_rounded : Symbols.image_rounded,
                         size: 16.r,
                         color: theme.colorScheme.onSurface.withValues(
                           alpha: 0.4,
@@ -1089,23 +1166,35 @@ class _ArtworkRow extends StatelessWidget {
                 ),
               ),
             ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 3.r),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(4.r),
-                border: Border.all(
-                  color: theme.colorScheme.secondary.withValues(alpha: 0.4),
-                  width: 1.r,
+            if (onChange != null)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.r, vertical: 3.r),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4.r),
+                  border: Border.all(
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.4),
+                    width: 1.r,
+                  ),
+                ),
+                child: Text(
+                  AppLocale.change.getString(context),
+                  style: TextStyle(
+                    fontSize: 11.r,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.secondary,
+                  ),
                 ),
               ),
-              child: Text(
-                AppLocale.change.getString(context),
-                style: TextStyle(
-                  fontSize: 11.r,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.secondary,
-                ),
+            SizedBox(width: 6.r),
+            IconButton(
+              tooltip: 'Remove $label',
+              onPressed: exists ? onRemove : null,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(
+                Symbols.delete_rounded,
+                size: 16.r,
+                color: exists ? theme.colorScheme.error : null,
               ),
             ),
           ],
