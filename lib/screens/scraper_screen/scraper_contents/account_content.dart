@@ -9,6 +9,8 @@ class AccountContent extends StatelessWidget {
   final int selectedContentIndex;
   final Map<String, String>? userInfo;
   final VoidCallback onLogout;
+  final bool theGamesDbConnected;
+  final VoidCallback onConfigureTheGamesDb;
   final bool steamGridDbConnected;
   final VoidCallback onConfigureSteamGridDb;
   final String metadataProvider;
@@ -22,6 +24,8 @@ class AccountContent extends StatelessWidget {
     required this.selectedContentIndex,
     required this.userInfo,
     required this.onLogout,
+    required this.theGamesDbConnected,
+    required this.onConfigureTheGamesDb,
     required this.steamGridDbConnected,
     required this.onConfigureSteamGridDb,
     required this.metadataProvider,
@@ -96,12 +100,32 @@ class AccountContent extends StatelessWidget {
             ),
             SizedBox(height: 16.h),
           ],
-          _buildSteamGridDbButton(context, theme),
+          _buildProviderButton(
+            context,
+            theme,
+            index: 1,
+            connected: theGamesDbConnected,
+            icon: Symbols.database_rounded,
+            name: 'TheGamesDB',
+            purpose: 'metadata',
+            onPressed: onConfigureTheGamesDb,
+          ),
+          SizedBox(height: 10.h),
+          _buildProviderButton(
+            context,
+            theme,
+            index: 2,
+            connected: steamGridDbConnected,
+            icon: Symbols.image_rounded,
+            name: 'SteamGridDB',
+            purpose: 'artwork',
+            onPressed: onConfigureSteamGridDb,
+          ),
           SizedBox(height: 10.h),
           _buildChoiceButton(
             context,
             theme,
-            index: 2,
+            index: 3,
             icon: Symbols.database_rounded,
             title: 'Primary metadata scraper',
             value: metadataProvider,
@@ -111,7 +135,7 @@ class AccountContent extends StatelessWidget {
           _buildChoiceButton(
             context,
             theme,
-            index: 3,
+            index: 4,
             icon: Symbols.layers_rounded,
             title: 'Artwork scraper priority',
             value: artworkPriority,
@@ -151,8 +175,17 @@ class AccountContent extends StatelessWidget {
     );
   }
 
-  Widget _buildSteamGridDbButton(BuildContext context, ThemeData theme) {
-    final selected = isContentFocused && selectedContentIndex == 1;
+  Widget _buildProviderButton(
+    BuildContext context,
+    ThemeData theme, {
+    required int index,
+    required bool connected,
+    required IconData icon,
+    required String name,
+    required String purpose,
+    required VoidCallback onPressed,
+  }) {
+    final selected = isContentFocused && selectedContentIndex == index;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -163,17 +196,10 @@ class AccountContent extends StatelessWidget {
         ),
       ),
       child: OutlinedButton.icon(
-        onPressed: onConfigureSteamGridDb,
-        icon: Icon(
-          steamGridDbConnected
-              ? Symbols.check_circle_rounded
-              : Symbols.image_rounded,
-          size: 18.r,
-        ),
+        onPressed: onPressed,
+        icon: Icon(connected ? Symbols.check_circle_rounded : icon, size: 18.r),
         label: Text(
-          steamGridDbConnected
-              ? 'SteamGridDB connected — change key'
-              : 'Connect SteamGridDB artwork',
+          connected ? '$name connected — change key' : 'Connect $name $purpose',
           style: TextStyle(fontSize: 11.r),
         ),
       ),

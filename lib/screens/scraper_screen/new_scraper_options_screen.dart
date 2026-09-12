@@ -68,6 +68,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   String? _currentLanguage;
   List<String> _currentEnabledMediaTypes = [];
   bool _steamGridDbConnected = false;
+  bool _theGamesDbConnected = false;
   MetadataScraperProvider _metadataProvider =
       MetadataScraperProvider.screenScraper;
   ArtworkScraperPriority _artworkPriority =
@@ -82,6 +83,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     _loadCurrentLanguage();
     _loadCurrentMediaConfig();
     _loadSteamGridDbStatus();
+    _loadTheGamesDbStatus();
     _loadProviderPreferences();
   }
 
@@ -161,15 +163,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   }
 
   Future<void> _loadCredentials() async {
-    var credentials = await ScreenScraperService.getSavedCredentials();
-    if (credentials == null && await TheGamesDbService.hasApiKey()) {
-      credentials = const {
-        'username': 'TheGamesDB',
-        'contribution': '0',
-        'maxthreads': '1',
-        'provider': 'thegamesdb',
-      };
-    }
+    final credentials = await ScreenScraperService.getSavedCredentials();
     if (mounted) {
       setState(() {
         _userInfo = credentials;
@@ -229,6 +223,63 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   Future<void> _loadSteamGridDbStatus() async {
     final connected = await SteamGridDbService.hasApiKey();
     if (mounted) setState(() => _steamGridDbConnected = connected);
+  }
+
+  Future<void> _loadTheGamesDbStatus() async {
+    final connected = await TheGamesDbService.hasApiKey();
+    if (mounted) setState(() => _theGamesDbConnected = connected);
+  }
+
+  Future<void> _configureTheGamesDb() async {
+    final controller = TextEditingController();
+    final key = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('TheGamesDB API key'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'API key',
+            hintText: 'Paste your TheGamesDB API key',
+          ),
+        ),
+        actions: [
+          if (_theGamesDbConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (key == null || !mounted) return;
+    if (key == '__disconnect__') {
+      await TheGamesDbService.clearApiKey();
+      await _loadTheGamesDbStatus();
+      return;
+    }
+    if (key.trim().isEmpty) return;
+    final saved = await TheGamesDbService.saveApiKey(key);
+    if (!mounted) return;
+    AppNotification.showNotification(
+      context,
+      saved
+          ? 'TheGamesDB connected successfully.'
+          : 'TheGamesDB rejected that API key.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+    await _loadTheGamesDbStatus();
   }
 
   Future<void> _loadProviderPreferences() async {
@@ -511,7 +562,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     if (selectedKey == AppLocale.systems) {
       return _systemsKey.currentState?.getItemCount() ?? 0;
     }
-    if (selectedKey == AppLocale.account) return 4;
+    if (selectedKey == AppLocale.account) return 5;
     return 0;
   }
 
@@ -533,10 +584,12 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
       if (_selectedContentIndex == 0) {
         _handleLogout();
       } else if (_selectedContentIndex == 1) {
-        _configureSteamGridDb();
+        _configureTheGamesDb();
       } else if (_selectedContentIndex == 2) {
-        _chooseMetadataProvider();
+        _configureSteamGridDb();
       } else if (_selectedContentIndex == 3) {
+        _chooseMetadataProvider();
+      } else if (_selectedContentIndex == 4) {
         _chooseArtworkPriority();
       }
     }
@@ -552,10 +605,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     );
 
     if (confirmed == true) {
-      final isTheGamesDb = _userInfo?['provider'] == 'thegamesdb';
-      final success = isTheGamesDb
-          ? await TheGamesDbService.clearApiKey().then((_) => true)
-          : await ScreenScraperService.clearCredentials();
+      final success = await ScreenScraperService.clearCredentials();
       if (mounted) {
         if (success) {
           AppNotification.showNotification(
@@ -603,11 +653,6 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
 
   Future<void> _handleLanguageChange(String newLanguage) async {
     if (_userInfo == null) return;
-    if (_userInfo?['provider'] == 'thegamesdb') {
-      setState(() => _currentLanguage = newLanguage);
-      return;
-    }
-
     final success = await ScreenScraperService.saveCredentials(
       _userInfo!['username']!,
       _userInfo!['password']!,
@@ -812,6 +857,8 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
         selectedContentIndex: _selectedContentIndex,
         userInfo: _userInfo,
         onLogout: _handleLogout,
+        theGamesDbConnected: _theGamesDbConnected,
+        onConfigureTheGamesDb: _configureTheGamesDb,
         steamGridDbConnected: _steamGridDbConnected,
         onConfigureSteamGridDb: _configureSteamGridDb,
         metadataProvider: _metadataProviderLabel,

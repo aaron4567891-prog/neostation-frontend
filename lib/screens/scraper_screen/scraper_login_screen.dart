@@ -12,6 +12,7 @@ import 'package:flutter_localization/flutter_localization.dart';
 import 'package:neostation/l10n/app_locale.dart';
 import '../../utils/login_form_selection.dart';
 import '../../services/thegamesdb_service.dart';
+import '../../services/steamgriddb_service.dart';
 
 class ScraperLoginScreen extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -33,15 +34,28 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _theGamesDbConnected = false;
+  bool _steamGridDbConnected = false;
+
+  static const _loginSlot = 2;
+  static const _theGamesDbSlot = 3;
+  static const _steamGridDbSlot = 4;
 
   @override
-  List<FocusNode?> get selectionSlots => [_usernameFocus, _passwordFocus, null];
+  List<FocusNode?> get selectionSlots => [
+    _usernameFocus,
+    _passwordFocus,
+    null,
+    null,
+    null,
+  ];
 
   @override
   void initState() {
     super.initState();
     attachFocusSelectionListeners();
     _initControllerNavigation();
+    _loadProviderStatus();
   }
 
   void _initControllerNavigation() {
@@ -81,9 +95,30 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
 
   bool _navigateDown() => moveSelection(1);
 
-  void _selectCurrentField() {
+  Future<void> _selectCurrentField() async {
     if (focusSelectedField()) return;
-    _performLogin();
+    switch (selectedSlot) {
+      case _theGamesDbSlot:
+        await _configureTheGamesDb();
+        return;
+      case _steamGridDbSlot:
+        await _configureSteamGridDb();
+        return;
+      default:
+        await _performLogin();
+    }
+  }
+
+  Future<void> _loadProviderStatus() async {
+    final results = await Future.wait([
+      TheGamesDbService.hasApiKey(),
+      SteamGridDbService.hasApiKey(),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _theGamesDbConnected = results[0];
+      _steamGridDbConnected = results[1];
+    });
   }
 
   Future<void> _performLogin() async {
@@ -204,6 +239,11 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
           ),
         ),
         actions: [
+          if (_theGamesDbConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
@@ -216,7 +256,13 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
       ),
     );
     controller.dispose();
-    if (key == null || key.trim().isEmpty || !mounted) return;
+    if (key == null || !mounted) return;
+    if (key == '__disconnect__') {
+      await TheGamesDbService.clearApiKey();
+      await _loadProviderStatus();
+      return;
+    }
+    if (key.trim().isEmpty) return;
     setState(() => _isLoading = true);
     final saved = await TheGamesDbService.saveApiKey(key);
     if (!mounted) return;
@@ -228,7 +274,61 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
           : 'TheGamesDB rejected that API key.',
       type: saved ? NotificationType.success : NotificationType.error,
     );
-    if (saved) widget.onLoginSuccess?.call();
+    await _loadProviderStatus();
+  }
+
+  Future<void> _configureSteamGridDb() async {
+    final controller = TextEditingController();
+    final key = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('SteamGridDB API key'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'API key',
+            hintText: 'Paste your SteamGridDB API key',
+          ),
+        ),
+        actions: [
+          if (_steamGridDbConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (key == null || !mounted) return;
+    if (key == '__disconnect__') {
+      await SteamGridDbService.clearApiKey();
+      await _loadProviderStatus();
+      return;
+    }
+    if (key.trim().isEmpty) return;
+    setState(() => _isLoading = true);
+    final saved = await SteamGridDbService.saveApiKey(key);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    AppNotification.showNotification(
+      context,
+      saved
+          ? 'SteamGridDB connected successfully.'
+          : 'SteamGridDB rejected that API key.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+    await _loadProviderStatus();
   }
 
   @override
@@ -588,7 +688,7 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
           // Login button
           Container(
             constraints: BoxConstraints(maxWidth: 320.r),
-            decoration: isSelected(submitSlot)
+            decoration: isSelected(_loginSlot)
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(8.r),
                     boxShadow: [
@@ -647,19 +747,56 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
             ],
           ),
           SizedBox(height: 8.r),
-          SizedBox(
-            width: double.infinity,
-            height: 32.r,
-            child: OutlinedButton.icon(
-              onPressed: _isLoading ? null : _configureTheGamesDb,
-              icon: Icon(Symbols.database_rounded, size: 16.r),
-              label: Text(
-                'Connect TheGamesDB',
-                style: TextStyle(fontSize: 11.r),
-              ),
-            ),
+          _buildProviderButton(
+            context,
+            slot: _theGamesDbSlot,
+            connected: _theGamesDbConnected,
+            label: 'TheGamesDB',
+            icon: Symbols.database_rounded,
+            onPressed: _configureTheGamesDb,
+          ),
+          SizedBox(height: 6.r),
+          _buildProviderButton(
+            context,
+            slot: _steamGridDbSlot,
+            connected: _steamGridDbConnected,
+            label: 'SteamGridDB',
+            icon: Symbols.image_rounded,
+            onPressed: _configureSteamGridDb,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProviderButton(
+    BuildContext context, {
+    required int slot,
+    required bool connected,
+    required String label,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      height: 32.r,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: isSelected(slot)
+              ? theme.colorScheme.primary
+              : Colors.transparent,
+          width: 2.r,
+        ),
+      ),
+      child: OutlinedButton.icon(
+        onPressed: _isLoading ? null : onPressed,
+        icon: Icon(connected ? Symbols.check_circle_rounded : icon, size: 16.r),
+        label: Text(
+          connected ? '$label connected — change key' : 'Connect $label',
+          style: TextStyle(fontSize: 10.r),
+        ),
       ),
     );
   }
