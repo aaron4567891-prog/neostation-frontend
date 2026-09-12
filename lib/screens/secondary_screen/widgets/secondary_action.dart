@@ -42,6 +42,18 @@ class _SecondaryActionState extends State<SecondaryAction> {
         SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
         SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(
+          TraversalDirection.up,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(
+          TraversalDirection.down,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(
+          TraversalDirection.left,
+        ),
+        SingleActivator(LogicalKeyboardKey.arrowRight): DirectionalFocusIntent(
+          TraversalDirection.right,
+        ),
       },
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(
@@ -51,7 +63,9 @@ class _SecondaryActionState extends State<SecondaryAction> {
           },
         ),
       },
-      onShowFocusHighlight: (focused) {
+      // Show the selected control even when focus was acquired after a touch.
+      // onShowFocusHighlight stays false in Flutter's touch highlight mode.
+      onFocusChange: (focused) {
         if (_focused != focused) setState(() => _focused = focused);
       },
       child: GestureDetector(
