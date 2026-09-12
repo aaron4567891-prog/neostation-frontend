@@ -3,6 +3,7 @@ package com.neogamelab.neostation
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Build
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityWindowInfo
 
@@ -15,6 +16,8 @@ import android.view.accessibility.AccessibilityWindowInfo
  *     display — Android gives normal apps no other signal for this.
  */
 class ScreenshotAccessibilityService : AccessibilityService() {
+
+    private var consumeReturnKeyUp = false
 
     companion object {
         @Volatile
@@ -142,6 +145,30 @@ class ScreenshotAccessibilityService : AccessibilityService() {
         } catch (e: Exception) {
             // Window introspection is best-effort; ignore transient failures.
         }
+    }
+
+    /**
+     * While a dock-launched app is showing on the bottom display, the Thor's
+     * physical Return button brings NeoStation's secondary presentation back.
+     * Other controller keys remain owned by the launched app.
+     */
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        val isReturn = event.keyCode == KeyEvent.KEYCODE_BACK ||
+            event.keyCode == KeyEvent.KEYCODE_ESCAPE
+        if (!isReturn) return false
+
+        if (event.action == KeyEvent.ACTION_DOWN && watchedPackage != null) {
+            consumeReturnKeyUp = true
+            val cb = onWatchedAppClosed
+            stopWatch()
+            cb?.invoke()
+            return true
+        }
+        if (event.action == KeyEvent.ACTION_UP && consumeReturnKeyUp) {
+            consumeReturnKeyUp = false
+            return true
+        }
+        return false
     }
 
     /** Package of the topmost application window on [displayId], or null. */
