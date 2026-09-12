@@ -101,8 +101,15 @@ class SecondaryAppsPresentation(
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         // Acquire focus before Flutter receives ACTION_DOWN so the complete
         // gesture is delivered to the secondary engine on affected devices.
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) acquireInputFocus()
-        return super.dispatchTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            Log.i(TAG, "BOTTOM_TOUCH_ANDROID_DOWN x=${event.x} y=${event.y}")
+            acquireInputFocus()
+        }
+        val handled = super.dispatchTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP) {
+            Log.i(TAG, "BOTTOM_TOUCH_ANDROID_UP handled=$handled")
+        }
+        return handled
     }
 
     /** Never let BACK reach Dialog's cancel path, focused or not. */
