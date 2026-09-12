@@ -112,8 +112,13 @@ class SecondaryAppsPresentation(
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) acquireInputFocus()
-        return super.dispatchTouchEvent(event)
+        // Let Flutter receive the complete DOWN -> UP gesture before changing
+        // this Presentation's focus flags. Changing window focus on DOWN can
+        // cancel the gesture, making a visible bottom-screen button appear
+        // unresponsive on the first tap.
+        val handled = super.dispatchTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP) acquireInputFocus()
+        return handled
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
