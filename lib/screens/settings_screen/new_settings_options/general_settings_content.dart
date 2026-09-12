@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../../services/game_detail_tab_preferences.dart';
+import '../../game_screen/game_details_card/detail_tab.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -73,16 +75,23 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
     WidgetsBinding.instance.addObserver(this);
     _loadFullscreenState();
     _checkDefaultLauncher();
+    GameDetailTabPreferences.instance.addListener(_onGameTabsChanged);
+    GameDetailTabPreferences.instance.load();
 
     // Pre-allocate keys for maximum theoretical setting items (the fixed rows
     // plus one per navigation tab that can be toggled).
-    for (int i = 0; i < 17 + NavTab.values.length; i++) {
+    for (
+      int i = 0;
+      i < 17 + NavTab.values.length + DetailTab.values.length;
+      i++
+    ) {
       _itemKeys.add(GlobalKey());
     }
   }
 
   @override
   void dispose() {
+    GameDetailTabPreferences.instance.removeListener(_onGameTabsChanged);
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
@@ -223,7 +232,7 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
     if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
       count++; // BarTOP Power Management
     }
-    return count;
+    return count + DetailTab.values.length;
   }
 
   /// Selection Dispatcher: Executes the action associated with the specified setting index.
@@ -463,6 +472,18 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
       }
       currentItemIndex++;
     }
+    for (final tab in DetailTab.values) {
+      if (index == currentItemIndex) {
+        final prefs = GameDetailTabPreferences.instance;
+        prefs.setVisible(tab, !prefs.isVisible(tab));
+        return;
+      }
+      currentItemIndex++;
+    }
+  }
+
+  void _onGameTabsChanged() {
+    if (mounted) setState(() {});
   }
 
   /// Advances the UI sound volume to the next stop and persists it, wrapping
@@ -1030,6 +1051,33 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
                               .read<SqliteConfigProvider>()
                               .updateBartopExitPoweroff(value);
                         },
+                        activeColor: theme.colorScheme.primary,
+                      ),
+                    );
+                  }(),
+                ],
+                SizedBox(height: 24.r),
+                Text('Game view tabs', style: theme.textTheme.titleMedium),
+                Text(
+                  'Show or hide each tab. At least one main tab must stay visible.',
+                  style: theme.textTheme.bodySmall,
+                ),
+                for (final tab in DetailTab.values) ...[
+                  SizedBox(height: 12.r),
+                  () {
+                    final index = currentItemIdx++;
+                    final prefs = GameDetailTabPreferences.instance;
+                    return SettingRow(
+                      key: _itemKeys[index],
+                      onTap: () => selectItem(index),
+                      focused:
+                          widget.isContentFocused &&
+                          widget.selectedContentIndex == index,
+                      title: GameDetailTabPreferences.label(tab),
+                      subtitle: 'Show this tab in the game selection screen',
+                      trailing: CustomToggleSwitch(
+                        value: prefs.isVisible(tab),
+                        onChanged: (value) => prefs.setVisible(tab, value),
                         activeColor: theme.colorScheme.primary,
                       ),
                     );

@@ -31,6 +31,7 @@ import '../../../models/secondary_display_state.dart';
 import 'widgets/game_details_footer.dart';
 import 'widgets/game_details_tabs_header.dart';
 import 'detail_tab.dart';
+import '../../../services/game_detail_tab_preferences.dart';
 import 'widgets/scraping_progress_panel.dart';
 import 'tabs/game_details_general_tab.dart';
 import 'tabs/game_details_box2d_tab.dart';
@@ -341,6 +342,8 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
   @override
   void initState() {
     super.initState();
+    GameDetailTabPreferences.instance.addListener(_onTabVisibilityChanged);
+    GameDetailTabPreferences.instance.load();
     _game = widget.game;
 
     _muteButtonFocusNode = FocusNode();
@@ -568,9 +571,8 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
       _applyVideoMuteState();
     }
 
-    if ((_isGameInfoHidden && _currentTab == DetailTab.screenshotVideo) ||
-        (!_hasRetroAchievements && _currentTab == DetailTab.achievements)) {
-      _currentTab = DetailTab.wheel;
+    if (!_isTabAvailable(_currentTab)) {
+      _currentTab = DetailTab.values.firstWhere(_isTabAvailable);
       // A tab yanked away isn't a navigation the user made, so nothing slides:
       // drop the half-finished run rather than animating out of a panel this
       // game can no longer show.
@@ -596,6 +598,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
 
   @override
   void dispose() {
+    GameDetailTabPreferences.instance.removeListener(_onTabVisibilityChanged);
     widget.retroAchievementsProvider.removeListener(_onRAProviderChanged);
     _secondaryState?.removeListener(_onSecondaryStateChanged);
     _animationController.dispose();
@@ -866,6 +869,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
               hasRetroAchievements: _hasRetroAchievements,
               currentTab: _currentTab,
               onTabChanged: _setTab,
+              availableTabs: DetailTab.values.where(_isTabAvailable).toList(),
             ),
           ),
 
@@ -938,6 +942,21 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
                         imageVersion: _artworkImageVersion,
                       ),
                     ),
+                  if (_isPanelMounted(DetailTab.video))
+                    _slidingPanel(
+                      DetailTab.video,
+                      GameDetailsScreenshotVideoTab(
+                        bottomOffset: panelBottomOffset,
+                        screenshotPath: '',
+                        isVideoDelayActive: false,
+                        videoController: widget.videoController,
+                        imageVersion: _artworkImageVersion,
+                        onToggleVideoMute: _toggleVideoMute,
+                        videoOnly: true,
+                        isVideoLoading:
+                            _isVideoDelayActive || widget.isVideoLoading,
+                      ),
+                    ),
                   // The media tab stays mounted whatever the current tab
                   // is (the video player would otherwise restart on every
                   // visit), so it slides while it is either half of the
@@ -954,7 +973,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
                         bottomOffset: panelBottomOffset,
                         screenshotPath: screenshotPath,
                         isVideoDelayActive: _isVideoDelayActive,
-                        videoController: widget.videoController,
+                        videoController: null,
                         imageVersion: _artworkImageVersion,
                         onToggleVideoMute: _toggleVideoMute,
                       ),
@@ -1237,6 +1256,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
 
   /// Whether [tab] can be shown for the current game and display setup.
   bool _isTabAvailable(DetailTab tab) {
+    if (!GameDetailTabPreferences.instance.isVisible(tab)) return false;
     if (tab == DetailTab.screenshotVideo && _isGameInfoHidden) return false;
     if (tab == DetailTab.achievements && !_hasRetroAchievements) return false;
     return true;
@@ -1256,7 +1276,19 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
       (t) => t.name == storedName,
       orElse: () => DetailTab.wheel,
     );
-    return _isTabAvailable(tab) ? tab : DetailTab.wheel;
+    return _isTabAvailable(tab)
+        ? tab
+        : DetailTab.values.firstWhere(_isTabAvailable);
+  }
+
+  void _onTabVisibilityChanged() {
+    if (!mounted) return;
+    final target = _persistedTab();
+    if (!_isTabAvailable(_currentTab)) {
+      _setTab(target, persist: false, animate: false);
+    } else {
+      setState(() {});
+    }
   }
 
   /// Processes tab navigation via hardware bumpers (LB/RB).
@@ -1372,9 +1404,12 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
     double? fromShift,
     bool animate = true,
   }) {
+    if (!_isTabAvailable(tab)) {
+      tab = DetailTab.values.firstWhere(_isTabAvailable);
+    }
     if (_currentTab == tab) return;
 
-    final wasScreenshotVideo = _currentTab == DetailTab.screenshotVideo;
+    final wasScreenshotVideo = _currentTab == DetailTab.video;
 
     // Walking off a tab releases its panel, so returning to it starts at the
     // gate rather than silently owning the D-pad again.
@@ -1400,7 +1435,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
       if (persist) {
         config.updateGameDetailsTab(tab.name);
       }
-      if (tab == DetailTab.screenshotVideo) {
+      if (tab == DetailTab.video) {
         config.updateShowGameInfo(true);
         widget.videoController?.setVolume(0);
         _startVideoDelay();

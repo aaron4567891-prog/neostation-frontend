@@ -14,6 +14,8 @@ class GameDetailsScreenshotVideoTab extends StatefulWidget {
   final VideoPlayerController? videoController;
   final int imageVersion;
   final VoidCallback onToggleVideoMute;
+  final bool videoOnly;
+  final bool isVideoLoading;
 
   /// Where the footer starts, so the media stops there and no lower.
   ///
@@ -32,6 +34,8 @@ class GameDetailsScreenshotVideoTab extends StatefulWidget {
     required this.imageVersion,
     required this.onToggleVideoMute,
     this.bottomOffset = 110.0,
+    this.videoOnly = false,
+    this.isVideoLoading = false,
   });
 
   @override
@@ -164,7 +168,8 @@ class _GameDetailsScreenshotVideoTabState
                         return VideoPlayer(widget.videoController!);
                       },
                     ),
-                  ] else if (File(screenshotPath).existsSync()) ...[
+                  ] else if (!widget.videoOnly &&
+                      File(screenshotPath).existsSync()) ...[
                     Image.file(
                       File(screenshotPath),
                       height: double.infinity,
@@ -177,11 +182,20 @@ class _GameDetailsScreenshotVideoTabState
                     ),
                   ] else
                     Center(
-                      child: Icon(
-                        Symbols.videogame_asset_rounded,
-                        size: 48.r,
-                        color: Colors.white24,
-                      ),
+                      child: widget.videoOnly
+                          ? Text(
+                              widget.isVideoLoading
+                                  ? 'Loading video…'
+                                  : 'No video available',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            )
+                          : Icon(
+                              Symbols.videogame_asset_rounded,
+                              size: 48.r,
+                              color: Colors.white24,
+                            ),
                     ),
 
                   if (!widget.isVideoDelayActive && hasVideo)

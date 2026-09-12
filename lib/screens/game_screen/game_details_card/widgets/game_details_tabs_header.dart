@@ -23,6 +23,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
   final bool hasRetroAchievements;
   final DetailTab currentTab;
   final ValueChanged<DetailTab> onTabChanged;
+  final List<DetailTab>? availableTabs;
 
   const GameDetailsTabsHeader({
     super.key,
@@ -30,6 +31,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
     required this.hasRetroAchievements,
     required this.currentTab,
     required this.onTabChanged,
+    this.availableTabs,
   });
 
   /// Ordered list of always-visible tab enums.
@@ -37,6 +39,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
     DetailTab.wheel,
     DetailTab.box2d,
     DetailTab.media,
+    DetailTab.video,
     DetailTab.screenshotVideo,
     DetailTab.gameInfo,
   ];
@@ -44,12 +47,14 @@ class GameDetailsTabsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Dynamically calculate the active tab count for layout arbitration.
-    final List<DetailTab> visibleTabs = [
-      ..._baseTabs.where(
-        (t) => t != DetailTab.screenshotVideo || !isScreenshotVideoHidden,
-      ),
-      if (hasRetroAchievements) DetailTab.achievements,
-    ];
+    final List<DetailTab> visibleTabs =
+        availableTabs ??
+        [
+          ..._baseTabs.where(
+            (t) => t != DetailTab.screenshotVideo || !isScreenshotVideoHidden,
+          ),
+          if (hasRetroAchievements) DetailTab.achievements,
+        ];
 
     final int numTabs = visibleTabs.length;
     final double tabWidth = 36.r;
@@ -173,6 +178,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
       DetailTab.wheel => Symbols.branding_watermark_rounded,
       DetailTab.box2d => Symbols.filter_frames_rounded,
       DetailTab.media => Symbols.album_rounded,
+      DetailTab.video => Icons.play_circle_filled_rounded,
       DetailTab.screenshotVideo => Symbols.image_rounded,
       DetailTab.gameInfo => Symbols.info_rounded,
       DetailTab.achievements => Symbols.emoji_events_rounded,
