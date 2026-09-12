@@ -10,6 +10,7 @@ import 'package:neostation/widgets/custom_notification.dart';
 import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/repositories/scraper_repository.dart';
 import 'package:neostation/services/thegamesdb_service.dart';
+import 'package:neostation/services/steamgriddb_service.dart';
 import 'scraper_contents/account_content.dart';
 import 'scraper_contents/language_content.dart';
 import 'scraper_contents/region_content.dart';
@@ -65,6 +66,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   String? _currentScrapeMode;
   String? _currentLanguage;
   List<String> _currentEnabledMediaTypes = [];
+  bool _steamGridDbConnected = false;
 
   @override
   void initState() {
@@ -74,6 +76,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     _loadCurrentScrapeMode();
     _loadCurrentLanguage();
     _loadCurrentMediaConfig();
+    _loadSteamGridDbStatus();
   }
 
   @override
@@ -217,6 +220,63 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     }
   }
 
+  Future<void> _loadSteamGridDbStatus() async {
+    final connected = await SteamGridDbService.hasApiKey();
+    if (mounted) setState(() => _steamGridDbConnected = connected);
+  }
+
+  Future<void> _configureSteamGridDb() async {
+    final controller = TextEditingController();
+    final key = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('SteamGridDB API key'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'API key',
+            hintText: 'Paste your SteamGridDB API key',
+          ),
+        ),
+        actions: [
+          if (_steamGridDbConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (key == null || !mounted) return;
+    if (key == '__disconnect__') {
+      await SteamGridDbService.clearApiKey();
+      await _loadSteamGridDbStatus();
+      return;
+    }
+    if (key.trim().isEmpty) return;
+    final saved = await SteamGridDbService.saveApiKey(key);
+    if (!mounted) return;
+    AppNotification.showNotification(
+      context,
+      saved
+          ? 'SteamGridDB connected successfully.'
+          : 'SteamGridDB rejected that API key.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+    await _loadSteamGridDbStatus();
+  }
+
   void _onMenuItemSelected(int index) {
     setState(() {
       _selectedMenuIndex = index;
@@ -356,7 +416,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     if (selectedKey == AppLocale.systems) {
       return _systemsKey.currentState?.getItemCount() ?? 0;
     }
-    if (selectedKey == AppLocale.account) return 1;
+    if (selectedKey == AppLocale.account) return 2;
     return 0;
   }
 
@@ -377,6 +437,8 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     } else if (selectedKey == AppLocale.account) {
       if (_selectedContentIndex == 0) {
         _handleLogout();
+      } else if (_selectedContentIndex == 1) {
+        _configureSteamGridDb();
       }
     }
   }
@@ -651,6 +713,8 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
         selectedContentIndex: _selectedContentIndex,
         userInfo: _userInfo,
         onLogout: _handleLogout,
+        steamGridDbConnected: _steamGridDbConnected,
+        onConfigureSteamGridDb: _configureSteamGridDb,
       );
     } else {
       return Center(

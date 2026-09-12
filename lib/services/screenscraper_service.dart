@@ -18,6 +18,7 @@ import '../providers/scraping_provider.dart';
 import '../l10n/app_locale.dart';
 import '../widgets/scraping_summary_dialog.dart';
 import 'thegamesdb_service.dart';
+import 'steamgriddb_service.dart';
 
 /// Service responsible for scraping game metadata and media from the
 /// ScreenScraper.fr API.
@@ -782,6 +783,14 @@ class ScreenScraperService {
                 onProgress?.call(AppLocale.downloadingImages, 0.2 + (p * 0.8)),
           );
 
+      await SteamGridDbService.downloadGameArtwork(
+        appSystemId: appSystemId,
+        systemFolder: systemFolder,
+        romName: romName,
+        gameName: gameName,
+        forceOverwrite: forceOverwrite,
+      );
+
       return {
         'success': downloadResult['success'] == true,
         'message': downloadResult['success'] == true
@@ -1127,6 +1136,13 @@ class ScreenScraperService {
             shouldCancel: shouldCancel,
             allowedMediaTypes: allowedTypes,
             maxDailyRequests: maxDailyRequests,
+            forceOverwrite: scraperConfig['scrape_mode'].toString() == 'all',
+          );
+          await SteamGridDbService.downloadGameArtwork(
+            appSystemId: appSystemId,
+            systemFolder: systemFolder,
+            romName: filename,
+            gameName: rom['title_name']?.toString(),
             forceOverwrite: scraperConfig['scrape_mode'].toString() == 'all',
           );
           if (res['cancelled'] == true) {

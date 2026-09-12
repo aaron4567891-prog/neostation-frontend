@@ -9,6 +9,8 @@ class AccountContent extends StatelessWidget {
   final int selectedContentIndex;
   final Map<String, String>? userInfo;
   final VoidCallback onLogout;
+  final bool steamGridDbConnected;
+  final VoidCallback onConfigureSteamGridDb;
 
   const AccountContent({
     super.key,
@@ -16,6 +18,8 @@ class AccountContent extends StatelessWidget {
     required this.selectedContentIndex,
     required this.userInfo,
     required this.onLogout,
+    required this.steamGridDbConnected,
+    required this.onConfigureSteamGridDb,
   });
 
   String _getContributionLevel(BuildContext context, String? contribution) {
@@ -84,7 +88,37 @@ class AccountContent extends StatelessWidget {
             ),
             SizedBox(height: 16.h),
           ],
+          _buildSteamGridDbButton(context, theme),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSteamGridDbButton(BuildContext context, ThemeData theme) {
+    final selected = isContentFocused && selectedContentIndex == 1;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: selected ? theme.colorScheme.primary : Colors.transparent,
+          width: 2.r,
+        ),
+      ),
+      child: OutlinedButton.icon(
+        onPressed: onConfigureSteamGridDb,
+        icon: Icon(
+          steamGridDbConnected
+              ? Symbols.check_circle_rounded
+              : Symbols.image_rounded,
+          size: 18.r,
+        ),
+        label: Text(
+          steamGridDbConnected
+              ? 'SteamGridDB connected — change key'
+              : 'Connect SteamGridDB artwork',
+          style: TextStyle(fontSize: 11.r),
+        ),
       ),
     );
   }

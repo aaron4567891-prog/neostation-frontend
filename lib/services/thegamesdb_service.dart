@@ -10,6 +10,7 @@ import 'credential_store.dart';
 import 'logger_service.dart';
 import 'screenscraper/media_resolver.dart';
 import 'screenscraper/rom_hasher.dart';
+import 'steamgriddb_service.dart';
 
 /// Optional metadata provider backed by TheGamesDB.
 ///
@@ -298,6 +299,13 @@ class TheGamesDbService {
           overwrite: forceOverwrite,
         );
       }
+      await SteamGridDbService.downloadGameArtwork(
+        appSystemId: appSystemId,
+        systemFolder: systemFolder,
+        romName: romName,
+        gameName: game['game_title']?.toString() ?? gameName,
+        forceOverwrite: forceOverwrite,
+      );
       onProgress?.call('Completed', 1);
       return {'success': true, 'message': 'Scrape successful'};
     } catch (e) {
