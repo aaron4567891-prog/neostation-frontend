@@ -95,6 +95,21 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         runOnUiThread { window.decorView.requestFocus() }
     }
 
+    internal fun isBottomControllerInputEnabled(): Boolean {
+        return getSharedPreferences(
+            "FlutterSharedPreferences",
+            android.content.Context.MODE_PRIVATE
+        ).getBoolean("flutter.bottom_controller_input_enabled", true)
+    }
+
+    internal fun forwardBottomControllerKeyToMain(event: KeyEvent): Boolean {
+        return keyListener?.invoke(event) ?: false
+    }
+
+    internal fun forwardBottomControllerMotionToMain(event: MotionEvent): Boolean {
+        return motionListener?.invoke(event) ?: false
+    }
+
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
             (subScreenPresentation as? SecondaryAppsPresentation)?.releaseInputFocus()
@@ -547,6 +562,18 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                 "setSecondaryDisplayVisible" -> {
                     val visible = call.argument<Boolean>("visible") ?: true
                     setSecondaryDisplayVisible(visible)
+                    result.success(true)
+                }
+                "setBottomControllerInputEnabled" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: true
+                    getSharedPreferences(
+                        "FlutterSharedPreferences",
+                        android.content.Context.MODE_PRIVATE
+                    ).edit()
+                        .putBoolean("flutter.bottom_controller_input_enabled", enabled)
+                        .apply()
+                    (subScreenPresentation as? SecondaryAppsPresentation)
+                        ?.setControllerInputEnabled(enabled)
                     result.success(true)
                 }
                 else -> result.notImplemented()

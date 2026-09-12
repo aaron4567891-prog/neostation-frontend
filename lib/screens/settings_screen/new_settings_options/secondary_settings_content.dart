@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:neostation/l10n/app_locale.dart';
 import 'package:neostation/models/config_model.dart';
 import 'package:neostation/providers/sqlite_config_provider.dart';
+import 'package:neostation/services/bottom_controller_input_settings.dart';
 import 'package:neostation/services/screenshot_service.dart';
 import 'package:neostation/utils/adaptive_scroll.dart';
 import 'package:provider/provider.dart';
@@ -19,8 +20,8 @@ import 'widgets/settings_section_header.dart';
 /// always renders its full set of controls.
 ///
 /// Items (gamepad index order): 0 = browsing media, 1 = fanart dim,
-/// 2 = screenshot access, 3 = dim delay, 4 = dim darkness,
-/// 5 = dock enabled, 6 = dock slots.
+/// 2 = screenshot access, 3 = controller input, 4 = dim delay,
+/// 5 = dim darkness, 6 = dock enabled, 7 = dock slots.
 class SecondarySettingsContent extends StatefulWidget {
   final bool isContentFocused;
   final int selectedContentIndex;
@@ -62,6 +63,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
 
   /// Whether the screenshot accessibility service is currently granted.
   bool _screenshotAccessEnabled = false;
+  bool _bottomControllerInputEnabled = true;
 
   /// Left inset applied to option rows so they read as nested under their
   /// section header (mirrors how Directories' icon-cards sit indented below
@@ -71,7 +73,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
   @override
   void initState() {
     super.initState();
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < 8; i++) {
       _itemKeys.add(GlobalKey());
     }
     WidgetsBinding.instance.addObserver(this);
@@ -86,6 +88,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
             ?.screenshotAccessEnabled ??
         false;
     _refreshScreenshotAccess();
+    _loadBottomControllerInputSetting();
   }
 
   @override
@@ -117,7 +120,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
   }
 
   /// Number of navigable items in this panel.
-  int getItemCount() => 7;
+  int getItemCount() => 8;
 
   /// Dispatches a gamepad-select to the focused item.
   void selectItem(int index) {
@@ -129,20 +132,34 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
     } else if (index == 2) {
       ScreenshotService.openAccessSettings();
     } else if (index == 3) {
-      _cycleDimDelay(provider);
+      _setBottomControllerInputEnabled(!_bottomControllerInputEnabled);
     } else if (index == 4) {
+      _cycleDimDelay(provider);
+    } else if (index == 5) {
       // Darkness is meaningless when the panel never dims.
       if (provider.config.nowPlayingDimDelay > 0) {
         _cycleDimLevel(provider);
       }
-    } else if (index == 5) {
-      provider.updateDockEnabled(!provider.config.dockEnabled);
     } else if (index == 6) {
+      provider.updateDockEnabled(!provider.config.dockEnabled);
+    } else if (index == 7) {
       // Slot count is meaningless when the dock is hidden.
       if (provider.config.dockEnabled) {
         _cycleDockSlotCount(provider);
       }
     }
+  }
+
+  Future<void> _loadBottomControllerInputSetting() async {
+    final enabled = await BottomControllerInputSettings.isEnabled();
+    if (mounted && enabled != _bottomControllerInputEnabled) {
+      setState(() => _bottomControllerInputEnabled = enabled);
+    }
+  }
+
+  Future<void> _setBottomControllerInputEnabled(bool enabled) async {
+    setState(() => _bottomControllerInputEnabled = enabled);
+    await BottomControllerInputSettings.setEnabled(enabled);
   }
 
   void _cycleMediaMode(SqliteConfigProvider provider) {
@@ -338,6 +355,15 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
                 ),
                 SizedBox(height: 12.r),
                 _buildScreenshotAccessRow(),
+                SizedBox(height: 12.r),
+                _buildToggleRow(
+                  index: 3,
+                  title: 'Bottom Screen Controller Input',
+                  subtitle:
+                      'Let the D-pad and A/B buttons control the bottom screen after touching it',
+                  value: _bottomControllerInputEnabled,
+                  onChanged: _setBottomControllerInputEnabled,
+                ),
                 SizedBox(height: 24.r),
                 SettingsSectionHeader(
                   label: AppLocale.secondarySectionNowPlaying.getString(
@@ -345,7 +371,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
                   ),
                 ),
                 _buildValueRow(
-                  index: 3,
+                  index: 4,
                   title: AppLocale.nowPlayingDimAfter.getString(context),
                   subtitle: AppLocale.nowPlayingDimAfterSubtitle.getString(
                     context,
@@ -355,7 +381,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
                 ),
                 SizedBox(height: 12.r),
                 _buildValueRow(
-                  index: 4,
+                  index: 5,
                   title: AppLocale.nowPlayingDimDarkness.getString(context),
                   subtitle: AppLocale.nowPlayingDimDarknessSubtitle.getString(
                     context,
@@ -369,7 +395,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
                   label: AppLocale.secondarySectionDock.getString(context),
                 ),
                 _buildToggleRow(
-                  index: 5,
+                  index: 6,
                   title: AppLocale.nowPlayingDockEnabled.getString(context),
                   subtitle: AppLocale.nowPlayingDockEnabledSubtitle.getString(
                     context,
@@ -379,7 +405,7 @@ class SecondarySettingsContentState extends State<SecondarySettingsContent>
                 ),
                 SizedBox(height: 12.r),
                 _buildValueRow(
-                  index: 6,
+                  index: 7,
                   title: AppLocale.nowPlayingDockSlots.getString(context),
                   subtitle: AppLocale.nowPlayingDockSlotsSubtitle.getString(
                     context,

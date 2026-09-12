@@ -36,6 +36,7 @@ class SecondaryAppsPresentation(
 
     private var appsChannel: MethodChannel? = null
     private var inputFocused = false
+    private var controllerInputEnabled = activity.isBottomControllerInputEnabled()
     private var lastHatX = 0
     private var lastHatY = 0
 
@@ -68,17 +69,26 @@ class SecondaryAppsPresentation(
         setCancelable(false)
         setCanceledOnTouchOutside(false)
         try {
-            window?.clearFlags(
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
-            )
+            setWindowControllerFocusable(true)
         } catch (e: Exception) {
             Log.w(TAG, "Could not make secondary window non-focusable: ${e.message}")
         }
     }
 
+    private fun setWindowControllerFocusable(focusable: Boolean) {
+        val focusFlags =
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+        if (focusable) {
+            window?.clearFlags(focusFlags)
+        } else {
+            window?.addFlags(focusFlags)
+        }
+    }
+
     /** Temporarily gives the bottom display controller focus after a touch. */
     private fun acquireInputFocus() {
+        if (!controllerInputEnabled) return
         if (inputFocused) return
         inputFocused = true
         window?.clearFlags(
@@ -102,7 +112,20 @@ class SecondaryAppsPresentation(
     }
 
     /** Whether controller events received by the main Activity belong here. */
-    fun wantsControllerInput(): Boolean = inputFocused
+    fun wantsControllerInput(): Boolean = inputFocused && controllerInputEnabled
+
+    fun setControllerInputEnabled(enabled: Boolean) {
+        controllerInputEnabled = enabled
+        lastHatX = 0
+        lastHatY = 0
+        if (!enabled) {
+            releaseInputFocus()
+        }
+        // Keep touch available even while controller focus is disabled. Any
+        // controller event Android sends to this window is routed back to the
+        // main engine below.
+        setWindowControllerFocusable(true)
+    }
 
     /** Delivers a controller key that Android routed to the main display. */
     fun forwardControllerKey(event: KeyEvent) {
@@ -171,6 +194,9 @@ class SecondaryAppsPresentation(
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (!controllerInputEnabled && isControllerSource(event.source)) {
+            return activity.forwardBottomControllerMotionToMain(event)
+        }
         return if (handleControllerMotion(event)) true else super.dispatchGenericMotionEvent(event)
     }
 
@@ -188,6 +214,10 @@ class SecondaryAppsPresentation(
         // Once the bottom Presentation owns Android focus, controller events
         // arrive here instead of MainActivity. Forward them explicitly to the
         // secondary Flutter engine through its MethodChannel.
+        if (!controllerInputEnabled && isControllerSource(event.source)) {
+            activity.forwardBottomControllerKeyToMain(event)
+            return true
+        }
         if (inputFocused && isControllerSource(event.source)) {
             if (event.keyCode == KeyEvent.KEYCODE_BACK ||
                 event.keyCode == KeyEvent.KEYCODE_BUTTON_B
