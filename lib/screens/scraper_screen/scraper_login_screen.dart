@@ -11,6 +11,7 @@ import '../app_screen.dart' show AppNavigation;
 import 'package:flutter_localization/flutter_localization.dart';
 import 'package:neostation/l10n/app_locale.dart';
 import '../../utils/login_form_selection.dart';
+import '../../services/thegamesdb_service.dart';
 
 class ScraperLoginScreen extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -185,6 +186,49 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _configureTheGamesDb() async {
+    final controller = TextEditingController();
+    final key = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('TheGamesDB API key'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'API key',
+            hintText: 'Paste your TheGamesDB API key',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (key == null || key.trim().isEmpty || !mounted) return;
+    setState(() => _isLoading = true);
+    final saved = await TheGamesDbService.saveApiKey(key);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    AppNotification.showNotification(
+      context,
+      saved
+          ? 'TheGamesDB connected successfully.'
+          : 'TheGamesDB rejected that API key.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+    if (saved) widget.onLoginSuccess?.call();
   }
 
   @override
@@ -588,6 +632,30 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+              ),
+            ),
+          ),
+          SizedBox(height: 10.r),
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.r),
+                child: Text('OR', style: TextStyle(fontSize: 9.r)),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+          SizedBox(height: 8.r),
+          SizedBox(
+            width: double.infinity,
+            height: 32.r,
+            child: OutlinedButton.icon(
+              onPressed: _isLoading ? null : _configureTheGamesDb,
+              icon: Icon(Symbols.database_rounded, size: 16.r),
+              label: Text(
+                'Connect TheGamesDB',
+                style: TextStyle(fontSize: 11.r),
               ),
             ),
           ),

@@ -17,6 +17,7 @@ import 'screenscraper/screenscraper_exceptions.dart';
 import '../providers/scraping_provider.dart';
 import '../l10n/app_locale.dart';
 import '../widgets/scraping_summary_dialog.dart';
+import 'thegamesdb_service.dart';
 
 /// Service responsible for scraping game metadata and media from the
 /// ScreenScraper.fr API.
@@ -161,7 +162,7 @@ class ScreenScraperService {
   /// Checks if credentials have been saved locally.
   static Future<bool> hasSavedCredentials() async {
     final credentials = await getSavedCredentials();
-    return credentials != null;
+    return credentials != null || await TheGamesDbService.hasApiKey();
   }
 
   /// Retrieves the current scraper configuration (modes and media types to fetch).
@@ -247,6 +248,13 @@ class ScreenScraperService {
   /// Synchronizes local system IDs with ScreenScraper IDs by matching folder names.
   static Future<bool> syncSystemIds() async {
     try {
+      // TheGamesDB uses its own static platform catalogue and needs no remote
+      // ScreenScraper system-id synchronization.
+      if (await getSavedCredentials() == null &&
+          await TheGamesDbService.hasApiKey()) {
+        await ScraperRepository.initializeScraperSystemConfig();
+        return true;
+      }
       final unmappedCount = await ScraperRepository.getUnmappedSystemsCount();
       if (unmappedCount == 0) {
         await ScraperRepository.initializeScraperSystemConfig();
@@ -679,6 +687,22 @@ class ScreenScraperService {
     try {
       onProgress?.call(AppLocale.checkingCredentials, 0.05);
 
+      // Prefer the established ScreenScraper account when both providers are
+      // configured. TheGamesDB becomes an independent fallback, allowing a
+      // user without ScreenScraper developer access to scrape immediately.
+      if (await getSavedCredentials() == null &&
+          await TheGamesDbService.hasApiKey()) {
+        return await TheGamesDbService.scrapeSingleGame(
+          appSystemId: appSystemId,
+          romName: romName,
+          systemFolder: systemFolder,
+          romPath: romPath,
+          gameName: gameName,
+          onProgress: onProgress,
+          forceOverwrite: forceOverwrite,
+        );
+      }
+
       if (!await hasSavedCredentials()) {
         return {'success': false, 'message': AppLocale.scrapeNoCredentials};
       }
@@ -782,6 +806,13 @@ class ScreenScraperService {
     bool Function()? shouldCancel,
   }) async {
     try {
+      if (await getSavedCredentials() == null &&
+          await TheGamesDbService.hasApiKey()) {
+        return await TheGamesDbService.startMetadataScraping(
+          scrapingProvider,
+          shouldCancel: shouldCancel,
+        );
+      }
       if (_isMetadataScrapingRunning) return false;
       _isMetadataScrapingRunning = true;
 

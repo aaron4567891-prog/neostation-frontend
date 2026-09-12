@@ -9,6 +9,7 @@ import 'package:neostation/services/sfx_service.dart';
 import 'package:neostation/widgets/custom_notification.dart';
 import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/repositories/scraper_repository.dart';
+import 'package:neostation/services/thegamesdb_service.dart';
 import 'scraper_contents/account_content.dart';
 import 'scraper_contents/language_content.dart';
 import 'scraper_contents/region_content.dart';
@@ -151,7 +152,15 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   }
 
   Future<void> _loadCredentials() async {
-    final credentials = await ScreenScraperService.getSavedCredentials();
+    var credentials = await ScreenScraperService.getSavedCredentials();
+    if (credentials == null && await TheGamesDbService.hasApiKey()) {
+      credentials = const {
+        'username': 'TheGamesDB',
+        'contribution': '0',
+        'maxthreads': '1',
+        'provider': 'thegamesdb',
+      };
+    }
     if (mounted) {
       setState(() {
         _userInfo = credentials;
@@ -382,7 +391,10 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     );
 
     if (confirmed == true) {
-      final success = await ScreenScraperService.clearCredentials();
+      final isTheGamesDb = _userInfo?['provider'] == 'thegamesdb';
+      final success = isTheGamesDb
+          ? await TheGamesDbService.clearApiKey().then((_) => true)
+          : await ScreenScraperService.clearCredentials();
       if (mounted) {
         if (success) {
           AppNotification.showNotification(
@@ -430,6 +442,10 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
 
   Future<void> _handleLanguageChange(String newLanguage) async {
     if (_userInfo == null) return;
+    if (_userInfo?['provider'] == 'thegamesdb') {
+      setState(() => _currentLanguage = newLanguage);
+      return;
+    }
 
     final success = await ScreenScraperService.saveCredentials(
       _userInfo!['username']!,
