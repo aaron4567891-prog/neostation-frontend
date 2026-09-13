@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:neostation/models/system_model.dart';
+import 'package:provider/provider.dart';
+import 'package:neostation/providers/sqlite_config_provider.dart';
 
 /// Common branding for every game browsing layout.
 class GameSystemLogo extends StatelessWidget {
@@ -10,6 +12,13 @@ class GameSystemLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final savedSystems = context.watch<SqliteConfigProvider>().availableSystems;
+    final system = savedSystems.firstWhere(
+      (candidate) => this.system.id != null
+          ? candidate.id == this.system.id
+          : candidate.folderName == this.system.folderName,
+      orElse: () => this.system,
+    );
     final candidates = <String>{
       if (system.id != null && system.id!.trim().isNotEmpty) system.id!.trim(),
       system.primaryFolderName,
