@@ -12,7 +12,7 @@ part of '../my_games_list.dart';
 /// `_SystemGamesListState._log` (both required from an extension).
 extension _SecondaryDisplay on _SystemGamesListState {
   /// Hard reset of the video preview system.
-  void _resetVideoState({bool deferDisposal = false}) {
+  void _resetVideoState() {
     _videoRequestGeneration++;
     _videoTimer?.cancel();
     _videoTimer = null;
@@ -20,15 +20,12 @@ extension _SecondaryDisplay on _SystemGamesListState {
     if (_videoController != null) {
       final controller = _videoController!;
       _videoController = null;
-      if (deferDisposal && mounted) {
-        // Detach the outgoing texture in the selection's first frame before
-        // asking the native player to stop and release its decoder.
-        // This callback owns the retired controller, even if the route exits.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _disposeRetiredVideo(controller);
-        });
-      } else {
-        _disposeRetiredVideo(controller);
+      try {
+        controller.dispose();
+      } catch (e) {
+        _SystemGamesListState._log.w(
+          'Error disposing video controller in reset: $e',
+        );
       }
     }
 
@@ -37,16 +34,6 @@ extension _SecondaryDisplay on _SystemGamesListState {
         _showVideo = false;
         _isVideoLoading = false;
       });
-    }
-  }
-
-  Future<void> _disposeRetiredVideo(VideoPlayerController controller) async {
-    try {
-      await controller.dispose();
-    } catch (e) {
-      _SystemGamesListState._log.w(
-        'Error disposing retired video controller: $e',
-      );
     }
   }
 
