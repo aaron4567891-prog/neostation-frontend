@@ -18,6 +18,7 @@ import 'package:neostation/services/sfx_service.dart';
 import 'package:neostation/utils/gamepad_nav.dart';
 import 'package:neostation/utils/letter_bar.dart';
 import 'package:neostation/utils/letter_jump.dart';
+import 'package:neostation/widgets/hotkey_game_search.dart';
 import 'package:neostation/providers/collections_provider.dart';
 import 'package:neostation/widgets/achievements_badge.dart';
 import 'package:neostation/widgets/collection_badge.dart';
@@ -422,6 +423,10 @@ class _GamesCarouselState extends State<GamesCarousel> {
         } catch (_) {}
       },
       onLeftBumper: () => _letterJump(false),
+      onLeftBumperLongPress: () => HotkeyGameSearch.show(
+        context,
+        systemFolder: widget.system.folderName,
+      ),
       onRightBumper: () => _letterJump(true),
       onLeftTrigger: () => widget.onSwitchSystem?.call(false),
       onRightTrigger: () => widget.onSwitchSystem?.call(true),

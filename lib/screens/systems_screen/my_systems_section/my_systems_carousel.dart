@@ -14,6 +14,7 @@ import '../../../providers/sqlite_database_provider.dart';
 import '../../../providers/file_provider.dart';
 import '../../../themes/corner_radii.dart';
 import '../../../utils/gamepad_nav.dart';
+import '../../../widgets/hotkey_game_search.dart';
 import '../../../services/game_service.dart';
 import '../../../utils/game_launch_utils.dart';
 import '../../../providers/system_background_provider.dart';
@@ -319,6 +320,9 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
       onPreviousTab: widget.enableTabBumpers ? AppNavigation.previousTab : null,
       onNextTab: widget.enableTabBumpers ? AppNavigation.nextTab : null,
       onLeftBumper: widget.enableTabBumpers ? AppNavigation.previousTab : null,
+      onLeftBumperLongPress: widget.enableTabBumpers
+          ? () => HotkeyGameSearch.show(context)
+          : null,
       onRightBumper: widget.enableTabBumpers ? AppNavigation.nextTab : null,
     );
 

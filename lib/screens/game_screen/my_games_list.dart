@@ -26,6 +26,7 @@ import '../../services/screenscraper_service.dart';
 import '../../services/secondary_achievements_controller.dart';
 import '../../utils/gamepad_nav.dart';
 import '../../utils/letter_jump.dart';
+import '../../widgets/hotkey_game_search.dart';
 import '../systems_screen/my_systems_section/system_list_builder.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/sqlite_config_provider.dart';

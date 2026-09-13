@@ -15,6 +15,7 @@ import 'package:neostation/providers/sqlite_config_provider.dart';
 import 'package:neostation/services/sfx_service.dart';
 import 'package:neostation/utils/gamepad_nav.dart';
 import 'package:neostation/utils/letter_jump.dart';
+import 'package:neostation/widgets/hotkey_game_search.dart';
 import 'package:neostation/utils/game_utils.dart';
 import 'package:neostation/providers/collections_provider.dart';
 import 'package:neostation/widgets/achievements_badge.dart';
@@ -744,6 +745,10 @@ class _GamesGridState extends State<GamesGrid> {
       onNavigateLeft: _navigateLeft,
       onNavigateRight: _navigateRight,
       onLeftBumper: () => _letterJump(false),
+      onLeftBumperLongPress: () => HotkeyGameSearch.show(
+        context,
+        systemFolder: widget.system.folderName,
+      ),
       onRightBumper: () => _letterJump(true),
       onLeftTrigger: () => widget.onSwitchSystem?.call(false),
       onRightTrigger: () => widget.onSwitchSystem?.call(true),

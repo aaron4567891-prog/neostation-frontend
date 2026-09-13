@@ -62,6 +62,9 @@ extension _GamepadGridNav on _SystemCardGridViewState {
       onPreviousTab: widget.enableTabBumpers ? AppNavigation.previousTab : null,
       onNextTab: widget.enableTabBumpers ? AppNavigation.nextTab : null,
       onLeftBumper: widget.enableTabBumpers ? AppNavigation.previousTab : null,
+      onLeftBumperLongPress: widget.enableTabBumpers
+          ? () => HotkeyGameSearch.show(context)
+          : null,
       onRightBumper: widget.enableTabBumpers ? AppNavigation.nextTab : null,
     );
 

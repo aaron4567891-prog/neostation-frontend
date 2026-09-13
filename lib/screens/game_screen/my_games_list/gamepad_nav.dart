@@ -72,6 +72,10 @@ extension _GamepadNav on _SystemGamesListState {
       onNavigateLeft: _navigateLeft, // Previous details tab.
       onNavigateRight: _navigateRight, // Next details tab.
       onLeftBumper: () => _letterJump(false),
+      onLeftBumperLongPress: () => HotkeyGameSearch.show(
+        context,
+        systemFolder: widget.system.folderName,
+      ),
       onRightBumper: () => _letterJump(true),
       onLeftTrigger: () => _switchSystem(false),
       onRightTrigger: () => _switchSystem(true),

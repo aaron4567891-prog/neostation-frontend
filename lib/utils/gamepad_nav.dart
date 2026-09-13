@@ -79,6 +79,38 @@ class GamepadNavigation {
   final VoidCallback? onRightStickClick;
   final VoidCallback? onSelectButton;
   final VoidCallback? onLeftBumper;
+  final VoidCallback? onLeftBumperLongPress;
+  Timer? _leftBumperLongPressTimer;
+  bool _leftBumperDown = false;
+  bool _leftBumperLongPressFired = false;
+
+  bool _handleLeftBumperHold(bool down) {
+    if (onLeftBumperLongPress == null) return false;
+    if (down) {
+      if (_leftBumperDown) return true;
+      _leftBumperDown = true;
+      _leftBumperLongPressFired = false;
+      _leftBumperLongPressTimer = Timer(const Duration(milliseconds: 650), () {
+        if (!_isActive || !_leftBumperDown) return;
+        _leftBumperLongPressFired = true;
+        onLeftBumperLongPress?.call();
+      });
+    } else {
+      _leftBumperLongPressTimer?.cancel();
+      if (_leftBumperDown && !_leftBumperLongPressFired) {
+        _dispatchShoulder(GamepadInputType.buttonLB);
+      }
+      _leftBumperDown = false;
+    }
+    return true;
+  }
+
+  void _cancelLeftBumperHold() {
+    _leftBumperLongPressTimer?.cancel();
+    _leftBumperDown = false;
+    _leftBumperLongPressFired = false;
+  }
+
   final VoidCallback? onRightBumper;
   final VoidCallback? onLeftTrigger;
   final VoidCallback? onRightTrigger;
@@ -372,6 +404,7 @@ class GamepadNavigation {
     this.onRightStickClick,
     this.onSelectButton,
     this.onLeftBumper,
+    this.onLeftBumperLongPress,
     this.onRightBumper,
     this.onLeftTrigger,
     this.onRightTrigger,
@@ -537,6 +570,7 @@ class GamepadNavigation {
 
   /// Disables input processing and cancels any active auto-repeat timers.
   void deactivate() {
+    _cancelLeftBumperHold();
     _isActive = false;
     _activationTime = null;
     _selectItemHoldTimer?.cancel();
@@ -659,6 +693,7 @@ class GamepadNavigation {
 
   /// Releases resources held by the navigator.
   void dispose() {
+    _cancelLeftBumperHold();
     _subscription?.cancel();
     _subscription = null;
     _resetSelectModifier();
@@ -726,6 +761,13 @@ class GamepadNavigation {
 
       final now = DateTime.now();
 
+      if (isAndroid &&
+          event.key.toLowerCase() == 'keycode_button_l1' &&
+          DesktopWindowFocus.allowsInput &&
+          _handleLeftBumperHold(event.value < 0.5)) {
+        return;
+      }
+
       // Select (View) chord modifier on Android: read the RAW key directly.
       // This controller auto-repeats ACTION_DOWN (value 0.0) while the button is
       // held and doesn't reliably emit a matching ACTION_UP, so edge-detection
@@ -760,6 +802,12 @@ class GamepadNavigation {
       final translatedEvent = _translator.translateEvent(event);
 
       if (translatedEvent == null) return;
+
+      if (DesktopWindowFocus.allowsInput &&
+          translatedEvent.inputType == GamepadInputType.buttonLB &&
+          _handleLeftBumperHold(translatedEvent.isPressed)) {
+        return;
+      }
 
       // Desktop: the pad reaches us whether or not our window has focus, so a
       // launched emulator in front of NeoStation would otherwise drive the UI
@@ -1232,7 +1280,9 @@ class GamepadNavigation {
       // Q/E are the keyboard's bumpers, so they go through the same dispatch:
       // it honours a screen's bumper override and stays silent where the
       // screen binds nothing.
-      if (isKeyDown) _dispatchShoulder(GamepadInputType.buttonLB);
+      if (!_handleLeftBumperHold(isKeyDown) && isKeyDown) {
+        _dispatchShoulder(GamepadInputType.buttonLB);
+      }
       handled = true;
     } else if (key == LogicalKeyboardKey.keyE) {
       if (isKeyDown) _dispatchShoulder(GamepadInputType.buttonRB);

@@ -13,6 +13,7 @@ import 'package:neostation/services/sfx_service.dart';
 import 'package:provider/provider.dart';
 import '../../../themes/corner_radii.dart';
 import '../../../utils/gamepad_nav.dart';
+import '../../../widgets/hotkey_game_search.dart';
 import '../../../services/game_service.dart';
 import '../../../utils/game_launch_utils.dart';
 import 'system_card.dart';
