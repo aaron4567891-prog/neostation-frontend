@@ -650,7 +650,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// jumps, whose dwell between hops is deliberately longer than
   /// [_fastNavThreshold].
   void _updateSelectedGame(int newIndex, {bool forceFast = false}) {
-    _resetVideoState();
+    _resetVideoState(deferDisposal: true);
 
     final now = DateTime.now();
     bool isFast = forceFast;

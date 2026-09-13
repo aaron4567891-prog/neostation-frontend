@@ -106,7 +106,6 @@ extension _GamepadNav on _SystemGamesListState {
       return;
     }
 
-    _resetVideoState();
     _updateSelectedGame(
       (_selectedGameIndex - 1 + _games.length) % _games.length,
     );
@@ -121,7 +120,6 @@ extension _GamepadNav on _SystemGamesListState {
       return;
     }
 
-    _resetVideoState();
     _updateSelectedGame((_selectedGameIndex + 1) % _games.length);
   }
 
