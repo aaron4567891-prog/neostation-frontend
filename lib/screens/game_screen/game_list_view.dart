@@ -784,6 +784,13 @@ class GameListViewState extends State<GameListView>
 
   /// Renders the system brand logo with fallback support, tinted to match the theme.
   Widget _buildSystemLogoHeader(SystemModel displaySystem) {
+    final savedSystems = context.watch<SqliteConfigProvider>().availableSystems;
+    displaySystem = savedSystems.firstWhere(
+      (candidate) => displaySystem.id != null
+          ? candidate.id == displaySystem.id
+          : candidate.folderName == displaySystem.folderName,
+      orElse: () => displaySystem,
+    );
     final resolvedLogoFolder = displaySystem.primaryFolderName.isNotEmpty
         ? displaySystem.primaryFolderName
         : (displaySystem.folderName.isNotEmpty
@@ -804,13 +811,13 @@ class GameListViewState extends State<GameListView>
     }
 
     if (hasCustomLogo) {
-      return buildLogo(
-        Image.file(
-          File(customLogoPath),
-          height: 38.r,
-          cacheWidth: 256,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Image.asset(
+      return Image.file(
+        File(customLogoPath),
+        height: 38.r,
+        cacheWidth: 256,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => buildLogo(
+          Image.asset(
             assetLogoPath,
             height: 38.r,
             cacheWidth: 256,
