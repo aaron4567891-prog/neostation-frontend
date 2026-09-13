@@ -1170,6 +1170,24 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         }
     }
 
+    internal fun launchPackageOnPrimaryDisplay(packageName: String, result: MethodChannel.Result) {
+        try {
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+            if (intent == null) {
+                result.error("LAUNCH_FAILED", "Could not find launch intent for package", null)
+                return
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            setGamepadBlockInternal(true, 2000, markGameActive = false)
+            val options = android.app.ActivityOptions.makeBasic()
+                .setLaunchDisplayId(Display.DEFAULT_DISPLAY)
+            startActivity(intent, options.toBundle())
+            result.success(true)
+        } catch (e: Exception) {
+            result.error("LAUNCH_FAILED", e.message, null)
+        }
+    }
+
     /**
      * Launches [packageName] preferring the secondary (bottom) display, falling
      * back to the default display if the OS rejects the targeted launch. Used by

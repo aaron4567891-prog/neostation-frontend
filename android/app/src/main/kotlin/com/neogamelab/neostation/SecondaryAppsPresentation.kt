@@ -266,6 +266,15 @@ class SecondaryAppsPresentation(
                             result.error("INVALID_ARGUMENTS", "Package name is required", null)
                         }
                     }
+                    "launchAppOnPrimary" -> {
+                        val pkg = call.argument<String>("packageName")
+                        if (pkg.isNullOrBlank()) {
+                            result.error("INVALID_PACKAGE", "Package is required", null)
+                        } else {
+                            releaseInputFocus()
+                            activity.launchPackageOnPrimaryDisplay(pkg, result)
+                        }
+                    }
                     "launchAppOnSecondary" -> {
                         val pkg = call.argument<String>("packageName")
                         if (pkg != null) {

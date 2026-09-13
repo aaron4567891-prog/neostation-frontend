@@ -9,7 +9,7 @@ import '../../../models/secondary_display_state.dart';
 import '../now_playing_helpers.dart';
 
 /// The bottom app dock on the Now Playing screen: a centered row of launch
-/// slots. Filled slots launch their app (long-press clears); empty slots open
+/// slots. Filled slots launch their app (long-press opens options); empty slots open
 /// the app picker for that index.
 ///
 /// Pure, input-driven subtree — the owning [SecondaryScreen] passes the current
@@ -24,6 +24,8 @@ class AppDock extends StatelessWidget {
     required this.onLaunchApp,
     required this.onPickSlot,
     required this.onClearSlot,
+    required this.onConfigureApp,
+    required this.onLaunchOnTop,
     required this.onOpenAccessibilitySettings,
   });
 
@@ -31,6 +33,8 @@ class AppDock extends StatelessWidget {
 
   /// Launches the docked app in [package] (prefers the bottom display).
   final void Function(String package) onLaunchApp;
+  final void Function(String package, int slot) onConfigureApp;
+  final void Function(String package) onLaunchOnTop;
 
   /// Opens the app picker to assign an app to the empty slot [index].
   final void Function(int index) onPickSlot;
@@ -84,13 +88,12 @@ class AppDock extends StatelessWidget {
       onTap: () {
         if (!filled) {
           onPickSlot(index);
-        } else if (guarded) {
-          onOpenAccessibilitySettings();
         } else {
           onLaunchApp(package);
         }
       },
-      onLongPress: filled ? () => onClearSlot(index) : null,
+      onLongPress: filled ? () => onConfigureApp(package, index) : null,
+      onLaunchOnTop: filled ? () => onLaunchOnTop(package) : null,
       child: Container(
         width: 56.r,
         height: 56.r,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -72,6 +73,28 @@ class SecondaryAppsService {
       _log.e("Secondary: failed to launch package: '${e.message}'.");
       return false;
     }
+  }
+
+  static Future<bool> launchAppOnPrimary(String packageName) async {
+    try {
+      return await _channel.invokeMethod<bool>('launchAppOnPrimary', {
+            'packageName': packageName,
+          }) ??
+          false;
+    } on PlatformException catch (e) {
+      _log.e("Top-screen app launch failed: '${e.message}'.");
+      return false;
+    }
+  }
+
+  static Future<bool> launchesOnTop(String package) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('dock_launch_top_$package') ?? false;
+  }
+
+  static Future<void> setLaunchOnTop(String package, bool top) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dock_launch_top_$package', top);
   }
 
   /// Opens Android's accessibility settings (deep-linked to NeoStation's own

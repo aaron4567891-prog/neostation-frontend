@@ -210,7 +210,10 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   /// leaving controller focus on the bottom display.
   void _onSecondaryBack() {
     if (!mounted || !SecondaryAppsService.inputFocused.value) return;
-    if (_accessDialogVisible) {
+    if (_appLaunchMenuOpen) {
+      final menuContext = _l10nContext;
+      if (menuContext != null) Navigator.of(menuContext).pop();
+    } else if (_accessDialogVisible) {
       _dismissAccessibilityDialog();
     } else if (_pickerVisible) {
       _closeAppPicker();
@@ -262,6 +265,12 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
       case 4: // KEYCODE_BACK
       case 97: // KEYCODE_BUTTON_B
         _onSecondaryBack();
+        break;
+      case 100: // KEYCODE_BUTTON_Y
+        final context = focus?.context;
+        if (context != null && focus is! FocusScopeNode) {
+          Actions.maybeInvoke(context, const LaunchOnTopIntent());
+        }
         break;
     }
   }
@@ -926,10 +935,74 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   }
 
   /// Launches a docked app, preferring the bottom display.
-  void _launchDockApp(String package) {
+  Future<void> _launchDockApp(String package, {bool? onTop}) async {
+    final top = onTop ?? await SecondaryAppsService.launchesOnTop(package);
+    if (!mounted) return;
+    if (!top &&
+        !(_secondaryDisplayState?.value?.screenshotAccessEnabled ?? false)) {
+      _showAccessibilityDialog();
+      return;
+    }
     _wakeInGamePanel();
     SfxService().playNavSound();
-    SecondaryAppsService.launchAppOnSecondary(package);
+    if (top) {
+      await SecondaryAppsService.launchAppOnPrimary(package);
+    } else {
+      await SecondaryAppsService.launchAppOnSecondary(package);
+    }
+  }
+
+  bool _appLaunchMenuOpen = false;
+
+  Future<void> _configureDockApp(String package, {int? slot}) async {
+    if (_appLaunchMenuOpen) return;
+    _appLaunchMenuOpen = true;
+    try {
+      final top = await SecondaryAppsService.launchesOnTop(package);
+      if (!mounted) return;
+      final menuContext = _l10nContext;
+      if (menuContext == null || !menuContext.mounted) return;
+      final choice = await showDialog<String>(
+        context: menuContext,
+        builder: (context) => SimpleDialog(
+          title: const Text('App launch screen'),
+          children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 'launchTop'),
+              child: const Text('Launch on top now (Y)'),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 'launchBottom'),
+              child: const Text('Launch on bottom now'),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 'top'),
+              child: Text('Always launch on top${top ? ' ✓' : ''}'),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 'bottom'),
+              child: Text('Always launch on bottom${!top ? ' ✓' : ''}'),
+            ),
+            if (slot != null)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, 'remove'),
+                child: const Text('Remove from dock'),
+              ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (choice == 'top' || choice == 'bottom') {
+        await SecondaryAppsService.setLaunchOnTop(package, choice == 'top');
+      } else if (choice == 'launchTop' || choice == 'launchBottom') {
+        if (_pickerVisible) _closeAppPicker();
+        await _launchDockApp(package, onTop: choice == 'launchTop');
+      } else if (choice == 'remove' && slot != null) {
+        _clearSlot(slot);
+      }
+    } finally {
+      _appLaunchMenuOpen = false;
+    }
   }
 
   @override
@@ -1408,6 +1481,10 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
                     onLaunchApp: _launchDockApp,
                     onPickSlot: _openAppPicker,
                     onClearSlot: _clearSlot,
+                    onConfigureApp: (package, slot) =>
+                        _configureDockApp(package, slot: slot),
+                    onLaunchOnTop: (package) =>
+                        _launchDockApp(package, onTop: true),
                     onOpenAccessibilitySettings: _showAccessibilityDialog,
                   ),
                 ),
@@ -1929,6 +2006,13 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   Widget _buildPickerTile(String package, String name) {
     return SecondaryAction(
       onTap: package.isEmpty ? null : () => _onPickerTileTap(package),
+      onLongPress: package.isEmpty ? null : () => _configureDockApp(package),
+      onLaunchOnTop: package.isEmpty
+          ? null
+          : () {
+              _closeAppPicker();
+              _launchDockApp(package, onTop: true);
+            },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

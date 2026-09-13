@@ -3,12 +3,17 @@ import 'package:flutter/services.dart';
 
 /// A controller-focusable counterpart to [GestureDetector] for controls shown
 /// by the secondary Flutter engine.
+class LaunchOnTopIntent extends Intent {
+  const LaunchOnTopIntent();
+}
+
 class SecondaryAction extends StatefulWidget {
   const SecondaryAction({
     super.key,
     required this.child,
     this.onTap,
     this.onLongPress,
+    this.onLaunchOnTop,
     this.behavior,
     this.autofocus = false,
   });
@@ -16,6 +21,7 @@ class SecondaryAction extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onLaunchOnTop;
   final HitTestBehavior? behavior;
   final bool autofocus;
 
@@ -41,6 +47,7 @@ class _SecondaryActionState extends State<SecondaryAction> {
         SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
         SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
         SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+        SingleActivator(LogicalKeyboardKey.gameButtonY): LaunchOnTopIntent(),
         SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(
           TraversalDirection.up,
         ),
@@ -55,6 +62,12 @@ class _SecondaryActionState extends State<SecondaryAction> {
         ),
       },
       actions: <Type, Action<Intent>>{
+        LaunchOnTopIntent: CallbackAction<LaunchOnTopIntent>(
+          onInvoke: (_) {
+            widget.onLaunchOnTop?.call();
+            return null;
+          },
+        ),
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
             _activate();
