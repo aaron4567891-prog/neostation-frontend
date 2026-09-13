@@ -26,7 +26,6 @@ import '../../services/screenscraper_service.dart';
 import '../../services/secondary_achievements_controller.dart';
 import '../../utils/gamepad_nav.dart';
 import '../../utils/letter_jump.dart';
-import '../../widgets/game_system_logo.dart';
 import '../../widgets/hotkey_game_search.dart';
 import '../systems_screen/my_systems_section/system_list_builder.dart';
 import '../../providers/file_provider.dart';
@@ -971,32 +970,10 @@ class _SystemGamesListState extends State<SystemGamesList> {
                             return _buildGamesList();
                           }
                           if (configProvider.config.gameViewMode == 'grid') {
-                            return Column(
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8.r),
-                                  child: GameSystemLogo(
-                                    system: widget.system,
-                                    height: 42.r,
-                                  ),
-                                ),
-                                Expanded(child: _buildGamesGrid()),
-                              ],
-                            );
+                            return _buildGamesGrid();
                           } else if (configProvider.config.gameViewMode ==
                               'carousel') {
-                            return Column(
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8.r),
-                                  child: GameSystemLogo(
-                                    system: widget.system,
-                                    height: 42.r,
-                                  ),
-                                ),
-                                Expanded(child: _buildGamesCarousel()),
-                              ],
-                            );
+                            return _buildGamesCarousel();
                           } else if (configProvider.config.gameViewMode ==
                                   'logoList' ||
                               configProvider.config.gameViewMode ==
