@@ -279,6 +279,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
   bool _showVideo = false;
   bool _isVideoLoading = false;
   int _videoRequestGeneration = 0;
+  bool _videoInitializationInFlight = false;
   static const Duration _videoDelay = Duration(
     milliseconds: 1500,
   ); // Debounce for video playback.
@@ -533,7 +534,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
             !_showVideo &&
             _videoTimer == null &&
             !_isGameLaunching) {
-          _startVideoTimer();
+          _startVideoTimer(immediate: true);
         }
       } else {
         // Immediate termination of media preview if info overlay is hidden.

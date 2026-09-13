@@ -433,13 +433,15 @@ extension _SecondaryDisplay on _SystemGamesListState {
   }
 
   /// Initiates the media preview sequence for the primary and secondary displays.
-  void _startVideoTimer() {
+  void _startVideoTimer({bool immediate = false}) {
     _videoTimer?.cancel();
     if (!mounted || _isGameLaunching) return;
 
-    final immediate = context.read<SqliteConfigProvider>().config.showGameInfo;
+    final topVideo = context.read<SqliteConfigProvider>().config.showGameInfo;
     _videoTimer = Timer(
-      immediate ? Duration.zero : _SystemGamesListState._videoDelay,
+      topVideo
+          ? (immediate ? Duration.zero : const Duration(milliseconds: 450))
+          : _SystemGamesListState._videoDelay,
       () async {
         _videoTimer = null;
         if (!mounted) return;
@@ -483,105 +485,117 @@ extension _SecondaryDisplay on _SystemGamesListState {
       return;
     }
 
-    final request = ++_videoRequestGeneration;
-    rebuild(() => _isVideoLoading = true);
-
-    final videoPath = _getVideoPath(game);
-    final file = File(videoPath);
-    final fileExists = _fileProvider.isInitialized
-        ? await _fileProvider.fileExists(videoPath)
-        : file.existsSync();
-
-    if (!mounted ||
-        _selectedGame != game ||
-        request != _videoRequestGeneration) {
-      if (mounted && request == _videoRequestGeneration) {
-        rebuild(() {
-          _isVideoLoading = false;
-        });
-      }
+    // A decoder already being created must finish before another can start.
+    // Selection resets invalidate its result, but do not cancel native setup.
+    if (_videoInitializationInFlight) {
+      _startVideoTimer();
       return;
     }
-
-    if (!fileExists) {
-      if (mounted) {
-        rebuild(() {
-          _showVideo = false;
-          _isVideoLoading = false;
-        });
-      }
-      return;
-    }
-
-    VideoPlayerController? pendingController;
+    _videoInitializationInFlight = true;
     try {
+      final request = ++_videoRequestGeneration;
+      rebuild(() => _isVideoLoading = true);
+
+      final videoPath = _getVideoPath(game);
+      final file = File(videoPath);
+      final fileExists = _fileProvider.isInitialized
+          ? await _fileProvider.fileExists(videoPath)
+          : file.existsSync();
+
       if (!mounted ||
           _selectedGame != game ||
           request != _videoRequestGeneration) {
-        return;
-      }
-
-      // CRITICAL: Ensure previously active controllers are disposed to prevent resource leaks.
-      if (_videoController != null) {
-        try {
-          _videoController!.pause();
-          _videoController!.dispose();
-        } catch (e) {
-          _SystemGamesListState._log.w('Error disposing old controller: $e');
-        }
-        _videoController = null;
-      }
-
-      final mainController = VideoPlayerController.file(
-        file,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
-      );
-      pendingController = mainController;
-
-      await mainController.initialize();
-
-      if (mounted &&
-          _selectedGame == game &&
-          request == _videoRequestGeneration) {
-        rebuild(() {
-          _videoController = mainController;
-          _showVideo = true;
-          _isVideoLoading = false;
-        });
-
-        // Guard each await: navigation can dispose _videoController between calls.
-        final videoConfig = context.read<SqliteConfigProvider>().config;
-        await mainController.setVolume(
-          videoConfig.videoSound && videoConfig.showGameInfo ? 1.0 : 0.0,
-        );
-        if (!mounted || _videoController != mainController) return;
-        await mainController.setLooping(true);
-        if (!mounted || _videoController != mainController) return;
-        await mainController.play();
-        if (!mounted || _videoController != mainController) return;
-
-        _updateMusicDucking();
-      } else {
-        mainController.dispose();
         if (mounted && request == _videoRequestGeneration) {
           rebuild(() {
             _isVideoLoading = false;
           });
         }
+        return;
       }
-    } catch (error) {
-      if (pendingController != null && pendingController != _videoController) {
-        await pendingController.dispose();
+
+      if (!fileExists) {
+        if (mounted) {
+          rebuild(() {
+            _showVideo = false;
+            _isVideoLoading = false;
+          });
+        }
+        return;
       }
-      _SystemGamesListState._log.e(
-        'Error initializing video in LIST view: $error',
-      );
-      if (mounted && request == _videoRequestGeneration) {
-        rebuild(() {
-          _showVideo = false;
-          _isVideoLoading = false;
-        });
+
+      VideoPlayerController? pendingController;
+      try {
+        if (!mounted ||
+            _selectedGame != game ||
+            request != _videoRequestGeneration) {
+          return;
+        }
+
+        // CRITICAL: Ensure previously active controllers are disposed to prevent resource leaks.
+        if (_videoController != null) {
+          try {
+            _videoController!.pause();
+            _videoController!.dispose();
+          } catch (e) {
+            _SystemGamesListState._log.w('Error disposing old controller: $e');
+          }
+          _videoController = null;
+        }
+
+        final mainController = VideoPlayerController.file(
+          file,
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
+        );
+        pendingController = mainController;
+
+        await mainController.initialize();
+
+        if (mounted &&
+            _selectedGame == game &&
+            request == _videoRequestGeneration) {
+          rebuild(() {
+            _videoController = mainController;
+            _showVideo = true;
+            _isVideoLoading = false;
+          });
+
+          // Guard each await: navigation can dispose _videoController between calls.
+          final videoConfig = context.read<SqliteConfigProvider>().config;
+          await mainController.setVolume(
+            videoConfig.videoSound && videoConfig.showGameInfo ? 1.0 : 0.0,
+          );
+          if (!mounted || _videoController != mainController) return;
+          await mainController.setLooping(true);
+          if (!mounted || _videoController != mainController) return;
+          await mainController.play();
+          if (!mounted || _videoController != mainController) return;
+
+          _updateMusicDucking();
+        } else {
+          mainController.dispose();
+          if (mounted && request == _videoRequestGeneration) {
+            rebuild(() {
+              _isVideoLoading = false;
+            });
+          }
+        }
+      } catch (error) {
+        if (pendingController != null &&
+            pendingController != _videoController) {
+          await pendingController.dispose();
+        }
+        _SystemGamesListState._log.e(
+          'Error initializing video in LIST view: $error',
+        );
+        if (mounted && request == _videoRequestGeneration) {
+          rebuild(() {
+            _showVideo = false;
+            _isVideoLoading = false;
+          });
+        }
       }
+    } finally {
+      _videoInitializationInFlight = false;
     }
   }
 
