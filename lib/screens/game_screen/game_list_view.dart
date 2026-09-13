@@ -24,7 +24,7 @@ import '../../widgets/achievements_badge.dart';
 import '../../widgets/collection_badge.dart';
 import '../../widgets/marquee_text.dart';
 import '../../widgets/neo_sync_status_icon.dart';
-import '../../widgets/system_logo_fallback.dart';
+import '../../widgets/game_system_logo.dart';
 
 /// A high-performance list view specialized for game browsing with gamepad support.
 ///
@@ -784,59 +784,6 @@ class GameListViewState extends State<GameListView>
 
   /// Renders the system brand logo with fallback support, tinted to match the theme.
   Widget _buildSystemLogoHeader(SystemModel displaySystem) {
-    final resolvedLogoFolder = displaySystem.primaryFolderName.isNotEmpty
-        ? displaySystem.primaryFolderName
-        : (displaySystem.folderName.isNotEmpty
-              ? displaySystem.folderName
-              : 'all');
-    final assetLogoPath = 'assets/images/logos/$resolvedLogoFolder.webp';
-    final customLogoPath = displaySystem.customLogoPath;
-    final hasCustomLogo = customLogoPath != null && customLogoPath.isNotEmpty;
-
-    Widget buildLogo(Widget image) {
-      return ColorFiltered(
-        colorFilter: ColorFilter.mode(
-          Theme.of(context).colorScheme.onSurface,
-          BlendMode.srcIn,
-        ),
-        child: image,
-      );
-    }
-
-    if (hasCustomLogo) {
-      return buildLogo(
-        Image.file(
-          File(customLogoPath),
-          height: 38.r,
-          cacheWidth: 256,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Image.asset(
-            assetLogoPath,
-            height: 38.r,
-            cacheWidth: 256,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) => SystemLogoFallback(
-              title: displaySystem.realName,
-              shortName: displaySystem.shortName,
-              height: 38.r,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return buildLogo(
-      Image.asset(
-        assetLogoPath,
-        height: 38.r,
-        cacheWidth: 256,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => SystemLogoFallback(
-          title: displaySystem.realName,
-          shortName: displaySystem.shortName,
-          height: 38.r,
-        ),
-      ),
-    );
+    return GameSystemLogo(system: displaySystem, height: 38.r);
   }
 }
