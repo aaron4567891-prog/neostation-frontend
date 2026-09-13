@@ -41,9 +41,8 @@ class LetterJump {
   /// its own set of groups and the jump still lands on group boundaries.
   ///
   /// Going [forward] lands on the first item whose letter differs from the
-  /// current one. Going backwards lands on the *start* of the current group
-  /// first (the usual "rewind to the top of this letter" behaviour), and only
-  /// steps into the previous group once the cursor is already there.
+  /// current one. Going backwards always lands at the start of the previous
+  /// group, even when the cursor is halfway through the current group.
   static int? targetIndex({
     required int length,
     required int currentIndex,
@@ -62,9 +61,7 @@ class LetterJump {
     }
 
     final groupStart = _groupStart(currentIndex, current, letterAt);
-    if (groupStart < currentIndex) return groupStart;
-
-    final previous = currentIndex - 1;
+    final previous = groupStart - 1;
     if (previous < 0) return null;
     return _groupStart(previous, letterAt(previous), letterAt);
   }

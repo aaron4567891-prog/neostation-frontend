@@ -26,6 +26,7 @@ import '../../services/screenscraper_service.dart';
 import '../../services/secondary_achievements_controller.dart';
 import '../../utils/gamepad_nav.dart';
 import '../../utils/letter_jump.dart';
+import '../systems_screen/my_systems_section/system_list_builder.dart';
 import '../../providers/file_provider.dart';
 import '../../providers/sqlite_config_provider.dart';
 import '../../providers/collections_provider.dart';
@@ -89,6 +90,61 @@ class SystemGamesList extends StatefulWidget {
 }
 
 class _SystemGamesListState extends State<SystemGamesList> {
+  late final String _navigationSuffix = '#${identityHashCode(this)}';
+  String get _listLayerId => 'system_games_list$_navigationSuffix';
+  String get _gridLayerId => 'games_grid$_navigationSuffix';
+  String get _carouselLayerId => 'games_carousel$_navigationSuffix';
+  bool _switchingSystem = false;
+
+  void _switchSystem(bool forward) {
+    if (!mounted || _switchingSystem) return;
+    final config = context.read<SqliteConfigProvider>();
+    final cards = buildSystemsList(
+      context: context,
+      configProvider: config,
+      dbProvider: context.read<SqliteDatabaseProvider>(),
+      fileProvider: widget.fileProvider,
+    );
+    const excluded = {
+      'all',
+      'favorites',
+      'recent',
+      'collections',
+      'android',
+      'music',
+    };
+    final systems = <SystemModel>[];
+    for (final card in cards) {
+      if (card.isGame || excluded.contains(card.folderName)) continue;
+      for (final system in config.detectedSystems) {
+        if (system.folderName == card.folderName) {
+          systems.add(system);
+          break;
+        }
+      }
+    }
+    if (systems.length < 2) return;
+    final current = systems.indexWhere(
+      (s) => s.folderName == widget.system.folderName,
+    );
+    final next = current < 0
+        ? (forward ? 0 : systems.length - 1)
+        : (current + (forward ? 1 : -1) + systems.length) % systems.length;
+    _switchingSystem = true;
+    _gamepadNav.deactivate();
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            SystemGamesList(
+              system: systems[next],
+              fileProvider: widget.fileProvider,
+            ),
+      ),
+    );
+  }
+
   static final _log = LoggerService.instance;
 
   // Dataset management.
@@ -616,7 +672,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
 
   /// Terminates all active multimedia and background processing tasks.
   void _cleanupResources() {
-    GamepadNavigationManager.popLayer('system_games_list');
+    GamepadNavigationManager.popLayer(_listLayerId);
 
     _videoTimer?.cancel();
     _saveDetectionTimer?.cancel();
@@ -733,9 +789,9 @@ class _SystemGamesListState extends State<SystemGamesList> {
     // left the D-pad dead for the whole transition: the press played its nav
     // sound and moved the dying carousel's own index, while the systems screen
     // underneath never saw it.
-    GamepadNavigationManager.popLayer('games_carousel');
-    GamepadNavigationManager.popLayer('games_grid');
-    GamepadNavigationManager.popLayer('system_games_list');
+    GamepadNavigationManager.popLayer(_carouselLayerId);
+    GamepadNavigationManager.popLayer(_gridLayerId);
+    GamepadNavigationManager.popLayer(_listLayerId);
 
     // Restore secondary display to original system branding. Resolve the logo
     // and background the same way the systems grid does (custom → active-theme
@@ -1338,6 +1394,8 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// Builds the game carousel view with letter-based navigation.
   Widget _buildGamesCarousel() {
     return GamesCarousel(
+      navigationLayerId: _carouselLayerId,
+      onSwitchSystem: _switchSystem,
       key: ValueKey('carousel_$_viewStructureSignature'),
       system: widget.system,
       games: _games,
@@ -1376,6 +1434,8 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// Builds the game grid view with box-2d images.
   Widget _buildGamesGrid() {
     return GamesGrid(
+      navigationLayerId: _gridLayerId,
+      onSwitchSystem: _switchSystem,
       key: ValueKey('grid_$_viewStructureSignature'),
       system: widget.system,
       games: _games,

@@ -14,6 +14,7 @@ import 'package:neostation/providers/file_provider.dart';
 import 'package:neostation/providers/sqlite_config_provider.dart';
 import 'package:neostation/services/sfx_service.dart';
 import 'package:neostation/utils/gamepad_nav.dart';
+import 'package:neostation/utils/letter_jump.dart';
 import 'package:neostation/utils/game_utils.dart';
 import 'package:neostation/providers/collections_provider.dart';
 import 'package:neostation/widgets/achievements_badge.dart';
@@ -31,6 +32,8 @@ import 'package:neostation/services/retro_achievements_helper.dart';
 import 'package:neostation/screens/game_screen/game_details_card/dialogs/game_achievements_dialog.dart';
 
 class GamesGrid extends StatefulWidget {
+  final String navigationLayerId;
+  final void Function(bool forward)? onSwitchSystem;
   final SystemModel system;
   final List<GameModel> games;
   final int selectedIndex;
@@ -102,6 +105,8 @@ class GamesGrid extends StatefulWidget {
     required this.selectedIndex,
     required this.fileProvider,
     required this.onGameSelected,
+    this.onSwitchSystem,
+    this.navigationLayerId = 'games_grid',
     required this.onBack,
     required this.onPlay,
     required this.onFavorite,
@@ -574,7 +579,7 @@ class _GamesGridState extends State<GamesGrid> {
       if (mounted) {
         _gamepadNav.initialize();
         GamepadNavigationManager.pushLayer(
-          'games_grid',
+          widget.navigationLayerId,
           onActivate: () => _gamepadNav.activate(),
           onDeactivate: () => _gamepadNav.deactivate(),
         );
@@ -738,6 +743,10 @@ class _GamesGridState extends State<GamesGrid> {
       onNavigateDown: _navigateDown,
       onNavigateLeft: _navigateLeft,
       onNavigateRight: _navigateRight,
+      onLeftBumper: () => _letterJump(false),
+      onRightBumper: () => _letterJump(true),
+      onLeftTrigger: () => widget.onSwitchSystem?.call(false),
+      onRightTrigger: () => widget.onSwitchSystem?.call(true),
       onSelectItem: widget.onPlay,
       onBack: widget.onBack,
       onFavorite: widget.onYButton ?? widget.onFavorite, // Button Y.
@@ -760,6 +769,21 @@ class _GamesGridState extends State<GamesGrid> {
   void _toggleVideoMute() {
     if (!mounted) return;
     context.read<SqliteConfigProvider>().toggleVideoSound();
+  }
+
+  void _letterJump(bool forward) {
+    final target = LetterJump.targetIndex(
+      length: widget.games.length,
+      currentIndex: _selectedIndex,
+      forward: forward,
+      letterAt: (index) => index < widget.folderCount
+          ? 'FOLDERS'
+          : LetterJump.letterFor(widget.games[index]),
+    );
+    if (target == null) return;
+    setState(() => _selectedIndex = target);
+    _ensureSelectedVisible();
+    _onSelectionChanged();
   }
 
   /// Scroll offset that centres the selected card in the viewport, clamped to
@@ -807,7 +831,7 @@ class _GamesGridState extends State<GamesGrid> {
     _achievementsDebounce?.cancel();
     _settleTimer?.cancel();
     _cardSizeLabel.dispose();
-    GamepadNavigationManager.popLayer('games_grid');
+    GamepadNavigationManager.popLayer(widget.navigationLayerId);
     _gamepadNav.dispose();
     _scrollController.dispose();
     super.dispose();

@@ -71,7 +71,10 @@ extension _GamepadNav on _SystemGamesListState {
       onNavigateDown: _navigateDown,
       onNavigateLeft: _navigateLeft, // Previous details tab.
       onNavigateRight: _navigateRight, // Next details tab.
-      onLetterJump: _letterJump, // Held D-pad up/down → alphabet skipping.
+      onLeftBumper: () => _letterJump(false),
+      onRightBumper: () => _letterJump(true),
+      onLeftTrigger: () => _switchSystem(false),
+      onRightTrigger: () => _switchSystem(true),
       accelerateRepeats: true, // Text-only rows keep up with a ramping repeat.
       onSelectItem: _handleAButton, // Button A - panel gate, else launch.
       onBack: _handleBButton, // Button B - leave the panel, else go back.
@@ -90,7 +93,7 @@ extension _GamepadNav on _SystemGamesListState {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _gamepadNav.initialize();
       GamepadNavigationManager.pushLayer(
-        'system_games_list',
+        _listLayerId,
         onActivate: () => _gamepadNav.activate(),
         onDeactivate: () => _gamepadNav.deactivate(),
       );

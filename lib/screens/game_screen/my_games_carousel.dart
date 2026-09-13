@@ -31,6 +31,8 @@ import 'package:neostation/services/retro_achievements_helper.dart';
 import 'package:neostation/screens/game_screen/game_details_card/dialogs/game_achievements_dialog.dart';
 
 class GamesCarousel extends StatefulWidget {
+  final String navigationLayerId;
+  final void Function(bool forward)? onSwitchSystem;
   final SystemModel system;
   final List<GameModel> games;
   final int selectedIndex;
@@ -106,6 +108,8 @@ class GamesCarousel extends StatefulWidget {
     this.onRandom,
     this.onSettings,
     this.onScrape,
+    this.onSwitchSystem,
+    this.navigationLayerId = 'games_carousel',
     this.scrapingGameRomnames = const {},
     this.scrapeProgress = const {},
     this.folderCount = 0,
@@ -417,8 +421,10 @@ class _GamesCarouselState extends State<GamesCarousel> {
           GameViewModeDropdown.globalKey.currentState?.showDropdown();
         } catch (_) {}
       },
-      onLetterJump: _letterJump, // Held D-pad left/right → alphabet skipping.
-      letterJumpAxis: LetterJumpAxis.horizontal,
+      onLeftBumper: () => _letterJump(false),
+      onRightBumper: () => _letterJump(true),
+      onLeftTrigger: () => widget.onSwitchSystem?.call(false),
+      onRightTrigger: () => widget.onSwitchSystem?.call(true),
       onLeftStickClick: widget.onRandom,
       onSelectButton: _toggleVideoMute, // Select tap - Mute preview video.
       onSelectModifierA: widget.onScrape, // Select + A - Scrape.
@@ -440,7 +446,7 @@ class _GamesCarouselState extends State<GamesCarousel> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _gamepadNav.initialize();
       GamepadNavigationManager.pushLayer(
-        'games_carousel',
+        widget.navigationLayerId,
         onActivate: () => _gamepadNav.activate(),
         onDeactivate: () => _gamepadNav.deactivate(),
       );
@@ -478,7 +484,7 @@ class _GamesCarouselState extends State<GamesCarousel> {
   }
 
   void _cleanupGamepad() {
-    GamepadNavigationManager.popLayer('games_carousel');
+    GamepadNavigationManager.popLayer(widget.navigationLayerId);
     _gamepadNav.dispose();
   }
 

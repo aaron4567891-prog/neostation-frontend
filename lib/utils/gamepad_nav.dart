@@ -80,6 +80,8 @@ class GamepadNavigation {
   final VoidCallback? onSelectButton;
   final VoidCallback? onLeftBumper;
   final VoidCallback? onRightBumper;
+  final VoidCallback? onLeftTrigger;
+  final VoidCallback? onRightTrigger;
 
   /// Select (View) chord combos. On its own Select fires [onSelectButton], or
   /// [globalSelectTap] when the layer defines none.
@@ -371,6 +373,8 @@ class GamepadNavigation {
     this.onSelectButton,
     this.onLeftBumper,
     this.onRightBumper,
+    this.onLeftTrigger,
+    this.onRightTrigger,
     this.onSelectModifierA,
     this.onSelectModifierB,
     this.onSelectModifierX,
@@ -944,7 +948,8 @@ class GamepadNavigation {
         event.inputType == GamepadInputType.leftStickY ||
         event.inputType == GamepadInputType.buttonLB ||
         event.inputType == GamepadInputType.buttonRB ||
-        event.inputType == GamepadInputType.buttonRT) {
+        event.inputType == GamepadInputType.buttonRT ||
+        event.inputType == GamepadInputType.buttonLT) {
       shouldProcess = event.isPressed;
     } else {
       // Standard buttons fire on press for Android, and on release for Desktop (Standard UX).
@@ -1089,6 +1094,13 @@ class GamepadNavigation {
 
       case GamepadInputType.rightStickButton:
         (onRightStickClick ?? globalRightStickClick)?.call();
+        break;
+
+      case GamepadInputType.buttonLT:
+        onLeftTrigger?.call();
+        break;
+      case GamepadInputType.buttonRT:
+        onRightTrigger?.call();
         break;
 
       default:
