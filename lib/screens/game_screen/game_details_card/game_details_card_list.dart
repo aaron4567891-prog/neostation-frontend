@@ -814,9 +814,9 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
     );
     final isGlobalMuted = !configProvider.config.videoSound;
 
-    // Audio Arbitration: If a secondary display is active with sound, mute the primary UI
-    // to prevent acoustic interference.
-    final shouldBeMuted = isGlobalMuted || widget.isSecondaryScreenActive;
+    // The explicit Video tab owns audio even on a dual-screen device.
+    // The parent mutes the secondary preview while this tab is open.
+    final shouldBeMuted = isGlobalMuted || _currentTab != DetailTab.video;
 
     if (widget.videoController != null &&
         widget.videoController!.value.isInitialized &&
@@ -1437,7 +1437,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
       }
       if (tab == DetailTab.video) {
         config.updateShowGameInfo(true);
-        widget.videoController?.setVolume(0);
+        _applyVideoMuteState();
         _startVideoDelay();
       } else {
         if (config.config.showGameInfo) {

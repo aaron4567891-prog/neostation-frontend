@@ -131,7 +131,8 @@ class _GameDetailsScreenshotVideoTabState
 
     return Padding(
       padding: EdgeInsets.fromLTRB(12.r, 55.r, 12.r, widget.bottomOffset.r),
-      child: Center(
+      child: Align(
+        alignment: widget.videoOnly ? Alignment.centerRight : Alignment.center,
         child: Container(
           decoration: BoxDecoration(
             borderRadius:

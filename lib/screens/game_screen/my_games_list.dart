@@ -545,6 +545,13 @@ class _SystemGamesListState extends State<SystemGamesList> {
     }
 
     // Refresh audio ducking logic (e.g., when toggling video sound).
+    // The top Video tab owns audio while open; mute only the secondary
+    // preview, without changing the user's global sound preference.
+    final secondary = _secondaryDisplayState?.value;
+    final secondaryMuted = !configProvider.config.videoSound || newShowInfo;
+    if (secondary != null && secondary.isVideoMuted != secondaryMuted) {
+      _secondaryDisplayState?.updateState(isVideoMuted: secondaryMuted);
+    }
     _updateMusicDucking();
   }
 

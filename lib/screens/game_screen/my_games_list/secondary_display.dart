@@ -164,7 +164,9 @@ extension _SecondaryDisplay on _SystemGamesListState {
     final configProvider = mounted
         ? context.read<SqliteConfigProvider>()
         : null;
-    final isVideoMuted = !configProvider!.config.videoSound;
+    final isVideoMuted =
+        !configProvider!.config.videoSound ||
+        configProvider.config.showGameInfo;
     final secondaryMediaMode = configProvider.config.secondaryMediaMode;
     final isScraperLoggedIn = await ScreenScraperService.hasSavedCredentials();
 
@@ -531,7 +533,10 @@ extension _SecondaryDisplay on _SystemGamesListState {
         });
 
         // Guard each await: navigation can dispose _videoController between calls.
-        await mainController.setVolume(0.0);
+        final videoConfig = context.read<SqliteConfigProvider>().config;
+        await mainController.setVolume(
+          videoConfig.videoSound && videoConfig.showGameInfo ? 1.0 : 0.0,
+        );
         if (!mounted || _videoController != mainController) return;
         await mainController.setLooping(true);
         if (!mounted || _videoController != mainController) return;
