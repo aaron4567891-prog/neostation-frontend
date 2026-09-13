@@ -1,10 +1,4 @@
 import 'dart:io';
-import 'package:path/path.dart' as path;
-import 'package:provider/provider.dart';
-import 'package:neostation/providers/sqlite_config_provider.dart';
-import 'package:neostation/services/config_service.dart';
-import 'package:neostation/services/permission_service.dart';
-import 'package:neostation/widgets/tv_directory_picker.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -78,7 +72,7 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
 
   // Media tab: screenshot, wheel, fanart, boxart, physical media, video.
   static const int _idxImageStart = 0;
-  static const int _totalMediaItems = 7;
+  static const int _totalMediaItems = 6;
 
   static const _descLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt'];
   static const _mediaTypes = [
@@ -514,10 +508,6 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
         _saveMetadata();
       }
     } else {
-      if (idx == 6) {
-        _changeSystemLogo();
-        return;
-      }
       if (idx >= _idxImageStart && idx < _totalMediaItems) {
         final type = _mediaTypes[idx];
         if (type != 'videos') _replaceImage(type);
@@ -768,97 +758,9 @@ class GameSettingsScrappingTabState extends State<GameSettingsScrappingTab> {
                 _removeMedia(_mediaTypes[i]);
               },
             ),
-          _ArtworkRow(
-            key: _itemKey(6),
-            isSelected: _selectedIndex == 6,
-            label: 'System header logo (all game views)',
-            mediaPath: _currentLogoPath,
-            isVideo: false,
-            thumbsVersion: _thumbsVersion,
-            onChange: () {
-              setState(() => _selectedIndex = 6);
-              _changeSystemLogo();
-            },
-            onRemove: () => _changeSystemLogo(reset: true),
-          ),
         ],
       ),
     );
-  }
-
-  SystemModel get _logoSystem {
-    final systems = context.read<SqliteConfigProvider>().availableSystems;
-    final folder = widget.isAllMode
-        ? widget.game.systemFolderName
-        : widget.system.folderName;
-    return systems.firstWhere(
-      (system) => system.folderName == folder,
-      orElse: () => widget.system,
-    );
-  }
-
-  String get _currentLogoPath => _logoSystem.customLogoPath ?? '';
-
-  Future<void> _changeSystemLogo({bool reset = false}) async {
-    try {
-      final system = _logoSystem;
-      final id = system.id;
-      if (id == null || id.isEmpty) return;
-      String targetPath = '';
-      if (!reset) {
-        String? pickedPath;
-        if (Platform.isAndroid && await PermissionService.isTelevision()) {
-          if (!mounted) return;
-          pickedPath = await TvDirectoryPicker.showFilePicker(
-            context,
-            extensions: ['png', 'webp', 'jpg', 'jpeg'],
-          );
-        } else {
-          final result = await FilePicker.pickFile(
-            type: FileType.custom,
-            allowedExtensions: ['png', 'webp', 'jpg', 'jpeg'],
-            dialogTitle: 'Choose system header logo',
-            windowsOptions: const WindowsOptions(lockParentWindow: true),
-            linuxOptions: const LinuxOptions(lockParentWindow: true),
-          );
-          pickedPath = result?.path;
-        }
-        if (pickedPath == null || !mounted) return;
-        final directory = Directory(
-          path.join(await ConfigService.getUserDataPath(), 'media', 'systems'),
-        );
-        await directory.create(recursive: true);
-        // A unique file avoids stale image-cache entries on replacement.
-        targetPath = path.join(
-          directory.path,
-          '${id}_header_${DateTime.now().microsecondsSinceEpoch}${path.extension(pickedPath)}',
-        );
-        await File(pickedPath).copy(targetPath);
-      }
-      await SystemRepository.setCustomImages(id, logoPath: targetPath);
-      if (!mounted) return;
-      await context.read<SqliteConfigProvider>().refreshSystem(
-        system.copyWith(
-          customLogoPath: targetPath,
-          imageVersion: system.imageVersion + 1,
-        ),
-      );
-      if (!mounted) return;
-      setState(() => _thumbsVersion++);
-      widget.onGameUpdated?.call();
-      AppNotification.showNotification(
-        context,
-        reset ? 'System header logo reset.' : 'System header logo updated.',
-        type: NotificationType.success,
-      );
-    } catch (error) {
-      if (!mounted) return;
-      AppNotification.showNotification(
-        context,
-        'Could not update system logo: $error',
-        type: NotificationType.error,
-      );
-    }
   }
 
   String _mediaTypeLabel(BuildContext context, String type) {
