@@ -18,7 +18,6 @@ import 'cyberpunk_theme.dart' as cyberpunk;
 import 'aqua_theme.dart' as aqua;
 import 'palenight_theme.dart' as palenight;
 import 'horizon_theme.dart' as horizon;
-import 'cathode_theme.dart' as cathode;
 
 class AppThemes {
   /// Registry of user-imported themes, keyed by id. Populated at startup by
@@ -46,7 +45,6 @@ class AppThemes {
   static ThemeData get aquaTheme => aqua.aquaTheme;
   static ThemeData get palenightTheme => palenight.palenightTheme;
   static ThemeData get horizonTheme => horizon.horizonTheme;
-  static ThemeData get cathodeTheme => cathode.cathodeTheme;
 
   // References to custom colors for each theme
   static dynamic get darkCustomColors => dark.DarkCustomColors();
@@ -86,8 +84,6 @@ class AppThemes {
     }
 
     switch (resolvedThemeName) {
-      case 'cathode':
-        return dark.DarkCustomColors();
       case 'light':
         return light.LightCustomColors();
       case 'oled':
@@ -213,8 +209,6 @@ class AppThemes {
         return palenightTheme;
       case 'horizon':
         return horizonTheme;
-      case 'cathode':
-        return cathodeTheme;
       default:
         return darkTheme;
     }
