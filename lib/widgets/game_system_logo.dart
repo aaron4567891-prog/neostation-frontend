@@ -10,9 +10,11 @@ class GameSystemLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final folder = system.primaryFolderName.isNotEmpty
-        ? system.primaryFolderName
-        : system.folderName;
+    final candidates = <String>{
+      if (system.id != null && system.id!.trim().isNotEmpty) system.id!.trim(),
+      system.primaryFolderName,
+      system.folderName,
+    }.where((name) => name.isNotEmpty).toList();
     final color = Theme.of(context).colorScheme.onSurface;
     Widget fallback() => Center(
       child: Text(
@@ -22,17 +24,21 @@ class GameSystemLogo extends StatelessWidget {
         style: Theme.of(context).textTheme.titleLarge,
       ),
     );
-    Widget asset() => Image.asset(
-      'assets/images/logos/$folder.webp',
-      height: height,
-      fit: BoxFit.contain,
-      cacheWidth: 512,
-      frameBuilder: (context, child, frame, synchronous) => ColorFiltered(
-        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-        child: child,
-      ),
-      errorBuilder: (context, error, stack) => fallback(),
-    );
+    Widget asset([int index = 0]) {
+      if (index >= candidates.length) return fallback();
+      return Image.asset(
+        'assets/images/logos/${candidates[index]}.webp',
+        height: height,
+        fit: BoxFit.contain,
+        cacheWidth: 512,
+        frameBuilder: (context, child, frame, synchronous) => ColorFiltered(
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+          child: child,
+        ),
+        errorBuilder: (context, error, stack) => asset(index + 1),
+      );
+    }
+
     final custom = system.customLogoPath;
     return Semantics(
       label: system.realName,
