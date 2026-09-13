@@ -38,6 +38,7 @@ import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/utils/image_cache_budget.dart';
 import 'package:neostation/services/sfx_service.dart';
 import 'package:flutter/material.dart';
+import 'package:neostation/themes/cathode_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -1065,7 +1066,12 @@ class _MyAppState extends State<MyApp> {
                           // offers one: B is a gamepad button and the system
                           // back gesture belongs to the platform.
                           child: Stack(
-                            children: [child!, const BackSwipeZone()],
+                            children: [
+                              child!,
+                              if (themeProvider.currentThemeName == 'cathode')
+                                const CathodeScreenOverlay(),
+                              const BackSwipeZone(),
+                            ],
                           ),
                         );
                       },

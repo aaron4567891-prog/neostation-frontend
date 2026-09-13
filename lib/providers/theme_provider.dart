@@ -62,10 +62,12 @@ class ThemeProvider extends ChangeNotifier with WidgetsBindingObserver {
     'aqua': AppThemes.aquaTheme,
     'palenight': AppThemes.palenightTheme,
     'horizon': AppThemes.horizonTheme,
+    'cathode': AppThemes.cathodeTheme,
   };
 
   /// Human-readable mapping for theme identifiers.
   static const Map<String, String> themeDisplayNames = {
+    'cathode': 'Cathode-inspired CRT',
     'system': 'System',
     'dark': 'Dark',
     'light': 'Light',
