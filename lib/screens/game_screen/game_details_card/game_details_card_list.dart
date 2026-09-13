@@ -615,7 +615,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
     super.dispose();
   }
 
-  /// Initiates a 3-second aesthetic delay before transitioning to video playback.
+  /// Starts playback on the next event-loop turn, without an aesthetic delay.
   void _startVideoDelay() {
     _videoDelayTimer?.cancel();
 
@@ -623,7 +623,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
       _isVideoDelayActive = true;
     });
 
-    _videoDelayTimer = Timer(const Duration(seconds: 3), () {
+    _videoDelayTimer = Timer(Duration.zero, () {
       if (mounted) {
         setState(() {
           _isVideoDelayActive = false;

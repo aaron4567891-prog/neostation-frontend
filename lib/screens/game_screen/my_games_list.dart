@@ -278,6 +278,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
   Timer? _videoTimer;
   bool _showVideo = false;
   bool _isVideoLoading = false;
+  int _videoRequestGeneration = 0;
   static const Duration _videoDelay = Duration(
     milliseconds: 1500,
   ); // Debounce for video playback.

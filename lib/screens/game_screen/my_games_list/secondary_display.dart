@@ -13,6 +13,7 @@ part of '../my_games_list.dart';
 extension _SecondaryDisplay on _SystemGamesListState {
   /// Hard reset of the video preview system.
   void _resetVideoState() {
+    _videoRequestGeneration++;
     _videoTimer?.cancel();
     _videoTimer = null;
 
@@ -38,6 +39,7 @@ extension _SecondaryDisplay on _SystemGamesListState {
 
   /// Graceful termination of video resources with state synchronization.
   void _stopVideoAndCleanup() {
+    _videoRequestGeneration++;
     _videoTimer?.cancel();
     _videoTimer = null;
 
@@ -435,31 +437,37 @@ extension _SecondaryDisplay on _SystemGamesListState {
     _videoTimer?.cancel();
     if (!mounted || _isGameLaunching) return;
 
-    _videoTimer = Timer(_SystemGamesListState._videoDelay, () async {
-      if (!mounted) return;
-      if (mounted && _selectedGame != null) {
-        // Always attempt secondary display video update.
-        await _updateSecondaryDisplayVideo(_selectedGame!);
+    final immediate = context.read<SqliteConfigProvider>().config.showGameInfo;
+    _videoTimer = Timer(
+      immediate ? Duration.zero : _SystemGamesListState._videoDelay,
+      () async {
+        _videoTimer = null;
         if (!mounted) return;
+        if (mounted && _selectedGame != null) {
+          final game = _selectedGame!;
 
-        // Primary display video is conditional based on user preference for 'Game Info'.
-        final showGameInfo = context
-            .read<SqliteConfigProvider>()
-            .config
-            .showGameInfo;
-        if (showGameInfo) {
-          await _initializeVideo(_selectedGame!);
+          // Primary display video is conditional based on user preference for 'Game Info'.
+          final showGameInfo = context
+              .read<SqliteConfigProvider>()
+              .config
+              .showGameInfo;
+          if (showGameInfo) {
+            // Do not put top-screen playback behind secondary artwork/media I/O.
+            await Future.wait([
+              _initializeVideo(game),
+              _updateSecondaryDisplayVideo(game),
+            ]);
+          } else {
+            await _updateSecondaryDisplayVideo(game);
+          }
         }
-      }
-    });
+      },
+    );
   }
 
   /// Initializes the video player for the primary UI, including volume and loop management.
   Future<void> _initializeVideo(GameModel game) async {
-    if (!mounted ||
-        _selectedGame == null ||
-        _selectedGame != game ||
-        _isVideoLoading) {
+    if (!mounted || _selectedGame == null || _selectedGame != game) {
       return;
     }
 
@@ -475,6 +483,7 @@ extension _SecondaryDisplay on _SystemGamesListState {
       return;
     }
 
+    final request = ++_videoRequestGeneration;
     rebuild(() => _isVideoLoading = true);
 
     final videoPath = _getVideoPath(game);
@@ -483,8 +492,10 @@ extension _SecondaryDisplay on _SystemGamesListState {
         ? await _fileProvider.fileExists(videoPath)
         : file.existsSync();
 
-    if (!mounted || _selectedGame != game) {
-      if (mounted) {
+    if (!mounted ||
+        _selectedGame != game ||
+        request != _videoRequestGeneration) {
+      if (mounted && request == _videoRequestGeneration) {
         rebuild(() {
           _isVideoLoading = false;
         });
@@ -502,8 +513,11 @@ extension _SecondaryDisplay on _SystemGamesListState {
       return;
     }
 
+    VideoPlayerController? pendingController;
     try {
-      if (!mounted || _selectedGame != game) {
+      if (!mounted ||
+          _selectedGame != game ||
+          request != _videoRequestGeneration) {
         return;
       }
 
@@ -522,10 +536,13 @@ extension _SecondaryDisplay on _SystemGamesListState {
         file,
         videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
       );
+      pendingController = mainController;
 
       await mainController.initialize();
 
-      if (mounted && _selectedGame == game && _selectedGame != null) {
+      if (mounted &&
+          _selectedGame == game &&
+          request == _videoRequestGeneration) {
         rebuild(() {
           _videoController = mainController;
           _showVideo = true;
@@ -546,17 +563,20 @@ extension _SecondaryDisplay on _SystemGamesListState {
         _updateMusicDucking();
       } else {
         mainController.dispose();
-        if (mounted) {
+        if (mounted && request == _videoRequestGeneration) {
           rebuild(() {
             _isVideoLoading = false;
           });
         }
       }
     } catch (error) {
+      if (pendingController != null && pendingController != _videoController) {
+        await pendingController.dispose();
+      }
       _SystemGamesListState._log.e(
         'Error initializing video in LIST view: $error',
       );
-      if (mounted) {
+      if (mounted && request == _videoRequestGeneration) {
         rebuild(() {
           _showVideo = false;
           _isVideoLoading = false;
