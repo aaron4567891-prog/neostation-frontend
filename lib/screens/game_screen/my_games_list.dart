@@ -135,13 +135,27 @@ class _SystemGamesListState extends State<SystemGamesList> {
     _gamepadNav.deactivate();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
+        transitionDuration: const Duration(milliseconds: 220),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
         pageBuilder: (context, animation, secondaryAnimation) =>
             SystemGamesList(
               system: systems[next],
               fileProvider: widget.fileProvider,
             ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final position =
+              Tween<Offset>(
+                begin: Offset(forward ? 1.0 : -1.0, 0.0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                  reverseCurve: Curves.easeInCubic,
+                ),
+              );
+          return SlideTransition(position: position, child: child);
+        },
       ),
     );
   }
