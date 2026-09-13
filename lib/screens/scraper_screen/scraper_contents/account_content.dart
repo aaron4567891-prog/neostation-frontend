@@ -4,6 +4,72 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_localization/flutter_localization.dart';
 import 'package:neostation/l10n/app_locale.dart';
 
+/// Owns the scroll position and stable row anchors across account rebuilds.
+class _AccountScrollView extends StatefulWidget {
+  const _AccountScrollView({
+    required this.isContentFocused,
+    required this.selectedContentIndex,
+    required this.builder,
+  });
+
+  final bool isContentFocused;
+  final int selectedContentIndex;
+  final Widget Function(List<GlobalKey>) builder;
+
+  @override
+  State<_AccountScrollView> createState() => _AccountScrollViewState();
+}
+
+class _AccountScrollViewState extends State<_AccountScrollView> {
+  final _controller = ScrollController();
+  final _rowKeys = List<GlobalKey>.generate(5, (_) => GlobalKey());
+
+  @override
+  void initState() {
+    super.initState();
+    _revealSelection();
+  }
+
+  @override
+  void didUpdateWidget(_AccountScrollView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedContentIndex != widget.selectedContentIndex ||
+        oldWidget.isContentFocused != widget.isContentFocused) {
+      _revealSelection();
+    }
+  }
+
+  void _revealSelection() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.isContentFocused) return;
+      final index = widget.selectedContentIndex;
+      if (index < 0 || index >= _rowKeys.length) return;
+      final rowContext = _rowKeys[index].currentContext;
+      if (rowContext == null) return;
+      Scrollable.ensureVisible(
+        rowContext,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    controller: _controller,
+    physics: const BouncingScrollPhysics(),
+    padding: EdgeInsets.only(bottom: 24.r),
+    child: widget.builder(_rowKeys),
+  );
+}
+
 class AccountContent extends StatelessWidget {
   final bool isContentFocused;
   final int selectedContentIndex;
@@ -79,13 +145,17 @@ class AccountContent extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
+    return _AccountScrollView(
+      isContentFocused: isContentFocused,
+      selectedContentIndex: selectedContentIndex,
+      builder: (rowKeys) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Full-width member header pill (avatar + name + chips + logout)
-          _buildMemberHeader(context, theme),
+          KeyedSubtree(
+            key: rowKeys[0],
+            child: _buildMemberHeader(context, theme),
+          ),
 
           SizedBox(height: 12.h),
 
@@ -100,10 +170,33 @@ class AccountContent extends StatelessWidget {
             ),
             SizedBox(height: 16.h),
           ],
-          _buildProviderButton(
+          _buildChoiceButton(
             context,
             theme,
             index: 1,
+            rowKey: rowKeys[1],
+            icon: Symbols.database_rounded,
+            title: 'Primary metadata scraper',
+            value: metadataProvider,
+            onPressed: onChooseMetadataProvider,
+          ),
+          SizedBox(height: 10.h),
+          _buildChoiceButton(
+            context,
+            theme,
+            index: 2,
+            rowKey: rowKeys[2],
+            icon: Symbols.layers_rounded,
+            title: 'Artwork scraper priority',
+            value: artworkPriority,
+            onPressed: onChooseArtworkPriority,
+          ),
+          SizedBox(height: 10.h),
+          _buildProviderButton(
+            context,
+            theme,
+            index: 3,
+            rowKey: rowKeys[3],
             connected: theGamesDbConnected,
             icon: Symbols.database_rounded,
             name: 'TheGamesDB',
@@ -114,32 +207,13 @@ class AccountContent extends StatelessWidget {
           _buildProviderButton(
             context,
             theme,
-            index: 2,
+            index: 4,
+            rowKey: rowKeys[4],
             connected: steamGridDbConnected,
             icon: Symbols.image_rounded,
             name: 'SteamGridDB',
             purpose: 'artwork',
             onPressed: onConfigureSteamGridDb,
-          ),
-          SizedBox(height: 10.h),
-          _buildChoiceButton(
-            context,
-            theme,
-            index: 3,
-            icon: Symbols.database_rounded,
-            title: 'Primary metadata scraper',
-            value: metadataProvider,
-            onPressed: onChooseMetadataProvider,
-          ),
-          SizedBox(height: 10.h),
-          _buildChoiceButton(
-            context,
-            theme,
-            index: 4,
-            icon: Symbols.layers_rounded,
-            title: 'Artwork scraper priority',
-            value: artworkPriority,
-            onPressed: onChooseArtworkPriority,
           ),
         ],
       ),
@@ -150,6 +224,7 @@ class AccountContent extends StatelessWidget {
     BuildContext context,
     ThemeData theme, {
     required int index,
+    required Key rowKey,
     required IconData icon,
     required String title,
     required String value,
@@ -157,6 +232,7 @@ class AccountContent extends StatelessWidget {
   }) {
     final selected = isContentFocused && selectedContentIndex == index;
     return Container(
+      key: rowKey,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8.r),
@@ -179,6 +255,7 @@ class AccountContent extends StatelessWidget {
     BuildContext context,
     ThemeData theme, {
     required int index,
+    required Key rowKey,
     required bool connected,
     required IconData icon,
     required String name,
@@ -187,6 +264,7 @@ class AccountContent extends StatelessWidget {
   }) {
     final selected = isContentFocused && selectedContentIndex == index;
     return Container(
+      key: rowKey,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8.r),

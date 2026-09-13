@@ -584,13 +584,13 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
       if (_selectedContentIndex == 0) {
         _handleLogout();
       } else if (_selectedContentIndex == 1) {
-        _configureTheGamesDb();
-      } else if (_selectedContentIndex == 2) {
-        _configureSteamGridDb();
-      } else if (_selectedContentIndex == 3) {
         _chooseMetadataProvider();
-      } else if (_selectedContentIndex == 4) {
+      } else if (_selectedContentIndex == 2) {
         _chooseArtworkPriority();
+      } else if (_selectedContentIndex == 3) {
+        _configureTheGamesDb();
+      } else if (_selectedContentIndex == 4) {
+        _configureSteamGridDb();
       }
     }
   }
