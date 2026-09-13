@@ -125,7 +125,6 @@ class _SearchDialogState extends State<_SearchDialog> {
         onActivate: _nav.activate,
         onDeactivate: _nav.deactivate,
       );
-      _focus.requestFocus();
     });
     _load();
   }
@@ -289,25 +288,33 @@ class _SearchDialogState extends State<_SearchDialog> {
                       itemCount: results.length,
                       itemBuilder: (context, index) {
                         final entry = results[index];
-                        return ListTile(
-                          selected: index == _selected,
-                          selectedTileColor: Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer,
-                          leading: Icon(
-                            entry.system != null
-                                ? Icons.videogame_asset
-                                : entry.package == null
-                                ? Icons.sports_esports
-                                : Icons.apps,
+                        return Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: index == _selected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.transparent,
+                              width: 1,
+                            ),
                           ),
-                          title: Text(
-                            entry.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: ListTile(
+                            selectedTileColor: Colors.transparent,
+                            leading: Icon(
+                              entry.system != null
+                                  ? Icons.videogame_asset
+                                  : entry.package == null
+                                  ? Icons.sports_esports
+                                  : Icons.apps,
+                            ),
+                            title: Text(
+                              entry.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(entry.subtitle),
+                            onTap: () => _closeWith(entry),
                           ),
-                          subtitle: Text(entry.subtitle),
-                          onTap: () => _closeWith(entry),
                         );
                       },
                     ),
