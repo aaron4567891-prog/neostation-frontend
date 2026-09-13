@@ -273,13 +273,13 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        // Release keyboard focus and controller ownership at the start of
+        // the pop, rather than waiting for the route animation and dispose.
+        // Otherwise the outgoing Apps layer keeps swallowing carousel input.
+        FocusManager.instance.primaryFocus?.unfocus();
+        _gamepadNav.deactivate();
         Navigator.of(context).pop();
-
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _isNavigatingBack = false;
-          }
-        });
+        GamepadNavigationManager.popLayer(_navLayerId);
       }
     });
   }
