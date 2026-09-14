@@ -309,7 +309,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                     val keepSafUri = call.argument<Boolean>("keep_saf_uri") ?: false
 
                     if (packageName != null) {
-                        launchGenericIntent(packageName, activityName, action, category, data, type, extras, activityFlags, keepSafUri, result)
+                        launchGenericIntent(packageName, activityName, action, category, data, type, extras, activityFlags, keepSafUri, result, call.argument<String>("launch_screen") == "bottom")
                     } else {
                         result.error("INVALID_ARGUMENTS", "Package name is required", null)
                     }
@@ -884,8 +884,25 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         extras: List<Map<String, Any>>?,
         activityFlags: List<String>,
         keepSafUri: Boolean,
-        result: MethodChannel.Result
+        result: MethodChannel.Result,
+        launchBottom: Boolean = false
     ) {
+        val target = if (launchBottom) {
+            val dm = getSystemService(android.content.Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
+            dm.displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
+        } else null
+        if (launchBottom && target == null) {
+            result.error("DISPLAY_UNAVAILABLE", "Bottom display is not connected", null)
+            return
+        }
+        val launchResult = object : MethodChannel.Result {
+            override fun success(value: Any?) {
+                if (value == true && target != null) hideSecondaryForApp(packageName, target.displayId)
+                result.success(value)
+            }
+            override fun error(code: String, message: String?, details: Any?) = result.error(code, message, details)
+            override fun notImplemented() = result.notImplemented()
+        }
         EmulatorLauncher.launchGenericIntent(
             context = this,
             packageName = packageName,
@@ -897,7 +914,8 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             extras = extras,
             activityFlags = activityFlags,
             keepSafUri = keepSafUri,
-            result = result
+            result = launchResult,
+            launchDisplayId = target?.displayId
         )
     }
 

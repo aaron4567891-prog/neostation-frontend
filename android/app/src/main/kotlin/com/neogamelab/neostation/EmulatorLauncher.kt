@@ -30,7 +30,8 @@ object EmulatorLauncher {
         extras: List<Map<String, Any>>?,
         activityFlags: List<String>,
         keepSafUri: Boolean,
-        result: MethodChannel.Result
+        result: MethodChannel.Result,
+        launchDisplayId: Int? = null
     ) {
         try {
             val intent = Intent()
@@ -262,7 +263,13 @@ object EmulatorLauncher {
 
             // Don't use resolveActivity — returns null on Android 11+ for valid apps due to
             // package visibility restrictions. Catch ActivityNotFoundException instead.
-            context.startActivity(intent)
+            if (launchDisplayId != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val options = android.app.ActivityOptions.makeBasic().setLaunchDisplayId(launchDisplayId)
+                context.startActivity(intent, options.toBundle())
+            } else {
+                context.startActivity(intent)
+            }
             result.success(true)
         } catch (e: ActivityNotFoundException) {
             result.error("ACTIVITY_NOT_FOUND", "Emulator not installed or activity missing: $packageName", null)
