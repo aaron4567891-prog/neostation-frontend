@@ -7,6 +7,7 @@ import '../../models/config_model.dart';
 import '../../models/system_model.dart';
 import '../../models/emulator_model.dart';
 import 'sqlite_service.dart';
+import 'sqlite_database_service.dart';
 import '../../services/config_service.dart';
 import '../../repositories/system_repository.dart';
 
@@ -41,6 +42,13 @@ class SqliteConfigService {
     }
 
     try {
+      if (systemId == 'ps3') {
+        return (await SqliteDatabaseService.scanPs3Path(
+          directoryPath,
+          validExtensions,
+          recursive,
+        )).length;
+      }
       final directory = Directory(directoryPath);
       final files = await directory
           .list(recursive: recursive, followLinks: false)
