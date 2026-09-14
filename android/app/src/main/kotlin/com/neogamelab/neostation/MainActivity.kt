@@ -895,13 +895,34 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             result.error("DISPLAY_UNAVAILABLE", "Bottom display is not connected", null)
             return
         }
+        // A game launched on the secondary display must get that display before
+        // its Activity creates a rendering surface. The Presentation is a window
+        // layered above normal activities; hiding it only after startActivity()
+        // leaves some emulators creating their Surface while fully obscured, which
+        // can result in a permanently black picture even though audio is running.
+        if (target != null) {
+            prepareSecondaryForGameLaunch()
+        }
+
         val launchResult = object : MethodChannel.Result {
             override fun success(value: Any?) {
-                if (value == true && target != null) hideSecondaryForApp(packageName, target.displayId)
+                if (target != null) {
+                    if (value == true) {
+                        beginSecondaryGameWatch(packageName, target.displayId)
+                    } else {
+                        restoreSecondaryAfterApp()
+                    }
+                }
                 result.success(value)
             }
-            override fun error(code: String, message: String?, details: Any?) = result.error(code, message, details)
-            override fun notImplemented() = result.notImplemented()
+            override fun error(code: String, message: String?, details: Any?) {
+                if (target != null) restoreSecondaryAfterApp()
+                result.error(code, message, details)
+            }
+            override fun notImplemented() {
+                if (target != null) restoreSecondaryAfterApp()
+                result.notImplemented()
+            }
         }
         EmulatorLauncher.launchGenericIntent(
             context = this,
@@ -1248,6 +1269,63 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             result.success(true)
         } catch (e: Exception) {
             result.error("LAUNCH_FAILED", e.message, null)
+        }
+    }
+
+    /** Releases the secondary display before a game Activity is started on it. */
+    private fun prepareSecondaryForGameLaunch() {
+        try {
+            (subScreenPresentation as? SecondaryAppsPresentation)?.releaseInputFocus()
+            subScreenPresentation?.let {
+                if (it.isShowing) {
+                    it.hide()
+                    presentationHiddenForApp = true
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "Preparing secondary game launch failed: ${e.message}")
+        }
+    }
+
+    /**
+     * Tracks a game running on the secondary display. MainActivity stays resumed
+     * while another Activity owns the other display, so the normal onPause /
+     * onResume game-return path never fires. The existing per-display accessibility
+     * watcher is therefore the authoritative close signal for this launch mode.
+     */
+    private fun beginSecondaryGameWatch(packageName: String, displayId: Int) {
+        if (isGameActive && gameLaunchTimestamp == 0L) {
+            gameLaunchTimestamp = System.currentTimeMillis()
+        }
+
+        runOnUiThread {
+            methodChannel?.invokeMethod("onGameLaunchedOnSecondary", null)
+        }
+
+        val watching = ScreenshotAccessibilityService.startWatch(packageName, displayId) {
+            Handler(Looper.getMainLooper()).post {
+                var elapsedSeconds = 0
+                if (gameLaunchTimestamp > 0L) {
+                    elapsedSeconds = ((System.currentTimeMillis() - gameLaunchTimestamp) / 1000).toInt()
+                }
+
+                methodChannel?.invokeMethod(
+                    "onGameReturned",
+                    mapOf("elapsedSeconds" to elapsedSeconds)
+                )
+                setGamepadBlockInternal(false, 0)
+                gameLaunchTimestamp = 0
+                restoreSecondaryAfterApp()
+            }
+        }
+
+        if (watching) {
+            armDockLaunchWatchdog()
+        } else {
+            android.util.Log.w(
+                "MainActivity",
+                "Secondary game launched without Screen Return watcher; close detection is unavailable"
+            )
         }
     }
 

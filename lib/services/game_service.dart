@@ -57,13 +57,21 @@ class GameService {
   /// something tears it down.
   static final ValueNotifier<bool> deviceScreenOn = ValueNotifier<bool>(true);
 
+  /// Increments when Android confirms that a game has been handed off to the
+  /// secondary display. The top-screen launch dialog uses this to get out of
+  /// the way while the session itself keeps running in the background.
+  static final ValueNotifier<int> secondaryGameLaunchTrigger =
+      ValueNotifier<int>(0);
+
   /// Initializes the platform-specific listener for Android game lifecycle events.
   static void initializeAndroidGameListener() {
     if (!Platform.isAndroid) return;
 
     const platform = MethodChannel('com.neogamelab.neostation/game');
     platform.setMethodCallHandler((call) async {
-      if (call.method == 'onGameReturned') {
+      if (call.method == 'onGameLaunchedOnSecondary') {
+        secondaryGameLaunchTrigger.value++;
+      } else if (call.method == 'onGameReturned') {
         final elapsedSeconds =
             int.tryParse(call.arguments['elapsedSeconds']?.toString() ?? '0') ??
             0;
