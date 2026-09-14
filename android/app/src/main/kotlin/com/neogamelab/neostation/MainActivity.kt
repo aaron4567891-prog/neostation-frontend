@@ -1294,6 +1294,10 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
      * watcher is therefore the authoritative close signal for this launch mode.
      */
     private fun beginSecondaryGameWatch(packageName: String, displayId: Int) {
+        // MainActivity stays resumed when the emulator runs on the secondary
+        // display, so explicitly stop NeoStation from swallowing gamepad input.
+        setGamepadBlockInternal(false, 0)
+
         if (isGameActive && gameLaunchTimestamp == 0L) {
             gameLaunchTimestamp = System.currentTimeMillis()
         }
