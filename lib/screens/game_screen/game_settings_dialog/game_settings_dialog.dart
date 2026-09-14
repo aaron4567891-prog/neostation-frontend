@@ -100,6 +100,7 @@ class _GameSettingsDialogState extends State<GameSettingsDialog> {
         'game_settings_dialog',
         onActivate: () => _gamepadNav.activate(),
         onDeactivate: () => _gamepadNav.deactivate(),
+        modal: true,
       );
     });
   }

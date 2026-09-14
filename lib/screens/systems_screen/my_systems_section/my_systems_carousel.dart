@@ -467,7 +467,7 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
           );
 
       if (gameSystemModel == null) {
-        if (mounted) {
+        if (context.mounted) {
           AppNotification.showNotification(
             context,
             AppLocale.errorSystemNotFound.getString(context),
@@ -598,14 +598,25 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
         );
       }
     } finally {
-      if (mounted) {
-        _gamepadNav.activate();
+      // `SystemGamesList` switches systems with pushReplacement. Replacing the
+      // pushed route completes this Navigator.push future even though the user
+      // has NOT returned to the systems screen yet. Never wake this background
+      // navigator in that case, or both it and the replacement game screen can
+      // process the same controller press (Y then opens both context menus).
+      if (context.mounted) {
+        final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
+        if (isCurrentRoute) {
+          GamepadNavigationManager.reactivate();
 
-        // Ensure secondary display is synchronized upon return.
-        await _updateSecondaryScreenName();
+          // Ensure secondary display is synchronized only on a real return.
+          await _updateSecondaryScreenName();
 
-        if (context.mounted) {
-          Provider.of<SqliteDatabaseProvider>(context, listen: false).refresh();
+          if (context.mounted) {
+            Provider.of<SqliteDatabaseProvider>(
+              context,
+              listen: false,
+            ).refresh();
+          }
         }
       }
     }
@@ -646,7 +657,7 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
           );
 
     if (selectedSystem == null) {
-      if (mounted) {
+      if (context.mounted) {
         AppNotification.showNotification(
           context,
           AppLocale.systemSettingsNotAvailable.getString(context),
@@ -656,7 +667,7 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
       return;
     }
 
-    if (mounted) {
+    if (context.mounted) {
       await showDialog(
         context: context,
         builder: (context) =>
@@ -955,7 +966,7 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
     if (_lastBackgroundBuildIndex != _currentIndex) {
       _lastBackgroundBuildIndex = _currentIndex;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (context.mounted) {
           _updateBackground(allSystems[_currentIndex]);
         }
       });

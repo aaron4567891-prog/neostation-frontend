@@ -770,15 +770,26 @@ class _MySystemsState extends State<MySystems> {
       _log.e('MySystems: Navigation lifecycle error', error: e);
     } finally {
       MySystems.isNavigating = false;
-      GamepadNavigationManager.reactivate();
 
-      // Ensure the secondary display is synchronized with the current system state upon return.
+      // `SystemGamesList` switches systems with pushReplacement. That completes
+      // the original Navigator.push future even though a replacement game
+      // screen is still covering us. Only restore systems input when this route
+      // is genuinely current again.
       if (context.mounted) {
-        await _updateSecondaryScreenForSystem(context, systemInfo);
-      }
+        final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
+        if (isCurrentRoute) {
+          GamepadNavigationManager.reactivate();
 
-      if (context.mounted) {
-        Provider.of<SqliteDatabaseProvider>(context, listen: false).refresh();
+          // Ensure the secondary display is synchronized only on a real return.
+          await _updateSecondaryScreenForSystem(context, systemInfo);
+
+          if (context.mounted) {
+            Provider.of<SqliteDatabaseProvider>(
+              context,
+              listen: false,
+            ).refresh();
+          }
+        }
       }
     }
   }

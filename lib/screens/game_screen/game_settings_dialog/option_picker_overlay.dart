@@ -77,6 +77,7 @@ class OptionPickerOverlayState extends State<OptionPickerOverlay> {
         'option_picker_overlay',
         onActivate: () => _gamepadNav.activate(),
         onDeactivate: () => _gamepadNav.deactivate(),
+        modal: true,
       );
       _updateIndicator();
     });
