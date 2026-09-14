@@ -242,7 +242,15 @@ class SqliteDatabaseService {
       if (!walkedDirs.add(target.canonicalPath)) continue;
 
       try {
-        final entries = target.useSaf
+        final entries = system.id == 'ps3'
+            ? await scanPs3Path(
+                target.dirPath,
+                validExtensionsSet,
+                system.recursiveScan,
+                useSaf: target.useSaf,
+                ignoreHiddenFiles: ignoreHiddenFiles,
+              )
+            : target.useSaf
             ? await _scanSafUri(
                 target.dirPath,
                 validExtensionsSet,
@@ -1318,7 +1326,102 @@ class SqliteDatabaseService {
   ///
   /// Android's SAF walk stays where it is: it reaches the DocumentsProvider
   /// over a platform channel, which is only bound on the root isolate.
-  @visibleForTesting
+  /// Recognises extracted disc games as a single entry at their outer folder.
+  /// Does not descend into recognised games (including PS3_UPDATE).
+  static Future<List<RomEntry>> scanPs3Path(
+    String root,
+    Set<String> extensions,
+    bool recursive, {
+    bool useSaf = false,
+    bool ignoreHiddenFiles = true,
+  }) async {
+    final entries = <RomEntry>[];
+    Future<List<Map<String, dynamic>>> children(String location) async {
+      if (useSaf) {
+        return SafDirectoryService.listFiles(location);
+      }
+      return [
+        await for (final entity in Directory(location).list(followLinks: false))
+          if (entity is File || entity is Directory)
+            {
+              'name': path.basename(entity.path),
+              'uri': entity.path,
+              'isDirectory': entity is Directory,
+            },
+      ];
+    }
+
+    Future<bool> isGame(List<Map<String, dynamic>> items) async {
+      for (final item in items) {
+        if (item['isDirectory'] != true ||
+            item['name'].toString().toUpperCase() != 'PS3_GAME') {
+          continue;
+        }
+        final gameItems = await children(item['uri'].toString());
+        if (gameItems.any(
+          (child) =>
+              child['isDirectory'] != true &&
+              child['name'].toString().toUpperCase() == 'PARAM.SFO',
+        )) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    Future<void> visit(String location, String name, bool isRoot) async {
+      final items = await children(location);
+      if (await isGame(items)) {
+        entries.add(RomEntry(path: location, filename: name, size: 0));
+        return;
+      }
+      for (final item in items) {
+        final childName = item['name'].toString();
+        if (ignoreHiddenFiles && _isDotEntryName(childName)) {
+          continue;
+        }
+        final childPath = item['uri'].toString();
+        if (item['isDirectory'] == true) {
+          if (childName.toUpperCase() == 'PS3_UPDATE' ||
+              childName.toUpperCase() == 'PS3_GAME') {
+            continue;
+          }
+          if (recursive || isRoot) {
+            // In shallow mode inspect immediate folders for games only.
+            if (recursive) {
+              await visit(childPath, childName, false);
+            } else if (await isGame(await children(childPath))) {
+              entries.add(
+                RomEntry(path: childPath, filename: childName, size: 0),
+              );
+            }
+          }
+        } else {
+          final extension = path
+              .extension(childName)
+              .toLowerCase()
+              .replaceAll('.', '');
+          if (extensions.contains(extension)) {
+            final size = useSaf
+                ? (item['size'] as num?)?.toInt() ?? 0
+                : await File(childPath).length();
+            entries.add(
+              RomEntry(path: childPath, filename: childName, size: size),
+            );
+          }
+        }
+      }
+    }
+
+    try {
+      await visit(root, path.basename(root), true);
+    } catch (error) {
+      _log.e('Error scanning PS3 folders: $error');
+      rethrow;
+    }
+    return entries;
+  }
+
   static Future<List<RomEntry>> scanStandardPath(
     String pathStr,
     Set<String> validExtensions,
