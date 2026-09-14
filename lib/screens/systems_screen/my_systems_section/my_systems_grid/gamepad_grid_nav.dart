@@ -78,7 +78,11 @@ extension _GamepadGridNav on _SystemCardGridViewState {
       final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
       GamepadNavigationManager.pushLayer(
         widget.navLayerId,
-        onActivate: () => _gamepadNav.activate(),
+        onActivate: () {
+          if (ModalRoute.of(context)?.isCurrent == true) {
+            _gamepadNav.activate();
+          }
+        },
         onDeactivate: () => _gamepadNav.deactivate(),
         background: !isCurrentRoute,
       );
