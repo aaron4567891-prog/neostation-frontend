@@ -99,15 +99,17 @@ class SecondaryAppsPresentation(
         appsChannel?.invokeMethod("onSecondaryInputFocusChanged", true)
     }
 
-    /** Returns controller input to the main display without dismissing us. */
-    fun releaseInputFocus() {
+    /** Releases controller focus, optionally returning it to the main display. */
+    fun releaseInputFocus(returnToMain: Boolean = true) {
         if (!inputFocused) return
         inputFocused = false
         window?.addFlags(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
         )
-        activity.requestMainInputFocus()
+        if (returnToMain) {
+            activity.requestMainInputFocus()
+        }
         appsChannel?.invokeMethod("onSecondaryInputFocusChanged", false)
     }
 

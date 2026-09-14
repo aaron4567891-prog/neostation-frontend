@@ -924,20 +924,29 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                 result.notImplemented()
             }
         }
-        EmulatorLauncher.launchGenericIntent(
-            context = this,
-            packageName = packageName,
-            activityName = activityName,
-            action = action,
-            category = category,
-            data = data,
-            type = type,
-            extras = extras,
-            activityFlags = activityFlags,
-            keepSafUri = keepSafUri,
-            result = launchResult,
-            launchDisplayId = target?.displayId
-        )
+        val launchEmulator = {
+            EmulatorLauncher.launchGenericIntent(
+                context = this,
+                packageName = packageName,
+                activityName = activityName,
+                action = action,
+                category = category,
+                data = data,
+                type = type,
+                extras = extras,
+                activityFlags = activityFlags,
+                keepSafUri = keepSafUri,
+                result = launchResult,
+                launchDisplayId = target?.displayId
+            )
+        }
+        if (target != null) {
+            // Give Android time to fully remove the secondary Presentation before
+            // the emulator creates its window/surface on that display.
+            Handler(Looper.getMainLooper()).postDelayed(launchEmulator, 250L)
+        } else {
+            launchEmulator()
+        }
     }
 
 
@@ -1275,7 +1284,10 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     /** Releases the secondary display before a game Activity is started on it. */
     private fun prepareSecondaryForGameLaunch() {
         try {
-            (subScreenPresentation as? SecondaryAppsPresentation)?.releaseInputFocus()
+            // Do not force focus back to the top display. The emulator launching
+            // on the secondary display should become the next controller owner.
+            (subScreenPresentation as? SecondaryAppsPresentation)
+                ?.releaseInputFocus(returnToMain = false)
             subScreenPresentation?.let {
                 if (it.isShowing) {
                     it.hide()
