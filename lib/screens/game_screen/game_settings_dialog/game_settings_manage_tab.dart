@@ -16,6 +16,7 @@ import 'package:neostation/utils/enabled_index_nav.dart';
 import 'package:neostation/screens/settings_screen/new_settings_options/widgets/setting_row.dart';
 import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/services/sfx_service.dart';
+import 'package:neostation/services/system_switch_animation_preferences.dart';
 import 'package:neostation/sync/i_sync_provider.dart';
 import 'package:neostation/utils/game_utils.dart';
 import 'package:neostation/widgets/confirm_action_dialog.dart';
@@ -71,11 +72,15 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
 
   // Navigation layout. Indices are fixed so focus doesn't jump around when
   // cloud sync visibility or the grid options change.
-  int get _cloudSyncIdx => 0;
-  int get _playTimeIdx => 1;
-  int get _hideIdx => 2;
-  int get _deleteIdx => 3;
-  int get _totalItems => 4;
+  int get _cloudSyncIdx => 2;
+  int get _playTimeIdx => 3;
+  int get _hideIdx => 4;
+  int get _deleteIdx => 5;
+  int get _animationIdx => 0;
+  int get _speedIdx => 1;
+  int get _totalItems => 6;
+  final _animationPreferences = SystemSwitchAnimationPreferences.instance;
+  bool _savingAnimation = false;
 
   bool get _showCloudSync => widget.syncProvider?.isAuthenticated == true;
 
@@ -88,7 +93,10 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
   void initState() {
     super.initState();
     _cloudSyncEnabled = widget.game.cloudSyncEnabled ?? true;
-    _selectedIndex = _showCloudSync ? _cloudSyncIdx : _playTimeIdx;
+    _selectedIndex = _animationIdx;
+    _animationPreferences.load().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -138,6 +146,34 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
       if (!_isHiding) _hideGame();
     } else if (idx == _deleteIdx) {
       _confirmDeleteGame();
+    } else if (idx == _animationIdx || idx == _speedIdx) {
+      _cycleAnimationOption(idx);
+    }
+  }
+
+  Future<void> _cycleAnimationOption(int index) async {
+    if (_savingAnimation) return;
+    _savingAnimation = true;
+    try {
+      await _animationPreferences.load();
+      if (index == _animationIdx) {
+        final options = SystemSwitchAnimationPreferences.styles;
+        await _animationPreferences.setStyle(
+          options[(options.indexOf(_animationPreferences.style) + 1) %
+              options.length],
+        );
+      } else {
+        final options = SystemSwitchAnimationPreferences.speeds;
+        await _animationPreferences.setSpeed(
+          options[(options.indexOf(_animationPreferences.speed) + 1) %
+              options.length],
+        );
+      }
+      if (mounted) setState(() {});
+    } catch (error) {
+      _log.e('Could not save system-switch animation: $error');
+    } finally {
+      _savingAnimation = false;
     }
   }
 
@@ -359,6 +395,32 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Global game-view preferences; fixed indices preserve other actions.
+          SettingRow(
+            key: _itemKey(_animationIdx),
+            focused: _selectedIndex == _animationIdx,
+            title: 'System-switch animation',
+            subtitle:
+                'L2/R2 switching in all game views. Tap or press A to change.',
+            trailing: Text(_animationPreferences.style),
+            onTap: () {
+              setState(() => _selectedIndex = _animationIdx);
+              _cycleAnimationOption(_animationIdx);
+            },
+          ),
+          SizedBox(height: 12.r),
+          SettingRow(
+            key: _itemKey(_speedIdx),
+            focused: _selectedIndex == _speedIdx,
+            title: 'Animation speed',
+            subtitle: 'Fast / Normal / Slow. Instant ignores this setting.',
+            trailing: Text(_animationPreferences.speed),
+            onTap: () {
+              setState(() => _selectedIndex = _speedIdx);
+              _cycleAnimationOption(_speedIdx);
+            },
+          ),
+          SizedBox(height: 12.r),
           // Cloud Synchronization Option.
           if (_showCloudSync)
             GestureDetector(

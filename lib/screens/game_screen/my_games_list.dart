@@ -41,6 +41,7 @@ import '../../utils/rom_tree.dart';
 import 'game_details_card/game_details_card_list.dart';
 import 'game_details_card/random_game_dialog.dart';
 import 'game_settings_dialog/game_settings_dialog.dart';
+import '../../services/system_switch_animation_preferences.dart';
 import 'my_games_grid.dart';
 import 'my_games_carousel.dart';
 import 'game_list_view.dart';
@@ -97,7 +98,9 @@ class _SystemGamesListState extends State<SystemGamesList> {
   String get _carouselLayerId => 'games_carousel$_navigationSuffix';
   bool _switchingSystem = false;
 
-  void _switchSystem(bool forward) {
+  void _switchSystem(bool forward) async {
+    final preferences = SystemSwitchAnimationPreferences.instance;
+    await preferences.load();
     if (!mounted || _switchingSystem) return;
     final config = context.read<SqliteConfigProvider>();
     final cards = buildSystemsList(
@@ -135,26 +138,15 @@ class _SystemGamesListState extends State<SystemGamesList> {
     _gamepadNav.deactivate();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 220),
-        reverseTransitionDuration: const Duration(milliseconds: 220),
+        transitionDuration: preferences.duration,
+        reverseTransitionDuration: preferences.duration,
         pageBuilder: (context, animation, secondaryAnimation) =>
             SystemGamesList(
               system: systems[next],
               fileProvider: widget.fileProvider,
             ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final position =
-              Tween<Offset>(
-                begin: Offset(forward ? 1.0 : -1.0, 0.0),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                  reverseCurve: Curves.easeInCubic,
-                ),
-              );
-          return SlideTransition(position: position, child: child);
+          return preferences.transition(animation, child, forward);
         },
       ),
     );
