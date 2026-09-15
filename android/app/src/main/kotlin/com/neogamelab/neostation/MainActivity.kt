@@ -73,10 +73,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     // handler instance: removeCallbacks only matches the handler that posted.
     private val dockLaunchHandler = Handler(Looper.getMainLooper())
     private var dockLaunchWatchdog: Runnable? = null
-    // A cold secondary-display Activity launch can be accepted by startActivity()
-    // without ever becoming visible. Retry that handoff automatically instead of
-    // making the user press Launch several times.
-    private var secondaryLaunchRetry: Runnable? = null
 
     // Usar directorio por defecto para cores; no verificar existencia por permisos
     private fun getDefaultLibretroDirectory(retroArchPackage: String): String {
@@ -281,8 +277,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         ScreenshotAccessibilityService.stopWatch()
         dockLaunchWatchdog?.let { dockLaunchHandler.removeCallbacks(it) }
         dockLaunchWatchdog = null
-        secondaryLaunchRetry?.let { dockLaunchHandler.removeCallbacks(it) }
-        secondaryLaunchRetry = null
         displayListener?.let {
             val dm = getSystemService(android.content.Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
             dm.unregisterDisplayListener(it)
@@ -919,10 +913,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                 android.util.Log.i("NeoSecondaryDebug", "RESULT success=$value pkg=$packageName display=${target?.displayId}")
                 if (target != null) {
                     if (value == true) {
-                        beginSecondaryGameWatch(
-                            packageName,
-                            target.displayId
-                        ) { retryResult -> launchEmulator(retryResult) }
+                        beginSecondaryGameWatch(packageName, target.displayId)
                     } else {
                         restoreSecondaryAfterApp()
                     }
@@ -1306,22 +1297,34 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         }
     }
 
-    /** Releases the secondary display before a game Activity is started on it. */
+    /** Fully removes NeoStation from the secondary display before launching a game. */
     private fun prepareSecondaryForGameLaunch() {
         try {
             val secondary = subScreenPresentation as? SecondaryAppsPresentation
-            android.util.Log.i("NeoSecondaryDebug", "PREPARE before showing=${subScreenPresentation?.isShowing} wants=${secondary?.wantsControllerInput()} hidden=$presentationHiddenForApp")
-            // Do not force focus back to the top display. The emulator launching
-            // on the secondary display should become the next controller owner.
+            android.util.Log.i(
+                "NeoSecondaryDebug",
+                "PREPARE before showing=${subScreenPresentation?.isShowing} " +
+                    "wants=${secondary?.wantsControllerInput()} hidden=$presentationHiddenForApp"
+            )
+
+            // A Presentation.hide() only makes its window non-visible; the
+            // Presentation and its Flutter surface remain attached to display 4.
+            // Some emulators then start underneath that retained surface. Release
+            // controller focus without returning it to the top screen, mark the
+            // panel as temporarily removed, and close it completely before the
+            // emulator Activity is created. restoreSecondaryAfterApp() recreates
+            // a fresh Presentation after the emulator leaves.
             secondary?.releaseInputFocus(returnToMain = false)
-            subScreenPresentation?.let {
-                if (it.isShowing) {
-                    it.hide()
-                    presentationHiddenForApp = true
-                }
-            }
-            android.util.Log.i("NeoSecondaryDebug", "PREPARE after showing=${subScreenPresentation?.isShowing} wants=${secondary?.wantsControllerInput()} hidden=$presentationHiddenForApp")
+            presentationHiddenForApp = true
+            onCloseSubScreen()
+
+            android.util.Log.i(
+                "NeoSecondaryDebug",
+                "PREPARE dismissed presentation=${subScreenPresentation != null} " +
+                    "hidden=$presentationHiddenForApp"
+            )
         } catch (e: Exception) {
+            presentationHiddenForApp = false
             android.util.Log.e("NeoSecondaryDebug", "PREPARE failed", e)
         }
     }
@@ -1334,8 +1337,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
      */
     private fun beginSecondaryGameWatch(
         packageName: String,
-        displayId: Int,
-        retryLaunch: (MethodChannel.Result) -> Unit
+        displayId: Int
     ) {
         android.util.Log.i("NeoSecondaryDebug", "WATCH begin pkg=$packageName display=$displayId blocked=$gamepadBlocked active=$isGameActive")
         // MainActivity stays resumed when the emulator runs on the secondary
@@ -1370,7 +1372,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
 
         android.util.Log.i("NeoSecondaryDebug", "WATCH started=$watching")
         if (watching) {
-            armSecondaryLaunchRetry(packageName, displayId, retryLaunch)
             armDockLaunchWatchdog()
         } else {
             android.util.Log.w(
@@ -1378,69 +1379,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                 "Secondary game launched without Screen Return watcher; close detection is unavailable"
             )
         }
-    }
-
-    /**
-     * Some Android builds accept a cold startActivity() for the secondary display
-     * but never place the target Activity there. If accessibility has not seen the
-     * emulator after a short grace period, repeat the exact launch automatically.
-     * The original MethodChannel reply has already been completed, so retries use
-     * a logging-only result and never reply to Flutter twice.
-     */
-    private fun armSecondaryLaunchRetry(
-        packageName: String,
-        displayId: Int,
-        retryLaunch: (MethodChannel.Result) -> Unit
-    ) {
-        secondaryLaunchRetry?.let { dockLaunchHandler.removeCallbacks(it) }
-        var attempts = 0
-        lateinit var retryRunnable: Runnable
-        retryRunnable = Runnable {
-            if (!presentationHiddenForApp ||
-                !ScreenshotAccessibilityService.isWatching ||
-                ScreenshotAccessibilityService.hasSeenWatchedApp
-            ) {
-                secondaryLaunchRetry = null
-                return@Runnable
-            }
-
-            attempts += 1
-            android.util.Log.w(
-                "NeoSecondaryDebug",
-                "AUTO-RETRY attempt=$attempts pkg=$packageName display=$displayId"
-            )
-            val retryResult = object : MethodChannel.Result {
-                override fun success(value: Any?) {
-                    android.util.Log.i(
-                        "NeoSecondaryDebug",
-                        "AUTO-RETRY result attempt=$attempts success=$value"
-                    )
-                }
-
-                override fun error(code: String, message: String?, details: Any?) {
-                    android.util.Log.e(
-                        "NeoSecondaryDebug",
-                        "AUTO-RETRY result attempt=$attempts error=$code message=$message"
-                    )
-                }
-
-                override fun notImplemented() {
-                    android.util.Log.e(
-                        "NeoSecondaryDebug",
-                        "AUTO-RETRY result attempt=$attempts notImplemented"
-                    )
-                }
-            }
-            retryLaunch(retryResult)
-
-            if (attempts < 2) {
-                dockLaunchHandler.postDelayed(retryRunnable, 1_500L)
-            } else {
-                secondaryLaunchRetry = null
-            }
-        }
-        secondaryLaunchRetry = retryRunnable
-        dockLaunchHandler.postDelayed(retryRunnable, 1_500L)
     }
 
     /**
@@ -1491,10 +1429,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     /** Restores the Now Playing presentation hidden by a dock launch. */
     private fun restoreSecondaryAfterApp() {
         ScreenshotAccessibilityService.stopWatch()
-        secondaryLaunchRetry?.let {
-            dockLaunchHandler.removeCallbacks(it)
-            secondaryLaunchRetry = null
-        }
         dockLaunchWatchdog?.let {
             dockLaunchHandler.removeCallbacks(it)
             dockLaunchWatchdog = null
@@ -1502,7 +1436,15 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         if (!presentationHiddenForApp) return
         presentationHiddenForApp = false
         try {
-            subScreenPresentation?.show()
+            // Game launches dismiss the Presentation completely so no NeoStation
+            // surface remains layered over display 4. Recreate a fresh secondary
+            // Presentation now that the emulator has left. Dock-launched apps may
+            // still use hide(), so this also safely re-shows an existing instance.
+            if (subScreenPresentation == null || subScreenPresentation?.isShowing == false) {
+                setSecondaryDisplayVisible(true)
+            } else {
+                subScreenPresentation?.show()
+            }
         } catch (e: Exception) {
             android.util.Log.w("MainActivity", "Restoring secondary after app failed: ${e.message}")
         }
