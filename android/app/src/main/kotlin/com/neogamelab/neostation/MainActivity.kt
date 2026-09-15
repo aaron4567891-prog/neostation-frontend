@@ -891,7 +891,9 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             val dm = getSystemService(android.content.Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
             dm.displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
         } else null
+        android.util.Log.i("NeoSecondaryDebug", "REQUEST pkg=$packageName bottom=$launchBottom display=${target?.displayId} activity=$activityName blocked=$gamepadBlocked active=$isGameActive")
         if (launchBottom && target == null) {
+            android.util.Log.e("NeoSecondaryDebug", "ABORT bottom display unavailable")
             result.error("DISPLAY_UNAVAILABLE", "Bottom display is not connected", null)
             return
         }
@@ -906,6 +908,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
 
         val launchResult = object : MethodChannel.Result {
             override fun success(value: Any?) {
+                android.util.Log.i("NeoSecondaryDebug", "RESULT success=$value pkg=$packageName display=${target?.displayId}")
                 if (target != null) {
                     if (value == true) {
                         beginSecondaryGameWatch(packageName, target.displayId)
@@ -916,6 +919,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                 result.success(value)
             }
             override fun error(code: String, message: String?, details: Any?) {
+                android.util.Log.e("NeoSecondaryDebug", "RESULT error=$code message=$message")
                 if (target != null) restoreSecondaryAfterApp()
                 result.error(code, message, details)
             }
@@ -941,9 +945,13 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             )
         }
         if (target != null) {
+            android.util.Log.i("NeoSecondaryDebug", "DELAY scheduling launch 250ms")
             // Give Android time to fully remove the secondary Presentation before
             // the emulator creates its window/surface on that display.
-            Handler(Looper.getMainLooper()).postDelayed(launchEmulator, 250L)
+            Handler(Looper.getMainLooper()).postDelayed({
+                android.util.Log.i("NeoSecondaryDebug", "DELAY elapsed; invoking EmulatorLauncher")
+                launchEmulator()
+            }, 250L)
         } else {
             launchEmulator()
         }
@@ -1040,8 +1048,11 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
 
     // Gamepad event forwarding / blocking
     override fun dispatchGenericMotionEvent(motionEvent: MotionEvent): Boolean {
-        if (gamepadBlocked) return true
         val secondary = subScreenPresentation as? SecondaryAppsPresentation
+        if (isControllerSource(motionEvent.source)) {
+            android.util.Log.d("NeoSecondaryInput", "MAIN MOTION device=${motionEvent.deviceId} blocked=$gamepadBlocked secondaryWants=${secondary?.wantsControllerInput()} showing=${subScreenPresentation?.isShowing}")
+        }
+        if (gamepadBlocked) return true
         if (secondary?.wantsControllerInput() == true &&
             isControllerSource(motionEvent.source)
         ) {
@@ -1054,6 +1065,9 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
 
     override fun dispatchKeyEvent(keyEvent: KeyEvent): Boolean {
         val secondary = subScreenPresentation as? SecondaryAppsPresentation
+        if (isControllerSource(keyEvent.source)) {
+            android.util.Log.i("NeoSecondaryInput", "MAIN KEY code=${keyEvent.keyCode} action=${keyEvent.action} device=${keyEvent.deviceId} blocked=$gamepadBlocked secondaryWants=${secondary?.wantsControllerInput()} showing=${subScreenPresentation?.isShowing}")
+        }
         if (secondary?.wantsControllerInput() == true &&
             isControllerSource(keyEvent.source)
         ) {
@@ -1284,18 +1298,20 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     /** Releases the secondary display before a game Activity is started on it. */
     private fun prepareSecondaryForGameLaunch() {
         try {
+            val secondary = subScreenPresentation as? SecondaryAppsPresentation
+            android.util.Log.i("NeoSecondaryDebug", "PREPARE before showing=${subScreenPresentation?.isShowing} wants=${secondary?.wantsControllerInput()} hidden=$presentationHiddenForApp")
             // Do not force focus back to the top display. The emulator launching
             // on the secondary display should become the next controller owner.
-            (subScreenPresentation as? SecondaryAppsPresentation)
-                ?.releaseInputFocus(returnToMain = false)
+            secondary?.releaseInputFocus(returnToMain = false)
             subScreenPresentation?.let {
                 if (it.isShowing) {
                     it.hide()
                     presentationHiddenForApp = true
                 }
             }
+            android.util.Log.i("NeoSecondaryDebug", "PREPARE after showing=${subScreenPresentation?.isShowing} wants=${secondary?.wantsControllerInput()} hidden=$presentationHiddenForApp")
         } catch (e: Exception) {
-            android.util.Log.w("MainActivity", "Preparing secondary game launch failed: ${e.message}")
+            android.util.Log.e("NeoSecondaryDebug", "PREPARE failed", e)
         }
     }
 
@@ -1306,6 +1322,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
      * watcher is therefore the authoritative close signal for this launch mode.
      */
     private fun beginSecondaryGameWatch(packageName: String, displayId: Int) {
+        android.util.Log.i("NeoSecondaryDebug", "WATCH begin pkg=$packageName display=$displayId blocked=$gamepadBlocked active=$isGameActive")
         // MainActivity stays resumed when the emulator runs on the secondary
         // display, so explicitly stop NeoStation from swallowing gamepad input.
         setGamepadBlockInternal(false, 0)
@@ -1319,6 +1336,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         }
 
         val watching = ScreenshotAccessibilityService.startWatch(packageName, displayId) {
+            android.util.Log.i("NeoSecondaryDebug", "WATCH callback emulator left bottom display")
             Handler(Looper.getMainLooper()).post {
                 var elapsedSeconds = 0
                 if (gameLaunchTimestamp > 0L) {
@@ -1335,6 +1353,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             }
         }
 
+        android.util.Log.i("NeoSecondaryDebug", "WATCH started=$watching")
         if (watching) {
             armDockLaunchWatchdog()
         } else {
@@ -1382,7 +1401,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         val watchdog = Runnable {
             dockLaunchWatchdog = null
             if (presentationHiddenForApp && !ScreenshotAccessibilityService.hasSeenWatchedApp) {
-                android.util.Log.w("MainActivity", "Dock launch never reached the bottom display; restoring the panel")
+                android.util.Log.e("NeoSecondaryDebug", "WATCHDOG emulator never observed on bottom display; restoring panel")
                 restoreSecondaryAfterApp()
             }
         }

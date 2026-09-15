@@ -64,6 +64,7 @@ class ScreenshotAccessibilityService : AccessibilityService() {
          */
         fun startWatch(packageName: String, displayId: Int, onClosed: () -> Unit): Boolean {
             if (instance == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+            android.util.Log.i("NeoSecondaryDebug", "ACCESSIBILITY watch armed pkg=$packageName display=$displayId")
             watchedPackage = packageName
             watchedDisplayId = displayId
             watchedAppSeen = false
@@ -125,6 +126,7 @@ class ScreenshotAccessibilityService : AccessibilityService() {
         if (displayId < 0) return
         try {
             val top = topAppPackageOnDisplay(displayId) ?: return
+            android.util.Log.i("NeoSecondaryDebug", "ACCESSIBILITY display=$displayId top=$top watched=$watched seen=$watchedAppSeen")
             // Phase 1: wait for the app to actually take the display. Hiding the
             // Now Playing panel is itself a window change, and the window it
             // uncovers is the display's own launcher — which looks exactly like
