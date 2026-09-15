@@ -68,6 +68,11 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     // True while the Now Playing presentation is hidden to reveal a dock-launched
     // app on the secondary display; restored when that app is dismissed.
     private var presentationHiddenForApp = false
+    // While a game owns the secondary display, the top NeoStation Activity must
+    // not remain Android's controller-input target. Merely hiding the secondary
+    // Presentation is insufficient: key/motion events otherwise keep arriving at
+    // this Activity even after the emulator is visible on the bottom display.
+    private var mainInputReleasedForSecondaryGame = false
     // Brings the panel back if a dock launch never puts its app on the bottom
     // display (a silently failed launch), so the panel can't stay hidden. One
     // handler instance: removeCallbacks only matches the handler that posted.
@@ -904,6 +909,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         // can result in a permanently black picture even though audio is running.
         if (target != null) {
             prepareSecondaryForGameLaunch()
+            releaseMainInputForSecondaryGame()
         }
 
         val launchResult = object : MethodChannel.Result {
@@ -1295,6 +1301,38 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         }
     }
 
+    /**
+     * Stops the top NeoStation window from remaining the controller-input owner
+     * while an emulator runs on the secondary display. The window stays visible,
+     * but Android can hand key/gamepad focus to the newly launched Activity.
+     */
+    private fun releaseMainInputForSecondaryGame() {
+        if (mainInputReleasedForSecondaryGame) return
+        mainInputReleasedForSecondaryGame = true
+        runOnUiThread {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            android.util.Log.i(
+                "NeoSecondaryDebug",
+                "MAIN input released for secondary game flags=${window.attributes.flags}"
+            )
+        }
+    }
+
+    /** Restores normal controller/key focus to NeoStation after the game leaves. */
+    private fun restoreMainInputAfterSecondaryGame() {
+        if (!mainInputReleasedForSecondaryGame) return
+        mainInputReleasedForSecondaryGame = false
+        runOnUiThread {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            window.decorView.isFocusableInTouchMode = true
+            window.decorView.requestFocus()
+            android.util.Log.i(
+                "NeoSecondaryDebug",
+                "MAIN input restored after secondary game flags=${window.attributes.flags}"
+            )
+        }
+    }
+
     /** Releases the secondary display before a game Activity is started on it. */
     private fun prepareSecondaryForGameLaunch() {
         try {
@@ -1412,6 +1450,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     /** Restores the Now Playing presentation hidden by a dock launch. */
     private fun restoreSecondaryAfterApp() {
         ScreenshotAccessibilityService.stopWatch()
+        restoreMainInputAfterSecondaryGame()
         dockLaunchWatchdog?.let {
             dockLaunchHandler.removeCallbacks(it)
             dockLaunchWatchdog = null
