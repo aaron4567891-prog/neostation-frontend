@@ -43,6 +43,10 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     // Now Playing panel comes back. Generous: a cold app start on this hardware
     // can take seconds, and coming back early is the bug this guards against.
     private val DOCK_LAUNCH_TIMEOUT_MS = 10_000L
+    // AYN Thor dual-screen controller focus.
+    private val AYN_SCREEN_FOCUS_LOCK = "screen_focus_lock"
+    private val AYN_BOTTOM_SCREEN_FOCUS = 2
+    private var savedAynScreenFocusLock: Int? = null
     var keyListener: ((KeyEvent) -> Boolean)? = null
     var motionListener: ((MotionEvent) -> Boolean)? = null
     // A launched game still owns the foreground: set when Flutter starts a
@@ -1317,6 +1321,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             secondary?.releaseInputFocus(returnToMain = false)
             presentationHiddenForApp = true
             onCloseSubScreen()
+            routeAynControllerToBottomScreen()
 
             android.util.Log.i(
                 "NeoSecondaryDebug",
@@ -1427,8 +1432,66 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     }
 
     /** Restores the Now Playing presentation hidden by a dock launch. */
+    private fun routeAynControllerToBottomScreen() {
+        try {
+            if (!Settings.System.canWrite(this)) {
+                android.util.Log.w(
+                    "NeoSecondaryDebug",
+                    "AYN focus not changed: WRITE_SETTINGS access is not granted"
+                )
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Allow NeoStation to modify system settings for bottom-screen controls",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return
+            }
+
+            if (savedAynScreenFocusLock == null) {
+                savedAynScreenFocusLock = Settings.System.getInt(
+                    contentResolver, AYN_SCREEN_FOCUS_LOCK, 1
+                )
+            }
+            val changed = Settings.System.putInt(
+                contentResolver, AYN_SCREEN_FOCUS_LOCK, AYN_BOTTOM_SCREEN_FOCUS
+            )
+            android.util.Log.i(
+                "NeoSecondaryDebug",
+                "AYN focus -> bottom changed=$changed previous=$savedAynScreenFocusLock"
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("NeoSecondaryDebug", "AYN bottom focus failed", e)
+        }
+    }
+
+    private fun restoreAynControllerFocus() {
+        val previous = savedAynScreenFocusLock ?: return
+        savedAynScreenFocusLock = null
+        try {
+            if (!Settings.System.canWrite(this)) {
+                android.util.Log.w(
+                    "NeoSecondaryDebug",
+                    "AYN focus restore skipped: WRITE_SETTINGS access is not granted"
+                )
+                return
+            }
+            val changed = Settings.System.putInt(
+                contentResolver, AYN_SCREEN_FOCUS_LOCK, previous
+            )
+            android.util.Log.i(
+                "NeoSecondaryDebug",
+                "AYN focus restored value=$previous changed=$changed"
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("NeoSecondaryDebug", "AYN focus restore failed", e)
+        }
+    }
+
     private fun restoreSecondaryAfterApp() {
         ScreenshotAccessibilityService.stopWatch()
+        restoreAynControllerFocus()
         dockLaunchWatchdog?.let {
             dockLaunchHandler.removeCallbacks(it)
             dockLaunchWatchdog = null
