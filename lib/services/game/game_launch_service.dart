@@ -1,5 +1,4 @@
 import 'dart:io';
-import '../game_launch_screen_preferences.dart';
 import 'package:flutter_localization/flutter_localization.dart';
 import 'package:neostation/l10n/app_locale.dart';
 import 'package:path/path.dart' as path;
@@ -224,10 +223,6 @@ class GameLaunchService {
               final result = await platform
                   .invokeMethod('launchGenericIntent', {
                     'package': packageName,
-                    'launch_screen': await GameLaunchScreenPreferences.resolve(
-                      system,
-                      game,
-                    ),
                     'activity': activityName,
                     'action': action,
                     'category': category,
@@ -428,10 +423,6 @@ class GameLaunchService {
         'package': packageName,
         'activity': activityName,
         'action': 'android.intent.action.MAIN',
-        'launch_screen': await GameLaunchScreenPreferences.resolve(
-          system,
-          game,
-        ),
         'category': 'android.intent.category.LAUNCHER',
         'extras': [
           {
@@ -1142,10 +1133,6 @@ class GameLaunchService {
         'package': packageName,
         'activity': activityName,
         'action': 'android.intent.action.VIEW',
-        'launch_screen': await GameLaunchScreenPreferences.resolve(
-          system,
-          game,
-        ),
         'data': dataUri,
         'activity_flags': <String>[],
         'keep_saf_uri': false,

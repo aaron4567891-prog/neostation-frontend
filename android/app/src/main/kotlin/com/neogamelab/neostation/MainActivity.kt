@@ -32,7 +32,6 @@ import com.hcoderlee.subscreen.sub_screen.MultiDisplayFlutterActivity
 import com.hcoderlee.subscreen.sub_screen.FlutterPresentation
 import com.hcoderlee.subscreen.sub_screen.SharedStateManager
 import androidx.core.content.FileProvider
-import rikka.shizuku.Shizuku
 
 class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     private val CHANNEL = "com.neogamelab.neostation/game"
@@ -44,15 +43,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     // Now Playing panel comes back. Generous: a cold app start on this hardware
     // can take seconds, and coming back early is the bug this guards against.
     private val DOCK_LAUNCH_TIMEOUT_MS = 10_000L
-    // AYN Thor dual-screen controller focus.
-    private val AYN_SCREEN_FOCUS_LOCK = "screen_focus_lock"
-    private val AYN_BOTTOM_SCREEN_FOCUS = 2
-    private val AYN_SHIZUKU_PERMISSION_REQUEST = 7402
-    private var savedAynScreenFocusLock: Int? = null
-    // True during the gap between removing the secondary Presentation and
-    // arming the accessibility watcher. onResume can fire in this gap; it must
-    // not restore the panel/controller focus before the emulator is launched.
-    private var secondaryGameLaunchPending = false
     var keyListener: ((KeyEvent) -> Boolean)? = null
     var motionListener: ((MotionEvent) -> Boolean)? = null
     // A launched game still owns the foreground: set when Flutter starts a
@@ -319,7 +309,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                     val keepSafUri = call.argument<Boolean>("keep_saf_uri") ?: false
 
                     if (packageName != null) {
-                        launchGenericIntent(packageName, activityName, action, category, data, type, extras, activityFlags, keepSafUri, result, call.argument<String>("launch_screen") == "bottom")
+                        launchGenericIntent(packageName, activityName, action, category, data, type, extras, activityFlags, keepSafUri, result)
                     } else {
                         result.error("INVALID_ARGUMENTS", "Package name is required", null)
                     }
@@ -894,82 +884,22 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         extras: List<Map<String, Any>>?,
         activityFlags: List<String>,
         keepSafUri: Boolean,
-        result: MethodChannel.Result,
-        launchBottom: Boolean = false
+        result: MethodChannel.Result
     ) {
-        val target = if (launchBottom) {
-            val dm = getSystemService(android.content.Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager
-            dm.displays.firstOrNull { it.displayId != Display.DEFAULT_DISPLAY }
-        } else null
-        android.util.Log.i("NeoSecondaryDebug", "REQUEST pkg=$packageName bottom=$launchBottom display=${target?.displayId} activity=$activityName blocked=$gamepadBlocked active=$isGameActive")
-        if (launchBottom && target == null) {
-            android.util.Log.e("NeoSecondaryDebug", "ABORT bottom display unavailable")
-            result.error("DISPLAY_UNAVAILABLE", "Bottom display is not connected", null)
-            return
-        }
-        // A game launched on the secondary display must get that display before
-        // its Activity creates a rendering surface. The Presentation is a window
-        // layered above normal activities; hiding it only after startActivity()
-        // leaves some emulators creating their Surface while fully obscured, which
-        // can result in a permanently black picture even though audio is running.
-        if (target != null) {
-            prepareSecondaryForGameLaunch()
-        }
-
-        lateinit var launchEmulator: (MethodChannel.Result) -> Unit
-
-        val launchResult = object : MethodChannel.Result {
-            override fun success(value: Any?) {
-                android.util.Log.i("NeoSecondaryDebug", "RESULT success=$value pkg=$packageName display=${target?.displayId}")
-                if (target != null) {
-                    if (value == true) {
-                        beginSecondaryGameWatch(packageName, target.displayId)
-                    } else {
-                        restoreSecondaryAfterApp()
-                    }
-                }
-                result.success(value)
-            }
-            override fun error(code: String, message: String?, details: Any?) {
-                android.util.Log.e("NeoSecondaryDebug", "RESULT error=$code message=$message")
-                if (target != null) restoreSecondaryAfterApp()
-                result.error(code, message, details)
-            }
-            override fun notImplemented() {
-                if (target != null) restoreSecondaryAfterApp()
-                result.notImplemented()
-            }
-        }
-        launchEmulator = { launchResultOverride: MethodChannel.Result ->
-            EmulatorLauncher.launchGenericIntent(
-                context = this,
-                packageName = packageName,
-                activityName = activityName,
-                action = action,
-                category = category,
-                data = data,
-                type = type,
-                extras = extras,
-                activityFlags = activityFlags,
-                keepSafUri = keepSafUri,
-                result = launchResultOverride,
-                launchDisplayId = target?.displayId
-            )
-        }
-        if (target != null) {
-            android.util.Log.i("NeoSecondaryDebug", "DELAY scheduling launch 250ms")
-            // Give Android time to fully remove the secondary Presentation before
-            // the emulator creates its window/surface on that display.
-            Handler(Looper.getMainLooper()).postDelayed({
-                android.util.Log.i("NeoSecondaryDebug", "DELAY elapsed; invoking EmulatorLauncher")
-                launchEmulator(launchResult)
-            }, 250L)
-        } else {
-            launchEmulator(launchResult)
-        }
+        EmulatorLauncher.launchGenericIntent(
+            context = this,
+            packageName = packageName,
+            activityName = activityName,
+            action = action,
+            category = category,
+            data = data,
+            type = type,
+            extras = extras,
+            activityFlags = activityFlags,
+            keepSafUri = keepSafUri,
+            result = result
+        )
     }
-
-
 
     private fun setGamepadBlock(block: Boolean, result: MethodChannel.Result) {
         setGamepadBlockInternal(block)
@@ -1030,13 +960,12 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         // display, so this activity resuming says nothing about whether it was
         // closed — restoring here would drop the panel on top of an app the user
         // is still using. While the watch runs, it owns the restore.
-        if (!secondaryGameLaunchPending && !ScreenshotAccessibilityService.isWatching) {
+        if (!ScreenshotAccessibilityService.isWatching) {
             restoreSecondaryAfterApp()
         } else {
             android.util.Log.i(
                 "NeoSecondaryDebug",
-                "RESUME restore skipped pending=$secondaryGameLaunchPending " +
-                    "watching=${ScreenshotAccessibilityService.isWatching}"
+                "RESUME restore skipped watching=${ScreenshotAccessibilityService.isWatching}"
             )
         }
 
@@ -1313,255 +1242,8 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         }
     }
 
-    /** Fully removes NeoStation from the secondary display before launching a game. */
-    private fun prepareSecondaryForGameLaunch() {
-        try {
-            val secondary = subScreenPresentation as? SecondaryAppsPresentation
-            android.util.Log.i(
-                "NeoSecondaryDebug",
-                "PREPARE before showing=${subScreenPresentation?.isShowing} " +
-                    "wants=${secondary?.wantsControllerInput()} hidden=$presentationHiddenForApp"
-            )
-
-            // A Presentation.hide() only makes its window non-visible; the
-            // Presentation and its Flutter surface remain attached to display 4.
-            // Some emulators then start underneath that retained surface. Release
-            // controller focus without returning it to the top screen, mark the
-            // panel as temporarily removed, and close it completely before the
-            // emulator Activity is created. restoreSecondaryAfterApp() recreates
-            // a fresh Presentation after the emulator leaves.
-            secondaryGameLaunchPending = true
-            secondary?.releaseInputFocus(returnToMain = false)
-            presentationHiddenForApp = true
-            onCloseSubScreen()
-            routeAynControllerToBottomScreen()
-
-            android.util.Log.i(
-                "NeoSecondaryDebug",
-                "PREPARE dismissed presentation=${subScreenPresentation != null} " +
-                    "hidden=$presentationHiddenForApp"
-            )
-        } catch (e: Exception) {
-            presentationHiddenForApp = false
-            android.util.Log.e("NeoSecondaryDebug", "PREPARE failed", e)
-        }
-    }
-
-    /**
-     * Tracks a game running on the secondary display. MainActivity stays resumed
-     * while another Activity owns the other display, so the normal onPause /
-     * onResume game-return path never fires. The existing per-display accessibility
-     * watcher is therefore the authoritative close signal for this launch mode.
-     */
-    private fun beginSecondaryGameWatch(
-        packageName: String,
-        displayId: Int
-    ) {
-        android.util.Log.i("NeoSecondaryDebug", "WATCH begin pkg=$packageName display=$displayId blocked=$gamepadBlocked active=$isGameActive")
-        // MainActivity stays resumed when the emulator runs on the secondary
-        // display, so explicitly stop NeoStation from swallowing gamepad input.
-        setGamepadBlockInternal(false, 0)
-
-        if (isGameActive && gameLaunchTimestamp == 0L) {
-            gameLaunchTimestamp = System.currentTimeMillis()
-        }
-
-        runOnUiThread {
-            methodChannel?.invokeMethod("onGameLaunchedOnSecondary", null)
-        }
-
-        val watching = ScreenshotAccessibilityService.startWatch(packageName, displayId) {
-            android.util.Log.i("NeoSecondaryDebug", "WATCH callback emulator left bottom display")
-            Handler(Looper.getMainLooper()).post {
-                var elapsedSeconds = 0
-                if (gameLaunchTimestamp > 0L) {
-                    elapsedSeconds = ((System.currentTimeMillis() - gameLaunchTimestamp) / 1000).toInt()
-                }
-
-                methodChannel?.invokeMethod(
-                    "onGameReturned",
-                    mapOf("elapsedSeconds" to elapsedSeconds)
-                )
-                setGamepadBlockInternal(false, 0)
-                gameLaunchTimestamp = 0
-                restoreSecondaryAfterApp()
-            }
-        }
-
-        secondaryGameLaunchPending = false
-        android.util.Log.i("NeoSecondaryDebug", "WATCH started=$watching pending=$secondaryGameLaunchPending")
-        if (watching) {
-            armDockLaunchWatchdog()
-        } else {
-            android.util.Log.w(
-                "MainActivity",
-                "Secondary game launched without Screen Return watcher; close detection is unavailable"
-            )
-        }
-    }
-
-    /**
-     * Hides the Now Playing presentation so a dock-launched app is visible, and
-     * (if the accessibility service is granted) watches the secondary display so
-     * Now Playing is restored the moment the app is dismissed.
-     */
-    private fun hideSecondaryForApp(packageName: String, displayId: Int) {
-        try {
-            subScreenPresentation?.let {
-                if (it.isShowing) {
-                    it.hide()
-                    presentationHiddenForApp = true
-                }
-            }
-            // Without the watch (service not granted, or pre-R) there is nothing
-            // to tell us the app closed and the watchdog would just drop the
-            // panel onto a running app after its timeout, so arm neither:
-            // onResume then restores, as it did before the watch existed.
-            val watching = ScreenshotAccessibilityService.startWatch(packageName, displayId) {
-                Handler(Looper.getMainLooper()).post { restoreSecondaryAfterApp() }
-            }
-            if (watching) armDockLaunchWatchdog()
-        } catch (e: Exception) {
-            android.util.Log.w("MainActivity", "Hiding secondary for app failed: ${e.message}")
-        }
-    }
-
-    /**
-     * Safety net for a dock launch that never reaches the bottom display: the
-     * watch only restores the panel once it has seen the app take the display,
-     * so an app that never appears (a launch the system dropped) would otherwise
-     * leave the bottom screen showing the device's own launcher for good.
-     */
-    private fun armDockLaunchWatchdog() {
-        dockLaunchWatchdog?.let { dockLaunchHandler.removeCallbacks(it) }
-        val watchdog = Runnable {
-            dockLaunchWatchdog = null
-            if (presentationHiddenForApp && !ScreenshotAccessibilityService.hasSeenWatchedApp) {
-                android.util.Log.e("NeoSecondaryDebug", "WATCHDOG emulator never observed on bottom display; restoring panel")
-                restoreSecondaryAfterApp()
-            }
-        }
-        dockLaunchWatchdog = watchdog
-        dockLaunchHandler.postDelayed(watchdog, DOCK_LAUNCH_TIMEOUT_MS)
-    }
-
-    /** Routes AYN Thor hardware controls using shell identity through Shizuku. */
-    private fun routeAynControllerToBottomScreen() {
-        if (savedAynScreenFocusLock == null) {
-            savedAynScreenFocusLock = Settings.System.getInt(
-                contentResolver, AYN_SCREEN_FOCUS_LOCK, 1
-            )
-        }
-
-        val previous = savedAynScreenFocusLock ?: 1
-        if (!setAynScreenFocusWithShizuku(AYN_BOTTOM_SCREEN_FOCUS, "secondary-launch")) {
-            android.util.Log.w(
-                "NeoSecondaryDebug",
-                "AYN bottom focus unavailable previous=$previous"
-            )
-        }
-    }
-
-    private fun restoreAynControllerFocus() {
-        val previous = savedAynScreenFocusLock ?: return
-        savedAynScreenFocusLock = null
-        if (!setAynScreenFocusWithShizuku(previous, "secondary-return")) {
-            android.util.Log.w(
-                "NeoSecondaryDebug",
-                "AYN focus restore unavailable target=$previous"
-            )
-        }
-    }
-
-    /**
-     * screen_focus_lock is an AYN private System setting. Android rejects a
-     * normal app's Settings.System.putInt() even when WRITE_SETTINGS is allowed.
-     * Shizuku runs the same `settings put` operation as the adb shell identity,
-     * which is the path verified to work on the Thor.
-     */
-    private fun setAynScreenFocusWithShizuku(value: Int, reason: String): Boolean {
-        try {
-            if (!Shizuku.pingBinder()) {
-                android.util.Log.w(
-                    "NeoSecondaryDebug",
-                    "AYN focus Shizuku unavailable reason=$reason target=$value"
-                )
-                runOnUiThread {
-                    Toast.makeText(
-                        this,
-                        "Start Shizuku to enable automatic bottom-screen controls",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                return false
-            }
-
-            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-                android.util.Log.i(
-                    "NeoSecondaryDebug",
-                    "AYN focus requesting Shizuku permission reason=$reason target=$value"
-                )
-                Shizuku.requestPermission(AYN_SHIZUKU_PERMISSION_REQUEST)
-                runOnUiThread {
-                    Toast.makeText(
-                        this,
-                        "Allow NeoStation in Shizuku, then launch the game again",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                return false
-            }
-
-            val before = Settings.System.getInt(contentResolver, AYN_SCREEN_FOCUS_LOCK, -1)
-            val method = Shizuku::class.java.getDeclaredMethod(
-                "newProcess",
-                Array<String>::class.java,
-                Array<String>::class.java,
-                String::class.java
-            )
-            method.isAccessible = true
-            val process = method.invoke(
-                null,
-                arrayOf(
-                    "/system/bin/settings",
-                    "put",
-                    "system",
-                    AYN_SCREEN_FOCUS_LOCK,
-                    value.toString()
-                ),
-                null,
-                null
-            )
-
-            val waitFor = process.javaClass.getMethod("waitFor")
-            val exitCode = waitFor.invoke(process) as Int
-            try {
-                process.javaClass.getMethod("destroy").invoke(process)
-            } catch (_: Exception) {
-                // Process has already exited; nothing else to clean up.
-            }
-
-            val after = Settings.System.getInt(contentResolver, AYN_SCREEN_FOCUS_LOCK, -1)
-            android.util.Log.i(
-                "NeoSecondaryDebug",
-                "AYN focus Shizuku reason=$reason uid=${Shizuku.getUid()} " +
-                    "exit=$exitCode before=$before target=$value after=$after"
-            )
-            return exitCode == 0 && after == value
-        } catch (e: Exception) {
-            android.util.Log.e(
-                "NeoSecondaryDebug",
-                "AYN focus Shizuku failed reason=$reason target=$value",
-                e
-            )
-            return false
-        }
-    }
-
     private fun restoreSecondaryAfterApp() {
-        secondaryGameLaunchPending = false
         ScreenshotAccessibilityService.stopWatch()
-        restoreAynControllerFocus()
         dockLaunchWatchdog?.let {
             dockLaunchHandler.removeCallbacks(it)
             dockLaunchWatchdog = null
@@ -1569,10 +1251,8 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         if (!presentationHiddenForApp) return
         presentationHiddenForApp = false
         try {
-            // Game launches dismiss the Presentation completely so no NeoStation
-            // surface remains layered over display 4. Recreate a fresh secondary
-            // Presentation now that the emulator has left. Dock-launched apps may
-            // still use hide(), so this also safely re-shows an existing instance.
+            // Re-show or recreate the secondary Presentation after a dock-launched
+            // app leaves the bottom display.
             if (subScreenPresentation == null || subScreenPresentation?.isShowing == false) {
                 setSecondaryDisplayVisible(true)
             } else {

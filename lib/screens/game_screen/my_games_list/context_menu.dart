@@ -48,20 +48,6 @@ extension _ContextMenu on _SystemGamesListState {
     // under the cursor.
     final memberIds = await collectionsProvider.collectionIdsFor(game);
     if (!mounted) return;
-    final launchFolder = game.systemFolderName ?? widget.system.folderName;
-    final canChooseScreen =
-        Platform.isAndroid &&
-        GameLaunchScreenPreferences.supports(
-          game.systemId ?? widget.system.id,
-          launchFolder,
-        );
-    final launchChoice = canChooseScreen
-        ? await GameLaunchScreenPreferences.gameChoice(
-            launchFolder,
-            game.romname,
-          )
-        : null;
-    if (!mounted) return;
 
     // Set when a toggle takes the game out of the bucket this very list *is*,
     // which leaves the loaded list stale. The reload waits for the menu to
@@ -126,25 +112,6 @@ extension _ContextMenu on _SystemGamesListState {
       targets: targets,
       anchorKey: _selectedItemKey,
       onSettings: _openGameSettingsDialog,
-      launchScreenChoice: launchChoice,
-      onLaunchScreen: canChooseScreen
-          ? (choice) async {
-              try {
-                await GameLaunchScreenPreferences.saveGame(
-                  launchFolder,
-                  game.romname,
-                  choice,
-                );
-              } catch (error) {
-                if (!mounted) return;
-                AppNotification.showNotification(
-                  context,
-                  'Could not save launch screen.',
-                  type: NotificationType.error,
-                );
-              }
-            }
-          : null,
       onCreateTarget: () => _createCollectionFromMenu(game),
       createTargetLabel: AppLocale.newCollection.getString(context),
       // The view-independent path, in every view. It feeds `_scrapeProgress`

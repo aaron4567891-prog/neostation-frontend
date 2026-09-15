@@ -85,8 +85,6 @@ Future<void> showGameContextMenu({
   VoidCallback? onScrape,
   VoidCallback? onViewMode,
   VoidCallback? onRandom,
-  String? launchScreenChoice,
-  Future<void> Function(String choice)? onLaunchScreen,
 }) async {
   assert(
     onCreateTarget == null || createTargetLabel != null,
@@ -117,24 +115,6 @@ Future<void> showGameContextMenu({
       label: AppLocale.gameSettings.getString(context),
       icon: Symbols.settings_rounded,
     ),
-    if (onLaunchScreen != null)
-      ContextMenuItem(
-        id: 'launch_screen',
-        label: 'Launch screen',
-        icon: Symbols.settings_rounded,
-        children: [
-          for (final choice in ['default', 'top', 'bottom'])
-            ContextMenuItem(
-              id: 'launch_screen_$choice',
-              label: choice == 'default'
-                  ? 'Use system default'
-                  : choice == 'top'
-                  ? 'Top screen'
-                  : 'Bottom screen',
-              selected: launchScreenChoice == choice,
-            ),
-        ],
-      ),
     if (onScrape != null)
       ContextMenuItem(
         id: _scrapeId,
@@ -187,10 +167,6 @@ Future<void> showGameContextMenu({
   // Memberships resolved through [onToggle] while the menu was open, so
   // anything that comes back here is one of the leaves.
   if (result == null) return;
-  if (result.startsWith('launch_screen_')) {
-    await onLaunchScreen?.call(result.substring('launch_screen_'.length));
-    return;
-  }
 
   if (result == _settingsId) {
     onSettings();

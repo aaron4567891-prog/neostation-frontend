@@ -56,9 +56,6 @@ class _GameLaunchDialogState extends State<GameLaunchDialog> {
   void initState() {
     super.initState();
     GameLaunchManager().addListener(_onManagerChanged);
-    GameService.secondaryGameLaunchTrigger.addListener(
-      _onSecondaryGameLaunched,
-    );
 
     _dialogGamepadNav = GamepadNavigation(
       onBack: () => GameLaunchManager().userDismiss(),
@@ -84,9 +81,6 @@ class _GameLaunchDialogState extends State<GameLaunchDialog> {
   @override
   void dispose() {
     GameLaunchManager().removeListener(_onManagerChanged);
-    GameService.secondaryGameLaunchTrigger.removeListener(
-      _onSecondaryGameLaunched,
-    );
     GamepadNavigationManager.popLayer('game_launch_dialog');
     _dialogGamepadNav.dispose();
     // Always finalize manager: idempotent, ensures music/SFX restore even if
@@ -104,19 +98,6 @@ class _GameLaunchDialogState extends State<GameLaunchDialog> {
       );
     }
     super.dispose();
-  }
-
-  void _onSecondaryGameLaunched() {
-    if (!mounted || _closeCalled) return;
-
-    // The emulator is now visible on the bottom display. Remove the top-screen
-    // splash immediately, but keep GameLaunchManager alive so playtime, save
-    // sync and the native return callback continue to own the session.
-    GameLaunchManager().detachDialogForSecondaryPlay();
-    _closeCalled = true;
-    _onGameClosedFired = true;
-    Navigator.of(context).pop();
-    widget.onGameClosed();
   }
 
   // ---------------------------------------------------------------------------

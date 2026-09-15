@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:neostation/services/game_launch_screen_preferences.dart';
 import 'package:flutter_localization/flutter_localization.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -74,22 +72,13 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
 
   // Navigation layout. Indices are fixed so focus doesn't jump around when
   // cloud sync visibility or the grid options change.
-  int get _screenIdx => 2;
-  int get _cloudSyncIdx => 3;
-  int get _playTimeIdx => 4;
-  int get _hideIdx => 5;
-  int get _deleteIdx => 6;
+  int get _cloudSyncIdx => 2;
+  int get _playTimeIdx => 3;
+  int get _hideIdx => 4;
+  int get _deleteIdx => 5;
   int get _animationIdx => 0;
   int get _speedIdx => 1;
-  int get _totalItems => 7;
-  String _systemScreen = 'top';
-  bool _savingScreen = false;
-  bool get _showLaunchScreen =>
-      Platform.isAndroid &&
-      GameLaunchScreenPreferences.supports(
-        widget.game.systemId ?? widget.system.id,
-        _targetSystemFolder,
-      );
+  int get _totalItems => 6;
   final _animationPreferences = SystemSwitchAnimationPreferences.instance;
   bool _savingAnimation = false;
 
@@ -105,9 +94,6 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
     super.initState();
     _cloudSyncEnabled = widget.game.cloudSyncEnabled ?? true;
     _selectedIndex = _animationIdx;
-    GameLaunchScreenPreferences.systemChoice(_targetSystemFolder).then((value) {
-      if (mounted) setState(() => _systemScreen = value);
-    });
     _animationPreferences.load().then((_) {
       if (mounted) setState(() {});
     });
@@ -121,7 +107,6 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
 
   /// Returns whether [idx] can receive focus in the current state.
   bool _isEnabledIndex(int idx) {
-    if (idx == _screenIdx && !_showLaunchScreen) return false;
     if (idx == _cloudSyncIdx && !_showCloudSync) return false;
     return idx >= 0 && idx < _totalItems;
   }
@@ -151,10 +136,6 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
 
   void trigger() {
     final idx = _selectedIndex;
-    if (idx == _screenIdx && _showLaunchScreen) {
-      _cycleLaunchScreen();
-      return;
-    }
     if (_showCloudSync && idx == _cloudSyncIdx) {
       if (!_isUpdatingCloudSync) _toggleCloudSync(!_cloudSyncEnabled);
     } else if (idx == _playTimeIdx) {
@@ -167,29 +148,6 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
       _confirmDeleteGame();
     } else if (idx == _animationIdx || idx == _speedIdx) {
       _cycleAnimationOption(idx);
-    }
-  }
-
-  Future<void> _cycleLaunchScreen() async {
-    if (_savingScreen) return;
-    _savingScreen = true;
-    try {
-      final current = await GameLaunchScreenPreferences.systemChoice(
-        _targetSystemFolder,
-      );
-      final next = current == 'top' ? 'bottom' : 'top';
-      await GameLaunchScreenPreferences.saveSystem(_targetSystemFolder, next);
-      if (mounted) setState(() => _systemScreen = next);
-    } catch (error) {
-      if (mounted) {
-        AppNotification.showNotification(
-          context,
-          'Could not save launch screen.',
-          type: NotificationType.error,
-        );
-      }
-    } finally {
-      _savingScreen = false;
     }
   }
 
@@ -464,23 +422,6 @@ class GameSettingsManageTabState extends State<GameSettingsManageTab> {
           ),
           SizedBox(height: 12.r),
           // Cloud Synchronization Option.
-          if (_showLaunchScreen) ...[
-            SettingRow(
-              key: _itemKey(_screenIdx),
-              focused: _selectedIndex == _screenIdx,
-              title: 'System default launch screen',
-              subtitle:
-                  'Applies unless a game has its own override. Emulator support varies. Tap or press A to change.',
-              trailing: Text(
-                _systemScreen == 'bottom' ? 'Bottom screen' : 'Top screen',
-              ),
-              onTap: () {
-                setState(() => _selectedIndex = _screenIdx);
-                _cycleLaunchScreen();
-              },
-            ),
-            SizedBox(height: 12.r),
-          ],
           if (_showCloudSync)
             GestureDetector(
               onTap: () {

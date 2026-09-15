@@ -57,7 +57,6 @@ class GameLaunchManager extends ChangeNotifier with WidgetsBindingObserver {
   /// True after a successful secondary-display handoff closes the visible
   /// launch dialog while leaving the game session alive. In this mode the
   /// manager performs post-game teardown itself when Android reports return.
-  bool _dialogDetachedForSecondary = false;
 
   GameLaunchPhase? get phase => _phase;
   bool get isActive => _phase != null;
@@ -76,7 +75,6 @@ class GameLaunchManager extends ChangeNotifier with WidgetsBindingObserver {
     _phase = GameLaunchPhase.launching;
     _canDismiss = false;
     _isClosing = false;
-    _dialogDetachedForSecondary = false;
     WidgetsBinding.instance.addObserver(this);
     _sfxWasEnabled = SfxService().isEnabled;
     SfxService().setEnabled(false);
@@ -105,16 +103,6 @@ class GameLaunchManager extends ChangeNotifier with WidgetsBindingObserver {
     _log.i('[GameLaunchManager] Game started — monitoring active.');
   }
 
-  /// Keeps the session alive after the top-screen launch dialog is removed for
-  /// a game that is visibly running on the secondary display.
-  void detachDialogForSecondaryPlay() {
-    if (_phase == null || _isClosing) return;
-    _dialogDetachedForSecondary = true;
-    _log.i(
-      '[GameLaunchManager] Secondary-display game owns the session; dialog detached.',
-    );
-  }
-
   /// Handles an explicit user request to dismiss the session dialog.
   void userDismiss() {
     if (!canDismiss) {
@@ -136,24 +124,6 @@ class GameLaunchManager extends ChangeNotifier with WidgetsBindingObserver {
     _phase = GameLaunchPhase.syncing;
     notifyListeners();
     _log.i('[GameLaunchManager] Close triggered — entering syncing phase.');
-
-    if (_dialogDetachedForSecondary) {
-      unawaited(_completeDetachedSecondaryClose());
-    }
-  }
-
-  Future<void> _completeDetachedSecondaryClose() async {
-    try {
-      await GameService.endGameSession();
-    } catch (e, stack) {
-      _log.e('Secondary-display session teardown failed: $e\n$stack');
-    } finally {
-      if (_phase == GameLaunchPhase.syncing) {
-        _phase = GameLaunchPhase.closed;
-        notifyListeners();
-      }
-      _finalize();
-    }
   }
 
   /// Marks the post-game synchronization as finished.
@@ -165,12 +135,6 @@ class GameLaunchManager extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Cleanup hook for when the session dialog is disposed.
   void onDialogDisposed() {
-    if (_dialogDetachedForSecondary && isActive) {
-      _log.i(
-        '[GameLaunchManager] Launch dialog disposed; secondary-display session remains active.',
-      );
-      return;
-    }
     if (isActive) {
       _log.w(
         '[GameLaunchManager] Dialog disposed before session ended — forcing cleanup.',
@@ -201,7 +165,6 @@ class GameLaunchManager extends ChangeNotifier with WidgetsBindingObserver {
     _isClosing = false;
     _sfxWasEnabled = true;
     _resumedBeforeMonitoring = false;
-    _dialogDetachedForSecondary = false;
     notifyListeners();
     _log.i(
       '[GameLaunchManager] Session finalized — music resumed, SFX re-enabled.',

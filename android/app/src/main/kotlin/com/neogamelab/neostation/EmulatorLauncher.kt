@@ -30,11 +30,9 @@ object EmulatorLauncher {
         extras: List<Map<String, Any>>?,
         activityFlags: List<String>,
         keepSafUri: Boolean,
-        result: MethodChannel.Result,
-        launchDisplayId: Int? = null
+        result: MethodChannel.Result
     ) {
         try {
-            android.util.Log.i("NeoSecondaryDebug", "BUILD pkg=$packageName activity=$activityName display=$launchDisplayId data=${data?.take(160)}")
             val intent = Intent()
             if (activityName != null) {
                 intent.component = ComponentName(packageName, activityName)
@@ -264,15 +262,7 @@ object EmulatorLauncher {
 
             // Don't use resolveActivity — returns null on Android 11+ for valid apps due to
             // package visibility restrictions. Catch ActivityNotFoundException instead.
-            android.util.Log.i("NeoSecondaryDebug", "START pkg=$packageName display=$launchDisplayId component=${intent.component} action=${intent.action} uri=${intent.data}")
-            if (launchDisplayId != null) {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                val options = android.app.ActivityOptions.makeBasic().setLaunchDisplayId(launchDisplayId)
-                context.startActivity(intent, options.toBundle())
-            } else {
-                context.startActivity(intent)
-            }
-            android.util.Log.i("NeoSecondaryDebug", "START returned normally pkg=$packageName display=$launchDisplayId")
+            context.startActivity(intent)
             result.success(true)
         } catch (e: ActivityNotFoundException) {
             result.error("ACTIVITY_NOT_FOUND", "Emulator not installed or activity missing: $packageName", null)
