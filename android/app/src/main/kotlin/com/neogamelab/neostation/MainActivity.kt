@@ -912,6 +912,8 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             prepareSecondaryForGameLaunch()
         }
 
+        lateinit var launchEmulator: (MethodChannel.Result) -> Unit
+
         val launchResult = object : MethodChannel.Result {
             override fun success(value: Any?) {
                 android.util.Log.i("NeoSecondaryDebug", "RESULT success=$value pkg=$packageName display=${target?.displayId}")
@@ -937,7 +939,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                 result.notImplemented()
             }
         }
-        val launchEmulator = { launchResultOverride: MethodChannel.Result ->
+        launchEmulator = { launchResultOverride: MethodChannel.Result ->
             EmulatorLauncher.launchGenericIntent(
                 context = this,
                 packageName = packageName,
