@@ -109,6 +109,15 @@
             </intent-filter>
         </activity>
         
+        <!-- Shizuku supplies adb-shell identity for AYN private focus settings. -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
         <!-- FileProvider para compartir archivos con otros apps (emuladores standalone) -->
         <provider
             android:name="androidx.core.content.FileProvider"

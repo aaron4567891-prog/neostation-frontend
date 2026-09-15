@@ -32,6 +32,7 @@ import com.hcoderlee.subscreen.sub_screen.MultiDisplayFlutterActivity
 import com.hcoderlee.subscreen.sub_screen.FlutterPresentation
 import com.hcoderlee.subscreen.sub_screen.SharedStateManager
 import androidx.core.content.FileProvider
+import rikka.shizuku.Shizuku
 
 class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     private val CHANNEL = "com.neogamelab.neostation/game"
@@ -46,6 +47,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     // AYN Thor dual-screen controller focus.
     private val AYN_SCREEN_FOCUS_LOCK = "screen_focus_lock"
     private val AYN_BOTTOM_SCREEN_FOCUS = 2
+    private val AYN_SHIZUKU_PERMISSION_REQUEST = 7402
     private var savedAynScreenFocusLock: Int? = null
     // True during the gap between removing the secondary Presentation and
     // arming the accessibility watcher. onResume can fire in this gap; it must
@@ -1443,72 +1445,116 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         dockLaunchHandler.postDelayed(watchdog, DOCK_LAUNCH_TIMEOUT_MS)
     }
 
-    /** Restores the Now Playing presentation hidden by a dock launch. */
+    /** Routes AYN Thor hardware controls using shell identity through Shizuku. */
     private fun routeAynControllerToBottomScreen() {
-        try {
-            if (!Settings.System.canWrite(this)) {
-                android.util.Log.w(
-                    "NeoSecondaryDebug",
-                    "AYN focus not changed: WRITE_SETTINGS access is not granted"
-                )
-                runOnUiThread {
-                    Toast.makeText(
-                        this,
-                        "Allow NeoStation to modify system settings for bottom-screen controls",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-                return
-            }
-
-            if (savedAynScreenFocusLock == null) {
-                savedAynScreenFocusLock = Settings.System.getInt(
-                    contentResolver, AYN_SCREEN_FOCUS_LOCK, 1
-                )
-            }
-            val canWrite = Settings.System.canWrite(this)
-            val before = Settings.System.getInt(
+        if (savedAynScreenFocusLock == null) {
+            savedAynScreenFocusLock = Settings.System.getInt(
                 contentResolver, AYN_SCREEN_FOCUS_LOCK, 1
             )
-            val changed = Settings.System.putInt(
-                contentResolver, AYN_SCREEN_FOCUS_LOCK, AYN_BOTTOM_SCREEN_FOCUS
-            )
-            val after = Settings.System.getInt(
-                contentResolver, AYN_SCREEN_FOCUS_LOCK, -1
-            )
-            android.util.Log.i(
+        }
+
+        val previous = savedAynScreenFocusLock ?: 1
+        if (!setAynScreenFocusWithShizuku(AYN_BOTTOM_SCREEN_FOCUS, "secondary-launch")) {
+            android.util.Log.w(
                 "NeoSecondaryDebug",
-                "AYN focus -> bottom canWrite=$canWrite changed=$changed " +
-                    "before=$before after=$after previous=$savedAynScreenFocusLock"
+                "AYN bottom focus unavailable previous=$previous"
             )
-        } catch (e: Exception) {
-            android.util.Log.e("NeoSecondaryDebug", "AYN bottom focus failed", e)
         }
     }
 
     private fun restoreAynControllerFocus() {
         val previous = savedAynScreenFocusLock ?: return
         savedAynScreenFocusLock = null
+        if (!setAynScreenFocusWithShizuku(previous, "secondary-return")) {
+            android.util.Log.w(
+                "NeoSecondaryDebug",
+                "AYN focus restore unavailable target=$previous"
+            )
+        }
+    }
+
+    /**
+     * screen_focus_lock is an AYN private System setting. Android rejects a
+     * normal app's Settings.System.putInt() even when WRITE_SETTINGS is allowed.
+     * Shizuku runs the same `settings put` operation as the adb shell identity,
+     * which is the path verified to work on the Thor.
+     */
+    private fun setAynScreenFocusWithShizuku(value: Int, reason: String): Boolean {
         try {
-            if (!Settings.System.canWrite(this)) {
+            if (!Shizuku.pingBinder()) {
                 android.util.Log.w(
                     "NeoSecondaryDebug",
-                    "AYN focus restore skipped: WRITE_SETTINGS access is not granted"
+                    "AYN focus Shizuku unavailable reason=$reason target=$value"
                 )
-                return
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Start Shizuku to enable automatic bottom-screen controls",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return false
             }
-            val changed = Settings.System.putInt(
-                contentResolver, AYN_SCREEN_FOCUS_LOCK, previous
+
+            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.i(
+                    "NeoSecondaryDebug",
+                    "AYN focus requesting Shizuku permission reason=$reason target=$value"
+                )
+                Shizuku.requestPermission(AYN_SHIZUKU_PERMISSION_REQUEST)
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Allow NeoStation in Shizuku, then launch the game again",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return false
+            }
+
+            val before = Settings.System.getInt(contentResolver, AYN_SCREEN_FOCUS_LOCK, -1)
+            val method = Shizuku::class.java.getDeclaredMethod(
+                "newProcess",
+                Array<String>::class.java,
+                Array<String>::class.java,
+                String::class.java
             )
-            val after = Settings.System.getInt(
-                contentResolver, AYN_SCREEN_FOCUS_LOCK, -1
+            method.isAccessible = true
+            val process = method.invoke(
+                null,
+                arrayOf(
+                    "/system/bin/settings",
+                    "put",
+                    "system",
+                    AYN_SCREEN_FOCUS_LOCK,
+                    value.toString()
+                ),
+                null,
+                null
             )
+
+            val waitFor = process.javaClass.getMethod("waitFor")
+            val exitCode = waitFor.invoke(process) as Int
+            try {
+                process.javaClass.getMethod("destroy").invoke(process)
+            } catch (_: Exception) {
+                // Process has already exited; nothing else to clean up.
+            }
+
+            val after = Settings.System.getInt(contentResolver, AYN_SCREEN_FOCUS_LOCK, -1)
             android.util.Log.i(
                 "NeoSecondaryDebug",
-                "AYN focus restored value=$previous changed=$changed after=$after"
+                "AYN focus Shizuku reason=$reason uid=${Shizuku.getUid()} " +
+                    "exit=$exitCode before=$before target=$value after=$after"
             )
+            return exitCode == 0 && after == value
         } catch (e: Exception) {
-            android.util.Log.e("NeoSecondaryDebug", "AYN focus restore failed", e)
+            android.util.Log.e(
+                "NeoSecondaryDebug",
+                "AYN focus Shizuku failed reason=$reason target=$value",
+                e
+            )
+            return false
         }
     }
 
