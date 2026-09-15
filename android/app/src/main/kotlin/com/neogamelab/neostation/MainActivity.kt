@@ -962,11 +962,6 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         // is still using. While the watch runs, it owns the restore.
         if (!ScreenshotAccessibilityService.isWatching) {
             restoreSecondaryAfterApp()
-        } else {
-            android.util.Log.i(
-                "NeoSecondaryDebug",
-                "RESUME restore skipped watching=${ScreenshotAccessibilityService.isWatching}"
-            )
         }
 
         if (isGameActive) {
