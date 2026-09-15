@@ -47,6 +47,10 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     private val AYN_SCREEN_FOCUS_LOCK = "screen_focus_lock"
     private val AYN_BOTTOM_SCREEN_FOCUS = 2
     private var savedAynScreenFocusLock: Int? = null
+    // True during the gap between removing the secondary Presentation and
+    // arming the accessibility watcher. onResume can fire in this gap; it must
+    // not restore the panel/controller focus before the emulator is launched.
+    private var secondaryGameLaunchPending = false
     var keyListener: ((KeyEvent) -> Boolean)? = null
     var motionListener: ((MotionEvent) -> Boolean)? = null
     // A launched game still owns the foreground: set when Flutter starts a
@@ -1024,8 +1028,14 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         // display, so this activity resuming says nothing about whether it was
         // closed — restoring here would drop the panel on top of an app the user
         // is still using. While the watch runs, it owns the restore.
-        if (!ScreenshotAccessibilityService.isWatching) {
+        if (!secondaryGameLaunchPending && !ScreenshotAccessibilityService.isWatching) {
             restoreSecondaryAfterApp()
+        } else {
+            android.util.Log.i(
+                "NeoSecondaryDebug",
+                "RESUME restore skipped pending=$secondaryGameLaunchPending " +
+                    "watching=${ScreenshotAccessibilityService.isWatching}"
+            )
         }
 
         if (isGameActive) {
@@ -1318,6 +1328,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             // panel as temporarily removed, and close it completely before the
             // emulator Activity is created. restoreSecondaryAfterApp() recreates
             // a fresh Presentation after the emulator leaves.
+            secondaryGameLaunchPending = true
             secondary?.releaseInputFocus(returnToMain = false)
             presentationHiddenForApp = true
             onCloseSubScreen()
@@ -1375,7 +1386,8 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             }
         }
 
-        android.util.Log.i("NeoSecondaryDebug", "WATCH started=$watching")
+        secondaryGameLaunchPending = false
+        android.util.Log.i("NeoSecondaryDebug", "WATCH started=$watching pending=$secondaryGameLaunchPending")
         if (watching) {
             armDockLaunchWatchdog()
         } else {
@@ -1454,12 +1466,20 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                     contentResolver, AYN_SCREEN_FOCUS_LOCK, 1
                 )
             }
+            val canWrite = Settings.System.canWrite(this)
+            val before = Settings.System.getInt(
+                contentResolver, AYN_SCREEN_FOCUS_LOCK, 1
+            )
             val changed = Settings.System.putInt(
                 contentResolver, AYN_SCREEN_FOCUS_LOCK, AYN_BOTTOM_SCREEN_FOCUS
             )
+            val after = Settings.System.getInt(
+                contentResolver, AYN_SCREEN_FOCUS_LOCK, -1
+            )
             android.util.Log.i(
                 "NeoSecondaryDebug",
-                "AYN focus -> bottom changed=$changed previous=$savedAynScreenFocusLock"
+                "AYN focus -> bottom canWrite=$canWrite changed=$changed " +
+                    "before=$before after=$after previous=$savedAynScreenFocusLock"
             )
         } catch (e: Exception) {
             android.util.Log.e("NeoSecondaryDebug", "AYN bottom focus failed", e)
@@ -1480,9 +1500,12 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             val changed = Settings.System.putInt(
                 contentResolver, AYN_SCREEN_FOCUS_LOCK, previous
             )
+            val after = Settings.System.getInt(
+                contentResolver, AYN_SCREEN_FOCUS_LOCK, -1
+            )
             android.util.Log.i(
                 "NeoSecondaryDebug",
-                "AYN focus restored value=$previous changed=$changed"
+                "AYN focus restored value=$previous changed=$changed after=$after"
             )
         } catch (e: Exception) {
             android.util.Log.e("NeoSecondaryDebug", "AYN focus restore failed", e)
@@ -1490,6 +1513,7 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
     }
 
     private fun restoreSecondaryAfterApp() {
+        secondaryGameLaunchPending = false
         ScreenshotAccessibilityService.stopWatch()
         restoreAynControllerFocus()
         dockLaunchWatchdog?.let {
