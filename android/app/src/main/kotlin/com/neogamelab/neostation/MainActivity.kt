@@ -1237,6 +1237,61 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         }
     }
 
+    /**
+     * Hides the Now Playing presentation while a dock-launched app is using
+     * the secondary display, then restores it when that app closes.
+     */
+    private fun hideSecondaryForApp(packageName: String, displayId: Int) {
+        try {
+            subScreenPresentation?.let {
+                if (it.isShowing) {
+                    it.hide()
+                    presentationHiddenForApp = true
+                }
+            }
+
+            val watching =
+                ScreenshotAccessibilityService.startWatch(packageName, displayId) {
+                    Handler(Looper.getMainLooper()).post {
+                        restoreSecondaryAfterApp()
+                    }
+                }
+
+            if (watching) {
+                armDockLaunchWatchdog()
+            }
+        } catch (e: Exception) {
+            android.util.Log.w(
+                "MainActivity",
+                "Hiding secondary for app failed: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * Restores the secondary presentation if a dock-launched app never
+     * actually appears on the secondary display.
+     */
+    private fun armDockLaunchWatchdog() {
+        dockLaunchWatchdog?.let {
+            dockLaunchHandler.removeCallbacks(it)
+        }
+
+        val watchdog = Runnable {
+            dockLaunchWatchdog = null
+
+            if (
+                presentationHiddenForApp &&
+                !ScreenshotAccessibilityService.hasSeenWatchedApp
+            ) {
+                restoreSecondaryAfterApp()
+            }
+        }
+
+        dockLaunchWatchdog = watchdog
+        dockLaunchHandler.postDelayed(watchdog, DOCK_LAUNCH_TIMEOUT_MS)
+    }
+
     private fun restoreSecondaryAfterApp() {
         ScreenshotAccessibilityService.stopWatch()
         dockLaunchWatchdog?.let {
