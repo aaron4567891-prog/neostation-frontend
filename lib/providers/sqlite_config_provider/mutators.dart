@@ -31,8 +31,17 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// Updates the preferred UI layout mode for game lists.
   Future<void> updateGameViewMode(String gameViewMode) async {
     _config = _config.copyWith(gameViewMode: gameViewMode);
-    await SqliteConfigService.saveConfig(_config);
+    // Notify before the disk write so wheel/logo size changes preview instantly.
     _notify();
+    await SqliteConfigService.saveConfig(_config);
+  }
+
+  /// Updates the selected/hovered row background used by game-list views.
+  Future<void> updateGameListHighlightBackground(String background) async {
+    _config = _config.copyWith(gameListHighlightBackground: background);
+    // This is a visual preview control, so repaint before persistence completes.
+    _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Updates the preferred UI layout mode for system carousels/grids.

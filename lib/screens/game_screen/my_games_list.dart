@@ -980,7 +980,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
                                 ? 'large'
                                 : 'medium';
                             return _buildGamesList(
-                              wheelArtworkType: 'boxarts',
+                              wheelArtworkType: 'box2d',
                               wheelArtworkSize: size,
                             );
                           } else if (configProvider.config.gameViewMode
@@ -1558,7 +1558,9 @@ class _SystemGamesListState extends State<SystemGamesList> {
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
-              width: wheelArtworkType == null ? 200.r : 230.r,
+              width: (useMarqueeLogos || wheelArtworkType != null)
+                  ? 390.r
+                  : 200.r,
               margin: EdgeInsets.only(left: 12.r, top: 12.r, bottom: 12.r),
               // Marquee logos remain unframed; the normal list adopts the
               // upstream NeoGlass pane over the fanart.

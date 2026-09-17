@@ -52,6 +52,10 @@ class ConfigModel {
   /// Preferred display mode for the game list (e.g., 'list', 'grid', 'carousel').
   final String gameViewMode;
 
+  /// Background used for the selected/hovered game-list row.
+  /// Values: theme, clear, black, grey, red, green, blue, purple.
+  final String gameListHighlightBackground;
+
   /// Preferred display mode for the system list (e.g., 'grid', 'list').
   final String systemViewMode;
 
@@ -247,6 +251,7 @@ class ConfigModel {
     this.lastScan,
     this.emulators = const {},
     this.gameViewMode = 'list',
+    this.gameListHighlightBackground = 'theme',
     this.systemViewMode = 'grid',
     this.showGameInfo = false,
     this.isFullscreen = true,
@@ -332,6 +337,8 @@ class ConfigModel {
           : null,
       emulators: emulators,
       gameViewMode: (json['gameViewMode'] ?? 'list').toString(),
+      gameListHighlightBackground:
+          (json['gameListHighlightBackground'] ?? 'theme').toString(),
       systemViewMode: (json['systemViewMode'] ?? 'grid').toString(),
       showGameInfo:
           (json['showGameInfo'] ?? false).toString().toLowerCase() == 'true',
@@ -582,6 +589,7 @@ class ConfigModel {
       if (lastScan != null) 'lastScan': lastScan!.toIso8601String(),
       'emulators': emulatorsJson,
       'gameViewMode': gameViewMode,
+      'gameListHighlightBackground': gameListHighlightBackground,
       'systemViewMode': systemViewMode,
       'showGameInfo': showGameInfo,
       'isFullscreen': isFullscreen,
@@ -638,6 +646,7 @@ class ConfigModel {
     DateTime? lastScan,
     Map<String, EmulatorModel>? emulators,
     String? gameViewMode,
+    String? gameListHighlightBackground,
     String? systemViewMode,
     bool? showGameInfo,
     bool? isFullscreen,
@@ -691,6 +700,8 @@ class ConfigModel {
       lastScan: lastScan ?? this.lastScan,
       emulators: emulators ?? this.emulators,
       gameViewMode: gameViewMode ?? this.gameViewMode,
+      gameListHighlightBackground:
+          gameListHighlightBackground ?? this.gameListHighlightBackground,
       systemViewMode: systemViewMode ?? this.systemViewMode,
       showGameInfo: showGameInfo ?? this.showGameInfo,
       isFullscreen: isFullscreen ?? this.isFullscreen,

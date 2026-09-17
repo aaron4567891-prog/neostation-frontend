@@ -101,6 +101,7 @@ class _DropdownOption {
   final bool isCardStyle;
   final bool isLogoSize;
   final bool isWheelSize;
+  final bool isListBackground;
 
   _DropdownOption(
     this.value,
@@ -111,6 +112,7 @@ class _DropdownOption {
     this.isCardStyle = false,
     this.isLogoSize = false,
     this.isWheelSize = false,
+    this.isListBackground = false,
   });
 }
 
@@ -137,6 +139,7 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
   int _cardStyleIndex = 0;
   int _logoSizeIndex = 1;
   int _wheelSizeIndex = 1;
+  int _listBackgroundIndex = 0;
 
   @override
   void initState() {
@@ -160,6 +163,20 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         : config.gameViewMode.endsWith('Large')
         ? 2
         : 1;
+    const backgrounds = [
+      'theme',
+      'clear',
+      'black',
+      'grey',
+      'red',
+      'green',
+      'blue',
+      'purple',
+    ];
+    final backgroundIdx = backgrounds.indexOf(
+      config.gameListHighlightBackground,
+    );
+    _listBackgroundIndex = backgroundIdx >= 0 ? backgroundIdx : 0;
 
     if (config.gameViewMode == 'carousel') {
       _selectedIndex = 5;
@@ -225,7 +242,8 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         position +=
             (options[i].isCardSize ||
                 options[i].isLogoSize ||
-                options[i].isWheelSize)
+                options[i].isWheelSize ||
+                options[i].isListBackground)
             ? 32.r
             : 28.r;
       }
@@ -264,6 +282,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyWheelSize();
+    } else if (opt.isListBackground) {
+      setState(() {
+        _listBackgroundIndex = (_listBackgroundIndex - 1 + 8) % 8;
+      });
+      SfxService().playNavSound();
+      _applyListBackground();
     } else if (opt.isCardStyle) {
       setState(() {
         _cardStyleIndex = (_cardStyleIndex - 1 + 2) % 2;
@@ -295,6 +319,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyWheelSize();
+    } else if (opt.isListBackground) {
+      setState(() {
+        _listBackgroundIndex = (_listBackgroundIndex + 1) % 8;
+      });
+      SfxService().playNavSound();
+      _applyListBackground();
     } else if (opt.isCardStyle) {
       setState(() {
         _cardStyleIndex = (_cardStyleIndex + 1) % 2;
@@ -334,6 +364,22 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     configProvider.updateGameViewMode('$prefix${suffixes[_wheelSizeIndex]}');
   }
 
+  void _applyListBackground() {
+    const backgrounds = [
+      'theme',
+      'clear',
+      'black',
+      'grey',
+      'red',
+      'green',
+      'blue',
+      'purple',
+    ];
+    context.read<SqliteConfigProvider>().updateGameListHighlightBackground(
+      backgrounds[_listBackgroundIndex],
+    );
+  }
+
   void _handleSelection() {
     final List<_DropdownOption> options = _getOptions(context);
     final opt = options[_selectedIndex];
@@ -361,6 +407,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     if (opt.isWheelSize) {
       _applyWheelSize();
       Navigator.pop(context, 'wheel_size_${['S', 'M', 'L'][_wheelSizeIndex]}');
+      return;
+    }
+    if (opt.isListBackground) {
+      _applyListBackground();
       return;
     }
     Navigator.pop(context, opt.value);
@@ -438,6 +488,23 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
           Symbols.photo_size_select_large_rounded,
           group: 'WHEEL SIZE',
           isWheelSize: true,
+        ),
+      );
+    }
+
+    if (config.gameViewMode == 'list' ||
+        config.gameViewMode == 'logoList' ||
+        config.gameViewMode == 'logoListSmall' ||
+        config.gameViewMode == 'logoListLarge' ||
+        config.gameViewMode.startsWith('boxartWheel') ||
+        config.gameViewMode.startsWith('mediaWheel')) {
+      options.add(
+        _DropdownOption(
+          'list_background',
+          '',
+          Symbols.format_color_fill_rounded,
+          group: 'BACKGROUND',
+          isListBackground: true,
         ),
       );
     }
@@ -566,13 +633,26 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       if (opt.isCardSize ||
           opt.isCardStyle ||
           opt.isLogoSize ||
-          opt.isWheelSize) {
+          opt.isWheelSize ||
+          opt.isListBackground) {
         final isSize = opt.isCardSize;
         final isLogoSize = opt.isLogoSize;
         final isWheelSize = opt.isWheelSize;
+        final isListBackground = opt.isListBackground;
         final sizes = ['S', 'M', 'L', 'XL'];
         final logoSizes = ['S', 'M', 'L'];
         final styles = ['fanart', 'box'];
+        const backgrounds = [
+          'theme',
+          'clear',
+          'black',
+          'grey',
+          'red',
+          'green',
+          'blue',
+          'purple',
+        ];
+        const backgroundLabels = ['T', 'C', 'Bk', 'Gy', 'R', 'G', 'B', 'P'];
         final styleLabels = [
           AppLocale.fanartCard.getString(context),
           AppLocale.boxCard.getString(context),
@@ -592,15 +672,24 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
             : configInfo.gameViewMode.endsWith('Large')
             ? 2
             : 1;
-        final items = (isLogoSize || isWheelSize)
+        final currentBackgroundIndex = backgrounds.indexOf(
+          configInfo.gameListHighlightBackground,
+        );
+        final items = isListBackground
+            ? backgroundLabels
+            : (isLogoSize || isWheelSize)
             ? logoSizes
             : (isSize ? sizes : styleLabels);
-        final currentIdx = isWheelSize
+        final currentIdx = isListBackground
+            ? (currentBackgroundIndex >= 0 ? currentBackgroundIndex : 0)
+            : isWheelSize
             ? currentWheelSizeIndex
             : isLogoSize
             ? currentLogoSizeIndex
             : (isSize ? currentSizeIndex : currentStyleIndex);
-        final selectedIdx = isWheelSize
+        final selectedIdx = isListBackground
+            ? _listBackgroundIndex
+            : isWheelSize
             ? _wheelSizeIndex
             : isLogoSize
             ? _logoSizeIndex
@@ -660,7 +749,9 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
                           onTap: () {
                             setState(() {
                               _selectedIndex = i;
-                              if (isLogoSize) {
+                              if (isListBackground) {
+                                _listBackgroundIndex = idx;
+                              } else if (isLogoSize) {
                                 _logoSizeIndex = idx;
                               } else if (isWheelSize) {
                                 _wheelSizeIndex = idx;
@@ -671,7 +762,9 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
                               }
                             });
                             SfxService().playNavSound();
-                            if (isLogoSize) {
+                            if (isListBackground) {
+                              _applyListBackground();
+                            } else if (isLogoSize) {
                               _applyLogoSize();
                             } else if (isWheelSize) {
                               _applyWheelSize();

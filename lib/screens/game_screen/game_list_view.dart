@@ -102,9 +102,9 @@ class GameListViewState extends State<GameListView>
 
   // Constants for pixel-perfect highlight positioning.
   static const double _itemHeightBase = 26.0;
-  static const double _smallLogoItemHeightBase = 42.0;
-  static const double _mediumLogoItemHeightBase = 58.0;
-  static const double _largeLogoItemHeightBase = 72.0;
+  static const double _smallLogoItemHeightBase = 84.0;
+  static const double _mediumLogoItemHeightBase = 116.0;
+  static const double _largeLogoItemHeightBase = 144.0;
 
   /// Slack under the last row, so the list does not sit on the panel's edge.
   /// Mirrors the value the details footer keeps under its RA pill.
@@ -330,9 +330,9 @@ class GameListViewState extends State<GameListView>
       _ => _mediumLogoItemHeightBase,
     };
     final wheelItemHeight = switch (widget.wheelArtworkSize) {
-      'small' => 62.0,
-      'large' => 106.0,
-      _ => 82.0,
+      'small' => 124.0,
+      'large' => 212.0,
+      _ => 164.0,
     };
     final itemHeight =
         (widget.wheelArtworkType != null
@@ -370,7 +370,21 @@ class GameListViewState extends State<GameListView>
                   final double topPosition =
                       (currentSelection * totalItemHeight) + 2.r - scrollOffset;
 
-                  final highlightColor = theme.colorScheme.primary;
+                  final highlightBackground = context
+                      .read<SqliteConfigProvider>()
+                      .config
+                      .gameListHighlightBackground;
+                  final highlightColor = switch (highlightBackground) {
+                    'clear' => Colors.transparent,
+                    'black' => Colors.black,
+                    'grey' => Colors.grey,
+                    'red' => Colors.red,
+                    'green' => Colors.green,
+                    'blue' => Colors.blue,
+                    'purple' => Colors.purple,
+                    _ => theme.colorScheme.primary,
+                  };
+                  final clearHighlight = highlightBackground == 'clear';
 
                   return Positioned(
                     top: topPosition,
@@ -386,15 +400,17 @@ class GameListViewState extends State<GameListView>
                                 context,
                               ).extension<CornerRadii>()?.radiusInternal ??
                               BorderRadius.circular(14.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.shadow.withValues(alpha: 0.1),
-                              blurRadius: 4.r,
-                              offset: Offset(2.0.r, 2.0.r),
-                            ),
-                          ],
+                          boxShadow: clearHighlight
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.shadow.withValues(alpha: 0.1),
+                                    blurRadius: 4.r,
+                                    offset: Offset(2.0.r, 2.0.r),
+                                  ),
+                                ],
                         ),
                       ),
                     ),
@@ -655,14 +671,14 @@ class GameListViewState extends State<GameListView>
     final scale = isSelected ? 1.0 : 0.88 - (distance * 0.035);
     final inset = isSelected ? 0.0 : 8.0 + (distance * 5.0);
     final baseHeight = switch (widget.wheelArtworkSize) {
-      'small' => type == 'boxarts' ? 54.0 : 50.0,
-      'large' => type == 'boxarts' ? 98.0 : 92.0,
-      _ => type == 'boxarts' ? 76.0 : 70.0,
+      'small' => type == 'box2d' ? 108.0 : 100.0,
+      'large' => type == 'box2d' ? 196.0 : 184.0,
+      _ => type == 'box2d' ? 152.0 : 140.0,
     };
     final baseWidth = switch (widget.wheelArtworkSize) {
-      'small' => 145.0,
-      'large' => 215.0,
-      _ => 175.0,
+      'small' => 290.0,
+      'large' => 430.0,
+      _ => 350.0,
     };
 
     Widget fallback() => _buildTextLabel(game, isSelected, theme);
@@ -707,9 +723,9 @@ class GameListViewState extends State<GameListView>
         .config
         .gameViewMode;
     final logoHeight = switch (gameViewMode) {
-      'logoListSmall' => 32.0,
-      'logoListLarge' => 60.0,
-      _ => 48.0,
+      'logoListSmall' => 64.0,
+      'logoListLarge' => 120.0,
+      _ => 96.0,
     };
 
     if (wheelPath.isNotEmpty && File(wheelPath).existsSync()) {
@@ -724,7 +740,7 @@ class GameListViewState extends State<GameListView>
             File(wheelPath),
             key: ValueKey(wheelPath),
             height: logoHeight.r,
-            cacheHeight: 128,
+            cacheHeight: 256,
             fit: BoxFit.contain,
             alignment: Alignment.centerLeft,
             errorBuilder: (_, _, _) => _buildTextLabel(game, isSelected, theme),
