@@ -100,9 +100,26 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   List<_SearchEntry> get _results {
     final query = _query.text.trim().toLowerCase();
-    return _entries
-        .where((e) => '${e.title} ${e.aliases}'.toLowerCase().contains(query))
-        .toList();
+    if (query.isEmpty) return _entries;
+
+    return _entries.where((entry) {
+      // Search the same title the user actually sees. The old implementation
+      // concatenated title + aliases and used contains(), so typing a single
+      // letter could surface an Android app whose displayed name started with
+      // a completely different letter because that letter existed elsewhere.
+      if (entry.title.trim().toLowerCase().startsWith(query)) return true;
+
+      // Keep system shortcuts searchable by their short/folder/id aliases, but
+      // require an alias itself to start with the query as well.
+      if (entry.system != null) {
+        return entry.aliases
+            .toLowerCase()
+            .split(RegExp(r'\s+'))
+            .where((alias) => alias.isNotEmpty)
+            .any((alias) => alias.startsWith(query));
+      }
+      return false;
+    }).toList();
   }
 
   @override
@@ -151,6 +168,13 @@ class _SearchDialogState extends State<_SearchDialog> {
           .where(
             (g) =>
                 !g.isHidden &&
+                // On Android, installed apps are appended below from the live
+                // PackageManager scan. Do not also add the cached Android rows
+                // from the games database or stale labels can appear beside
+                // the current application label and break prefix search.
+                !(Platform.isAndroid &&
+                    widget.systemFolder == null &&
+                    g.systemFolderName == 'android') &&
                 (widget.systemFolder == null ||
                     g.systemFolderName == widget.systemFolder),
           )
