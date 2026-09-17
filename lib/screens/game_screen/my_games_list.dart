@@ -57,6 +57,7 @@ import '../../constants/system_folder_names.dart';
 import '../../utils/artwork_cache.dart';
 import '../../utils/game_list_update.dart';
 import 'package:neostation/themes/chrome_surface.dart';
+import 'package:neostation/widgets/neo_glass.dart';
 import '../../themes/corner_radii.dart';
 
 part 'my_games_list/gamepad_nav.dart';
@@ -1523,41 +1524,25 @@ class _SystemGamesListState extends State<SystemGamesList> {
               curve: Curves.easeOutCubic,
               width: 200.r,
               margin: EdgeInsets.only(left: 12.r, top: 12.r, bottom: 12.r),
-              decoration: useMarqueeLogos
-                  ? null
-                  : BoxDecoration(
-                      // A horizontal wash rather than a flat fill: the panel stays
-                      // opaque where the row text sits and thins out towards its
-                      // right edge, so the fanart bleeds through and it reads as a
-                      // pane laid over the artwork instead of a cut-out block.
-                      gradient: ChromeSurface.fade(context),
+              // Marquee logos remain unframed; the normal list adopts the
+              // upstream NeoGlass pane over the fanart.
+              child: useMarqueeLogos
+                  ? ClipRRect(
                       borderRadius:
                           Theme.of(
                             context,
-                          ).extension<CornerRadii>()?.radiusExternal ??
-                          BorderRadius.circular(14.r),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outline,
-                        width: 1.r,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(
+                          ).extension<CornerRadii>()?.radiusInternal ??
+                          BorderRadius.circular(9.r),
+                      child: _buildGamesListPanel(useMarqueeLogos: true),
+                    )
+                  : NeoGlass(
+                      cornerRadius:
+                          Theme.of(
                             context,
-                          ).colorScheme.shadow.withValues(alpha: 0.5),
-                          blurRadius: 3.r,
-                          offset: Offset(2.r, 2.r),
-                        ),
-                      ],
+                          ).extension<CornerRadii>()?.radiusExternalRadius ??
+                          14.r,
+                      child: _buildGamesListPanel(),
                     ),
-              child: ClipRRect(
-                borderRadius:
-                    Theme.of(
-                      context,
-                    ).extension<CornerRadii>()?.radiusInternal ??
-                    BorderRadius.circular(9.r),
-                child: _buildGamesListPanel(useMarqueeLogos: useMarqueeLogos),
-              ),
             ),
             // Main Viewport: Rich metadata, video previews, and launch controls.
             Expanded(child: _buildGameDetailsPanel()),

@@ -1958,7 +1958,10 @@ class SqliteService {
         show_achievements_badge INTEGER DEFAULT 0,
         show_cloud_sync_icon INTEGER DEFAULT 1,
         ra_match_on_startup INTEGER DEFAULT 0,
-        subfolder_view_all INTEGER DEFAULT 0
+        subfolder_view_all INTEGER DEFAULT 0,
+        neoglass_blur INTEGER DEFAULT 0,
+        neoglass_transparency INTEGER DEFAULT 10,
+        neoglass_border_width REAL DEFAULT 2
       );
       ''',
       '''
@@ -2784,6 +2787,9 @@ class SqliteService {
     int? showCloudSyncIcon,
     int? raMatchOnStartup,
     int? subfolderViewAll,
+    int? neoglassBlur,
+    int? neoglassTransparency,
+    double? neoglassBorderWidth,
   }) async {
     final db = await instance.database;
 
@@ -2929,6 +2935,15 @@ class SqliteService {
     }
     if (subfolderViewAll != null) {
       updates['subfolder_view_all'] = subfolderViewAll;
+    }
+    if (neoglassBlur != null) {
+      updates['neoglass_blur'] = neoglassBlur;
+    }
+    if (neoglassTransparency != null) {
+      updates['neoglass_transparency'] = neoglassTransparency;
+    }
+    if (neoglassBorderWidth != null) {
+      updates['neoglass_border_width'] = neoglassBorderWidth;
     }
 
     if (showAchievementsBadge != null) {

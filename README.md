@@ -240,14 +240,12 @@ If you discover a security vulnerability, please follow the instructions in [`SE
 ### Lead
 
 - **@misobadev**
-  - Ko-fi: https://ko-fi.com/neostation
 
 ### Official Co-Maintainers
 
 - **@androosio**
-  - Ko-fi: https://ko-fi.com/androosio
 
-### Official Collaborators
+### Official Community Manager
 
 - **@ItsRetroPup**
   - Ko-fi: https://ko-fi.com/retropup84752

@@ -6961,9 +6961,14 @@ class SqliteMigrations {
     }
   }
 
-  /// Migration v157: Adds the saved secondary-screen browsing media choice.
+  /// Migration v157: Adds the saved secondary-screen browsing media choice
+  /// and the NeoGlass frosted-glass appearance columns to `user_config`.
+  ///
+  /// Idempotent — each column is added only when absent, allowing builds that
+  /// previously ran either branch's v157 migration to safely add the other
+  /// branch's columns.
   static Future<void> _migrateToVersion157(Database db) async {
-    _log.i('Migration v157: Adding secondary_media_mode to user_config');
+    _log.i('Migration v157: Adding secondary media and NeoGlass columns');
     try {
       final tableInfo = db.select('PRAGMA table_info(user_config)');
       final columns = tableInfo.map((c) => c['name'].toString()).toList();
@@ -6975,6 +6980,32 @@ class SqliteMigrations {
         _log.i('Column secondary_media_mode added via v157');
       } else {
         _log.i('Column secondary_media_mode already exists');
+      }
+      if (!columns.contains('neoglass_blur')) {
+        db.execute(
+          'ALTER TABLE user_config ADD COLUMN neoglass_blur INTEGER DEFAULT 0',
+        );
+        _log.i('Column neoglass_blur added via v157');
+      } else {
+        _log.i('Column neoglass_blur already exists');
+      }
+      if (!columns.contains('neoglass_transparency')) {
+        db.execute(
+          'ALTER TABLE user_config ADD COLUMN neoglass_transparency '
+          'INTEGER DEFAULT 10',
+        );
+        _log.i('Column neoglass_transparency added via v157');
+      } else {
+        _log.i('Column neoglass_transparency already exists');
+      }
+      if (!columns.contains('neoglass_border_width')) {
+        db.execute(
+          'ALTER TABLE user_config ADD COLUMN neoglass_border_width '
+          'REAL DEFAULT 2',
+        );
+        _log.i('Column neoglass_border_width added via v157');
+      } else {
+        _log.i('Column neoglass_border_width already exists');
       }
       _log.i('Migration v157 completed');
     } catch (e, stackTrace) {

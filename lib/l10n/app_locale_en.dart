@@ -72,6 +72,17 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.recentCardSizeDefault: 'Default',
   AppLocale.recentCardSize2x1: 'Compact',
   AppLocale.themesSubtitle: 'Personalize the appearance of your NeoStation',
+  AppLocale.neoglassGroup: 'NeoGlass',
+  AppLocale.neoglassBlur: 'Glass Blur',
+  AppLocale.neoglassBlurSubtitle: 'Frost strength: Off, 1 or 2',
+  AppLocale.neoglassBlurOff: 'Off',
+  AppLocale.neoglassBlurGpuWarning:
+      'Only enable on a powerful GPU — on low-end hardware the frosted blur may not stay smooth.',
+  AppLocale.neoglassTransparency: 'Glass Transparency',
+  AppLocale.neoglassTransparencySubtitle:
+      '0 = no transparency, 30 = 50% transparency',
+  AppLocale.neoglassBorderWidth: 'Glass Border',
+  AppLocale.neoglassBorderWidthSubtitle: 'Width of the glass edge',
   AppLocale.systemTheme: 'System',
   AppLocale.importTheme: 'Import Theme',
   AppLocale.importThemeSuccess: 'Imported "%s"',
@@ -294,6 +305,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.raFixMatchUseAutomatic: 'Use automatic matching',
   AppLocale.raFixMatchUpdated: 'Game match updated.',
   AppLocale.raFixMatchAchievements: '{count} achievements',
+  AppLocale.raHash: 'RA hash',
   AppLocale.notifications: 'Notifications',
   AppLocale.clearAll: 'Clear all',
   AppLocale.noActiveNotifications: 'No active notifications',
@@ -985,6 +997,10 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.folderNotEmptyBody:
       'This folder already contains {count} item(s). NeoStation will store its own data here, alongside the existing contents.',
   AppLocale.folderNotEmptyUseAnyway: 'Use Anyway',
+  AppLocale.userDataFolderNotWritable:
+      "Can't write to this folder. Pick another one, or keep the default location.",
+  AppLocale.userDataFolderGrantAllFiles:
+      "To use this folder, allow All files access for NeoStation in Android Settings → Apps → Special app access → All files access, then pick it again.",
   AppLocale.moveUserDataTitle: 'Move User Data?',
   AppLocale.moveUserDataBody:
       'NeoStation will move its own data — database, scraped media, and settings — from the current folder to the new one. Files not created by NeoStation are left untouched.',
@@ -1049,6 +1065,13 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.rommNoRoms: 'No ROMs found',
   AppLocale.rommSearch: 'Search',
   AppLocale.rommSearching: 'Searching RomM...',
+  AppLocale.rommSearchHint: 'Search this platform',
+  AppLocale.rommSearchCollectionHint: 'Search this collection',
+  AppLocale.rommSearchResultCount: '{count} results',
+  AppLocale.rommSearchResultCountOne: '1 result',
+  AppLocale.rommSearchResultCountMore: '{count}+ results',
+  AppLocale.rommSearchNoResults: 'No results for {term}',
+  AppLocale.rommSearchClear: 'Clear search',
   AppLocale.rommDownloading: 'Downloading...',
   AppLocale.rommDownloaded: 'Downloaded',
   AppLocale.rommDownloadComplete: 'Download complete',
@@ -1137,6 +1160,9 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.raCouldNotResolveLocalSystem:
       'Could not resolve the local system for this game',
   AppLocale.raMissable: 'MISSABLE',
+  AppLocale.raFilterLocked: 'Locked',
+  AppLocale.raFilterMissables: 'Missables',
+  AppLocale.raNoAchievementsForFilter: 'No achievements match this filter.',
   AppLocale.raComments: 'COMMENTS',
   AppLocale.raCommentsCouldNotLoad: 'Comments could not be loaded.',
   AppLocale.raNoCommentsYet: 'No comments yet.',
@@ -1165,6 +1191,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.raAotwOpenLocalGame: 'Open local game',
   AppLocale.raAotwDownloadFromRomm: 'Download from RomM',
   AppLocale.raGamesPlayed: '{count} games played',
+  AppLocale.raGamesBeaten: '{count} games beaten',
   AppLocale.raAchievementProgress: '{earned}/{total} achievements',
   AppLocale.raRecent30Days: '30 days',
 

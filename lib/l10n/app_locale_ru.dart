@@ -73,6 +73,17 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.recentCardSizeDefault: 'По умолчанию',
   AppLocale.recentCardSize2x1: 'Компактно',
   AppLocale.themesSubtitle: 'Персонализируйте внешний вид вашей NeoStation',
+  AppLocale.neoglassGroup: 'NeoGlass',
+  AppLocale.neoglassBlur: 'Размытие стекла',
+  AppLocale.neoglassBlurSubtitle: 'Сила размытия: Выкл, 1 или 2',
+  AppLocale.neoglassBlurOff: 'Выкл',
+  AppLocale.neoglassBlurGpuWarning:
+      'Включайте только на мощном GPU — на слабом железе матовое размытие может не оставаться плавным.',
+  AppLocale.neoglassTransparency: 'Прозрачность стекла',
+  AppLocale.neoglassTransparencySubtitle:
+      '0 = без прозрачности, 30 = 50% прозрачности',
+  AppLocale.neoglassBorderWidth: 'Рамка стекла',
+  AppLocale.neoglassBorderWidthSubtitle: 'Толщина края стекла',
   AppLocale.systemTheme: 'Системная',
   AppLocale.importTheme: 'Импорт темы',
   AppLocale.importThemeSuccess: 'Тема «%s» импортирована',
@@ -300,6 +311,7 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.raFixMatchUseAutomatic: 'Использовать автоматическое сопоставление',
   AppLocale.raFixMatchUpdated: 'Сопоставление обновлено.',
   AppLocale.raFixMatchAchievements: 'достижений: {count}',
+  AppLocale.raHash: 'Хеш RA',
   AppLocale.notifications: 'Уведомления',
   AppLocale.clearAll: 'Очистить все',
   AppLocale.noActiveNotifications: 'Нет активных уведомлений',
@@ -987,6 +999,10 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.folderNotEmptyBody:
       'Эта папка уже содержит {count} элемент(ов). NeoStation будет хранить свои данные здесь, рядом с существующим содержимым.',
   AppLocale.folderNotEmptyUseAnyway: 'Всё равно использовать',
+  AppLocale.userDataFolderNotWritable:
+      "Не удаётся записать в эту папку. Выберите другую или оставьте расположение по умолчанию.",
+  AppLocale.userDataFolderGrantAllFiles:
+      "Чтобы использовать эту папку, разрешите NeoStation доступ ко всем файлам в настройках Android → Приложения → Специальный доступ → Доступ ко всем файлам, затем выберите её снова.",
   AppLocale.moveUserDataTitle: 'Переместить данные пользователя?',
   AppLocale.moveUserDataBody:
       'NeoStation переместит свои данные (базу данных, загруженные медиа и настройки) из текущей папки в новую. Файлы, созданные не NeoStation, останутся нетронутыми.',
@@ -1055,6 +1071,13 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.rommNoRoms: 'ROM не найдены',
   AppLocale.rommSearch: 'Поиск',
   AppLocale.rommSearching: 'Поиск в RomM...',
+  AppLocale.rommSearchHint: 'Поиск по этой платформе',
+  AppLocale.rommSearchCollectionHint: 'Поиск по этой коллекции',
+  AppLocale.rommSearchResultCount: 'Результатов: {count}',
+  AppLocale.rommSearchResultCountOne: '1 результат',
+  AppLocale.rommSearchResultCountMore: 'Результатов: {count}+',
+  AppLocale.rommSearchNoResults: 'Ничего не найдено по запросу {term}',
+  AppLocale.rommSearchClear: 'Очистить поиск',
   AppLocale.rommDownloading: 'Загрузка...',
   AppLocale.rommDownloaded: 'Загружено',
   AppLocale.rommDownloadComplete: 'Загрузка завершена',
@@ -1147,6 +1170,10 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.raCouldNotResolveLocalSystem:
       'Не удалось определить локальную систему для этой игры',
   AppLocale.raMissable: 'МОЖНО ПРОПУСТИТЬ',
+  AppLocale.raFilterLocked: 'Заблокированные',
+  AppLocale.raFilterMissables: 'Пропускаемые',
+  AppLocale.raNoAchievementsForFilter:
+      'Нет достижений, соответствующих этому фильтру.',
   AppLocale.raComments: 'КОММЕНТАРИИ',
   AppLocale.raCommentsCouldNotLoad: 'Не удалось загрузить комментарии.',
   AppLocale.raNoCommentsYet: 'Пока нет комментариев.',
@@ -1175,6 +1202,7 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.raAotwOpenLocalGame: 'Открыть локальную игру',
   AppLocale.raAotwDownloadFromRomm: 'Скачать из RomM',
   AppLocale.raGamesPlayed: 'Сыграно игр: {count}',
+  AppLocale.raGamesBeaten: 'Пройдено игр: {count}',
   AppLocale.raAchievementProgress: 'Достижения: {earned}/{total}',
   AppLocale.raRecent30Days: '30 дней',
 

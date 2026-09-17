@@ -1011,6 +1011,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
                             : null,
                         onRefresh: refreshAchievements,
                         onFixMatch: _openMatchPicker,
+                        raHash: _game.raHash,
                       ),
                     ),
                 ],

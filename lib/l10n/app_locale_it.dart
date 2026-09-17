@@ -73,6 +73,17 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.recentCardSizeDefault: 'Predefinita',
   AppLocale.recentCardSize2x1: 'Compatta',
   AppLocale.themesSubtitle: "Personalizza l'aspetto di NeoStation",
+  AppLocale.neoglassGroup: 'NeoGlass',
+  AppLocale.neoglassBlur: 'Sfocatura del vetro',
+  AppLocale.neoglassBlurSubtitle: 'Intensità sfocatura: Off, 1 o 2',
+  AppLocale.neoglassBlurOff: 'Off',
+  AppLocale.neoglassBlurGpuWarning:
+      'Attiva solo su una GPU potente — su hardware di fascia bassa la sfocatura ghiacciata può non restare fluida.',
+  AppLocale.neoglassTransparency: 'Trasparenza del vetro',
+  AppLocale.neoglassTransparencySubtitle:
+      '0 = nessuna trasparenza, 30 = 50% di trasparenza',
+  AppLocale.neoglassBorderWidth: 'Bordo del vetro',
+  AppLocale.neoglassBorderWidthSubtitle: 'Spessore del bordo del vetro',
   AppLocale.systemTheme: 'Tema di Sistema',
   AppLocale.importTheme: 'Importa tema',
   AppLocale.importThemeSuccess: 'Tema "%s" importato',
@@ -304,6 +315,7 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.raFixMatchUseAutomatic: 'Usa abbinamento automatico',
   AppLocale.raFixMatchUpdated: 'Abbinamento aggiornato.',
   AppLocale.raFixMatchAchievements: '{count} obiettivi',
+  AppLocale.raHash: 'Hash RA',
   AppLocale.notifications: 'Notifiche',
   AppLocale.clearAll: 'Cancella tutto',
   AppLocale.noActiveNotifications: 'Nessuna notifica attiva',
@@ -1014,6 +1026,10 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.folderNotEmptyBody:
       'Questa cartella contiene già {count} elemento/i. NeoStation memorizzerà qui i propri dati, insieme ai contenuti esistenti.',
   AppLocale.folderNotEmptyUseAnyway: 'Usa comunque',
+  AppLocale.userDataFolderNotWritable:
+      "Impossibile scrivere in questa cartella. Scegline un'altra o mantieni la posizione predefinita.",
+  AppLocale.userDataFolderGrantAllFiles:
+      "Per usare questa cartella, consenti l'accesso a tutti i file per NeoStation in Impostazioni Android → App → Accesso speciale app → Accesso a tutti i file, poi selezionala di nuovo.",
   AppLocale.moveUserDataTitle: 'Spostare i dati utente?',
   AppLocale.moveUserDataBody:
       'NeoStation sposterà i propri dati (database, media recuperati e impostazioni) dalla cartella attuale a quella nuova. I file non creati da NeoStation restano invariati.',
@@ -1082,6 +1098,13 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.rommNoRoms: 'Nessuna ROM trovata',
   AppLocale.rommSearch: 'Cerca',
   AppLocale.rommSearching: 'Ricerca in RomM...',
+  AppLocale.rommSearchHint: 'Cerca in questa piattaforma',
+  AppLocale.rommSearchCollectionHint: 'Cerca in questa raccolta',
+  AppLocale.rommSearchResultCount: '{count} risultati',
+  AppLocale.rommSearchResultCountOne: '1 risultato',
+  AppLocale.rommSearchResultCountMore: '{count}+ risultati',
+  AppLocale.rommSearchNoResults: 'Nessun risultato per {term}',
+  AppLocale.rommSearchClear: 'Cancella ricerca',
   AppLocale.rommDownloading: 'Download in corso...',
   AppLocale.rommDownloaded: 'Scaricato',
   AppLocale.rommDownloadComplete: 'Download completato',
@@ -1176,6 +1199,10 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.raCouldNotResolveLocalSystem:
       'Impossibile determinare il sistema locale per questo gioco',
   AppLocale.raMissable: 'PERDIBILE',
+  AppLocale.raFilterLocked: 'Bloccati',
+  AppLocale.raFilterMissables: 'Perdibili',
+  AppLocale.raNoAchievementsForFilter:
+      'Nessun obiettivo corrisponde a questo filtro.',
   AppLocale.raComments: 'COMMENTI',
   AppLocale.raCommentsCouldNotLoad: 'Impossibile caricare i commenti.',
   AppLocale.raNoCommentsYet: 'Nessun commento ancora.',
@@ -1205,6 +1232,7 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.raAotwOpenLocalGame: 'Apri gioco locale',
   AppLocale.raAotwDownloadFromRomm: 'Scarica da RomM',
   AppLocale.raGamesPlayed: '{count} giochi giocati',
+  AppLocale.raGamesBeaten: '{count} giochi completati',
   AppLocale.raAchievementProgress: '{earned}/{total} obiettivi',
   AppLocale.raRecent30Days: '30 giorni',
 
