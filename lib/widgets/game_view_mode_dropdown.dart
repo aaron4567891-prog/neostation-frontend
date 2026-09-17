@@ -68,6 +68,10 @@ class GameViewModeDropdownState extends State<GameViewModeDropdown> {
           _ => 'logoList',
         };
         await configProvider.updateGameViewMode(mode);
+      } else if (result == 'view_boxart_wheel') {
+        await configProvider.updateGameViewMode('boxartWheel');
+      } else if (result == 'view_media_wheel') {
+        await configProvider.updateGameViewMode('mediaWheel');
       } else if (result == 'view_grid') {
         await configProvider.updateGameViewMode('grid');
       } else if (result == 'view_carousel') {
@@ -96,6 +100,7 @@ class _DropdownOption {
   final bool isCardSize;
   final bool isCardStyle;
   final bool isLogoSize;
+  final bool isWheelSize;
 
   _DropdownOption(
     this.value,
@@ -105,6 +110,7 @@ class _DropdownOption {
     this.isCardSize = false,
     this.isCardStyle = false,
     this.isLogoSize = false,
+    this.isWheelSize = false,
   });
 }
 
@@ -130,6 +136,7 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
   int _cardSizeIndex = 1;
   int _cardStyleIndex = 0;
   int _logoSizeIndex = 1;
+  int _wheelSizeIndex = 1;
 
   @override
   void initState() {
@@ -148,10 +155,19 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       'logoListLarge' => 2,
       _ => 1,
     };
+    _wheelSizeIndex = config.gameViewMode.endsWith('Small')
+        ? 0
+        : config.gameViewMode.endsWith('Large')
+        ? 2
+        : 1;
 
     if (config.gameViewMode == 'carousel') {
-      _selectedIndex = 3;
+      _selectedIndex = 5;
     } else if (config.gameViewMode == 'grid') {
+      _selectedIndex = 4;
+    } else if (config.gameViewMode.startsWith('mediaWheel')) {
+      _selectedIndex = 3;
+    } else if (config.gameViewMode.startsWith('boxartWheel')) {
       _selectedIndex = 2;
     } else if (config.gameViewMode == 'logoList' ||
         config.gameViewMode == 'logoListSmall' ||
@@ -206,7 +222,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
           position += 16.r;
           if (i > 0) position += 4.r;
         }
-        position += (options[i].isCardSize || options[i].isLogoSize)
+        position +=
+            (options[i].isCardSize ||
+                options[i].isLogoSize ||
+                options[i].isWheelSize)
             ? 32.r
             : 28.r;
       }
@@ -239,6 +258,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyLogoSize();
+    } else if (opt.isWheelSize) {
+      setState(() {
+        _wheelSizeIndex = (_wheelSizeIndex - 1 + 3) % 3;
+      });
+      SfxService().playNavSound();
+      _applyWheelSize();
     } else if (opt.isCardStyle) {
       setState(() {
         _cardStyleIndex = (_cardStyleIndex - 1 + 2) % 2;
@@ -264,6 +289,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyLogoSize();
+    } else if (opt.isWheelSize) {
+      setState(() {
+        _wheelSizeIndex = (_wheelSizeIndex + 1) % 3;
+      });
+      SfxService().playNavSound();
+      _applyWheelSize();
     } else if (opt.isCardStyle) {
       setState(() {
         _cardStyleIndex = (_cardStyleIndex + 1) % 2;
@@ -293,6 +324,16 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     configProvider.updateGameViewMode(modes[_logoSizeIndex]);
   }
 
+  void _applyWheelSize() {
+    final configProvider = context.read<SqliteConfigProvider>();
+    final current = configProvider.config.gameViewMode;
+    final prefix = current.startsWith('mediaWheel')
+        ? 'mediaWheel'
+        : 'boxartWheel';
+    final suffixes = ['Small', '', 'Large'];
+    configProvider.updateGameViewMode('$prefix${suffixes[_wheelSizeIndex]}');
+  }
+
   void _handleSelection() {
     final List<_DropdownOption> options = _getOptions(context);
     final opt = options[_selectedIndex];
@@ -315,6 +356,11 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     if (opt.isLogoSize) {
       _applyLogoSize();
       Navigator.pop(context, 'logo_size_${['S', 'M', 'L'][_logoSizeIndex]}');
+      return;
+    }
+    if (opt.isWheelSize) {
+      _applyWheelSize();
+      Navigator.pop(context, 'wheel_size_${['S', 'M', 'L'][_wheelSizeIndex]}');
       return;
     }
     Navigator.pop(context, opt.value);
@@ -344,6 +390,18 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         group: AppLocale.viewModeGroup.getString(context),
       ),
       _DropdownOption(
+        'view_boxart_wheel',
+        'Box Art Wheel',
+        Symbols.view_carousel_rounded,
+        group: AppLocale.viewModeGroup.getString(context),
+      ),
+      _DropdownOption(
+        'view_media_wheel',
+        'Physical Media Wheel',
+        Symbols.album_rounded,
+        group: AppLocale.viewModeGroup.getString(context),
+      ),
+      _DropdownOption(
         'view_grid',
         AppLocale.gridView.getString(context),
         Symbols.grid_view_rounded,
@@ -367,6 +425,19 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
           Symbols.image_rounded,
           group: 'LOGO SIZE',
           isLogoSize: true,
+        ),
+      );
+    }
+
+    if (config.gameViewMode.startsWith('boxartWheel') ||
+        config.gameViewMode.startsWith('mediaWheel')) {
+      options.add(
+        _DropdownOption(
+          'wheel_size',
+          '',
+          Symbols.photo_size_select_large_rounded,
+          group: 'WHEEL SIZE',
+          isWheelSize: true,
         ),
       );
     }
@@ -492,9 +563,13 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
         currentGroup = opt.group;
       }
 
-      if (opt.isCardSize || opt.isCardStyle || opt.isLogoSize) {
+      if (opt.isCardSize ||
+          opt.isCardStyle ||
+          opt.isLogoSize ||
+          opt.isWheelSize) {
         final isSize = opt.isCardSize;
         final isLogoSize = opt.isLogoSize;
+        final isWheelSize = opt.isWheelSize;
         final sizes = ['S', 'M', 'L', 'XL'];
         final logoSizes = ['S', 'M', 'L'];
         final styles = ['fanart', 'box'];
@@ -512,11 +587,22 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
           'logoListLarge' => 2,
           _ => 1,
         };
-        final items = isLogoSize ? logoSizes : (isSize ? sizes : styleLabels);
-        final currentIdx = isLogoSize
+        final currentWheelSizeIndex = configInfo.gameViewMode.endsWith('Small')
+            ? 0
+            : configInfo.gameViewMode.endsWith('Large')
+            ? 2
+            : 1;
+        final items = (isLogoSize || isWheelSize)
+            ? logoSizes
+            : (isSize ? sizes : styleLabels);
+        final currentIdx = isWheelSize
+            ? currentWheelSizeIndex
+            : isLogoSize
             ? currentLogoSizeIndex
             : (isSize ? currentSizeIndex : currentStyleIndex);
-        final selectedIdx = isLogoSize
+        final selectedIdx = isWheelSize
+            ? _wheelSizeIndex
+            : isLogoSize
             ? _logoSizeIndex
             : (isSize ? _cardSizeIndex : _cardStyleIndex);
         final isFocused = i == _selectedIndex;
@@ -576,6 +662,8 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
                               _selectedIndex = i;
                               if (isLogoSize) {
                                 _logoSizeIndex = idx;
+                              } else if (isWheelSize) {
+                                _wheelSizeIndex = idx;
                               } else if (isSize) {
                                 _cardSizeIndex = idx;
                               } else {
@@ -585,6 +673,8 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
                             SfxService().playNavSound();
                             if (isLogoSize) {
                               _applyLogoSize();
+                            } else if (isWheelSize) {
+                              _applyWheelSize();
                             } else if (isSize) {
                               _applyCardSize();
                             } else {
@@ -638,6 +728,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
             config.gameViewMode == 'logoList' ||
             config.gameViewMode == 'logoListSmall' ||
             config.gameViewMode == 'logoListLarge';
+      } else if (opt.value == 'view_boxart_wheel') {
+        isSelected = config.gameViewMode.startsWith('boxartWheel');
+      } else if (opt.value == 'view_media_wheel') {
+        isSelected = config.gameViewMode.startsWith('mediaWheel');
       } else if (opt.value == 'view_grid') {
         isSelected = config.gameViewMode == 'grid';
       } else if (opt.value == 'view_carousel') {

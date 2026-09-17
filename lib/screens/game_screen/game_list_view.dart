@@ -49,6 +49,11 @@ class GameListView extends StatefulWidget {
   final bool isNavigatingFast;
   final VoidCallback? onGamepadReactivated;
   final bool useMarqueeLogos;
+
+  /// When set, rows become an artwork wheel using this scraped media folder
+  /// (for example `boxarts` or `media`).
+  final String? wheelArtworkType;
+  final String wheelArtworkSize;
   final FileProvider? fileProvider;
 
   /// Subfolder navigation: the first [folderCount] entries of [games] are folder
@@ -75,6 +80,8 @@ class GameListView extends StatefulWidget {
     this.isNavigatingFast = false,
     this.onGamepadReactivated,
     this.useMarqueeLogos = false,
+    this.wheelArtworkType,
+    this.wheelArtworkSize = 'medium',
     this.fileProvider,
     this.folderCount = 0,
     this.folderEntries = const [],
@@ -322,8 +329,18 @@ class GameListViewState extends State<GameListView>
       'logoListLarge' => _largeLogoItemHeightBase,
       _ => _mediumLogoItemHeightBase,
     };
+    final wheelItemHeight = switch (widget.wheelArtworkSize) {
+      'small' => 62.0,
+      'large' => 106.0,
+      _ => 82.0,
+    };
     final itemHeight =
-        (widget.useMarqueeLogos ? logoItemHeightBase : _itemHeightBase).r;
+        (widget.wheelArtworkType != null
+                ? wheelItemHeight
+                : widget.useMarqueeLogos
+                ? logoItemHeightBase
+                : _itemHeightBase)
+            .r;
     final totalItemHeight = itemHeight;
     _centeredScrollController.setItemExtent(totalItemHeight, paddingTop: 2.r);
 
@@ -455,7 +472,14 @@ class GameListViewState extends State<GameListView>
                                   ),
                                 Expanded(
                                   child: RepaintBoundary(
-                                    child: widget.useMarqueeLogos
+                                    child: widget.wheelArtworkType != null
+                                        ? _buildArtworkWheelItem(
+                                            game,
+                                            index,
+                                            isSelected,
+                                            theme,
+                                          )
+                                        : widget.useMarqueeLogos
                                         ? _buildGameLogo(
                                             game,
                                             isSelected,
@@ -610,6 +634,64 @@ class GameListViewState extends State<GameListView>
       // only answer available.
       return widget.system;
     }
+  }
+
+  /// Renders box art or physical media as a vertical wheel. The selected
+  /// game sits largest and furthest left; nearby entries progressively tuck
+  /// inward to create a console-style curved wheel silhouette.
+  Widget _buildArtworkWheelItem(
+    GameModel game,
+    int index,
+    bool isSelected,
+    ThemeData theme,
+  ) {
+    final system = _effectiveSystemFor(game);
+    final folder = system.primaryFolderName.isNotEmpty
+        ? system.primaryFolderName
+        : system.folderName;
+    final type = widget.wheelArtworkType!;
+    final artworkPath = game.getImagePath(folder, type, widget.fileProvider);
+    final distance = (index - widget.selectedIndex).abs().clamp(0, 4);
+    final scale = isSelected ? 1.0 : 0.88 - (distance * 0.035);
+    final inset = isSelected ? 0.0 : 8.0 + (distance * 5.0);
+    final baseHeight = switch (widget.wheelArtworkSize) {
+      'small' => type == 'boxarts' ? 54.0 : 50.0,
+      'large' => type == 'boxarts' ? 98.0 : 92.0,
+      _ => type == 'boxarts' ? 76.0 : 70.0,
+    };
+    final baseWidth = switch (widget.wheelArtworkSize) {
+      'small' => 145.0,
+      'large' => 215.0,
+      _ => 175.0,
+    };
+
+    Widget fallback() => _buildTextLabel(game, isSelected, theme);
+    if (artworkPath.isEmpty || !File(artworkPath).existsSync()) {
+      return fallback();
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(left: inset.r, right: 4.r),
+      alignment: Alignment.centerLeft,
+      child: AnimatedScale(
+        scale: scale,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.centerLeft,
+        child: Image.file(
+          File(artworkPath),
+          key: ValueKey('${type}_${game.romPath ?? game.romname}'),
+          height: baseHeight.r,
+          width: baseWidth.r,
+          fit: BoxFit.contain,
+          alignment: Alignment.centerLeft,
+          cacheHeight: 256,
+          errorBuilder: (_, _, _) => fallback(),
+        ),
+      ),
+    );
   }
 
   /// Shows the scraped wheel/marquee in place of the game's text title.

@@ -967,6 +967,38 @@ class _SystemGamesListState extends State<SystemGamesList> {
                           } else if (configProvider.config.gameViewMode ==
                               'carousel') {
                             return _buildGamesCarousel();
+                          } else if (configProvider.config.gameViewMode
+                              .startsWith('boxartWheel')) {
+                            final size =
+                                configProvider.config.gameViewMode.endsWith(
+                                  'Small',
+                                )
+                                ? 'small'
+                                : configProvider.config.gameViewMode.endsWith(
+                                    'Large',
+                                  )
+                                ? 'large'
+                                : 'medium';
+                            return _buildGamesList(
+                              wheelArtworkType: 'boxarts',
+                              wheelArtworkSize: size,
+                            );
+                          } else if (configProvider.config.gameViewMode
+                              .startsWith('mediaWheel')) {
+                            final size =
+                                configProvider.config.gameViewMode.endsWith(
+                                  'Small',
+                                )
+                                ? 'small'
+                                : configProvider.config.gameViewMode.endsWith(
+                                    'Large',
+                                  )
+                                ? 'large'
+                                : 'medium';
+                            return _buildGamesList(
+                              wheelArtworkType: 'media',
+                              wheelArtworkSize: size,
+                            );
                           } else if (configProvider.config.gameViewMode ==
                                   'logoList' ||
                               configProvider.config.gameViewMode ==
@@ -1483,7 +1515,11 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// Divides the viewport into a specialized browsing panel (left) and a detailed
   /// info/preview panel (right). The selected game's fanart is rendered behind
   /// the entire viewport so it peeks through both panels.
-  Widget _buildGamesList({bool useMarqueeLogos = false}) {
+  Widget _buildGamesList({
+    bool useMarqueeLogos = false,
+    String? wheelArtworkType,
+    String wheelArtworkSize = 'medium',
+  }) {
     final isMusic = widget.system.folderName == 'music';
 
     return Stack(
@@ -1522,18 +1558,22 @@ class _SystemGamesListState extends State<SystemGamesList> {
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
-              width: 200.r,
+              width: wheelArtworkType == null ? 200.r : 230.r,
               margin: EdgeInsets.only(left: 12.r, top: 12.r, bottom: 12.r),
               // Marquee logos remain unframed; the normal list adopts the
               // upstream NeoGlass pane over the fanart.
-              child: useMarqueeLogos
+              child: (useMarqueeLogos || wheelArtworkType != null)
                   ? ClipRRect(
                       borderRadius:
                           Theme.of(
                             context,
                           ).extension<CornerRadii>()?.radiusInternal ??
                           BorderRadius.circular(9.r),
-                      child: _buildGamesListPanel(useMarqueeLogos: true),
+                      child: _buildGamesListPanel(
+                        useMarqueeLogos: useMarqueeLogos,
+                        wheelArtworkType: wheelArtworkType,
+                        wheelArtworkSize: wheelArtworkSize,
+                      ),
                     )
                   : NeoGlass(
                       cornerRadius:
@@ -1610,7 +1650,11 @@ class _SystemGamesListState extends State<SystemGamesList> {
     );
   }
 
-  Widget _buildGamesListPanel({bool useMarqueeLogos = false}) {
+  Widget _buildGamesListPanel({
+    bool useMarqueeLogos = false,
+    String? wheelArtworkType,
+    String wheelArtworkSize = 'medium',
+  }) {
     return Column(
       children: [
         Expanded(
@@ -1650,6 +1694,8 @@ class _SystemGamesListState extends State<SystemGamesList> {
                   onFolderActivated: _descendToFolderIndex,
                   selectedItemKey: _selectedItemKey,
                   useMarqueeLogos: useMarqueeLogos,
+                  wheelArtworkType: wheelArtworkType,
+                  wheelArtworkSize: wheelArtworkSize,
                   fileProvider: _fileProvider,
                 ),
         ),
