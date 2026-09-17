@@ -1145,7 +1145,13 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                     // All Android apps are now treated the same
                     val isGame = false
 
-                    val label = resolveInfo.loadLabel(pm).toString()
+                    // Use the package-level application label rather than the
+                    // individual launcher activity label. Some emulator packages
+                    // expose launcher activities named things like "Settings";
+                    // using that activity label makes prefix search put the app
+                    // under S even when the actual app name starts with another
+                    // letter.
+                    val label = pm.getApplicationLabel(appInfo).toString()
 
                     // Only name+package are consumed by the dock/picker on the
                     // Dart side, so we deliberately skip the extra per-app
