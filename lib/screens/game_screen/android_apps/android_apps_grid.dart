@@ -123,7 +123,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
           _allApps = apps;
           final query = _searchController.text.trim().toLowerCase();
           _apps = apps
-              .where((app) => app.name.toLowerCase().contains(query))
+              .where((app) => app.name.toLowerCase().startsWith(query))
               .toList();
           _selectedIndex = 0;
           _isLoading = false;
@@ -514,7 +514,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
     final query = value.trim().toLowerCase();
     setState(() {
       _apps = _allApps
-          .where((app) => app.name.toLowerCase().contains(query))
+          .where((app) => app.name.toLowerCase().startsWith(query))
           .toList();
       _selectedIndex = 0;
       _isNavigatingFast = false;

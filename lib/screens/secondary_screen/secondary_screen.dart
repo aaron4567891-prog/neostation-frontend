@@ -1987,7 +1987,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
         : _pickerApps!.where((app) {
             final package = (app['package'] ?? '').toString().toLowerCase();
             final name = (app['name'] ?? package).toString().toLowerCase();
-            return name.contains(query) || package.contains(query);
+            return name.startsWith(query);
           }).toList();
     if (apps.isEmpty) {
       return Center(
