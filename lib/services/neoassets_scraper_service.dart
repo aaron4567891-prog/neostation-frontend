@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -11,6 +12,18 @@ import 'logger_service.dart';
 /// A personal API key is optional and raises the end-user quota. All three
 /// values are kept in NeoStation's credential store and are never written to
 /// the normal configuration database.
+class NeoAssetsConnectionResult {
+  const NeoAssetsConnectionResult({
+    required this.success,
+    required this.message,
+    this.account,
+  });
+
+  final bool success;
+  final String message;
+  final Map<String, dynamic>? account;
+}
+
 class NeoAssetsScraperService {
   NeoAssetsScraperService._();
 
@@ -55,36 +68,96 @@ class NeoAssetsScraperService {
       'Authorization': 'Bearer ${apiKey.trim()}',
   };
 
-  /// Verifies credentials using the free account/quota endpoint.
-  static Future<Map<String, dynamic>?> verifyCredentials({
+  /// Verifies credentials using the free account/quota endpoint and returns a
+  /// user-visible reason when the connection fails.
+  static Future<NeoAssetsConnectionResult> testCredentials({
     required String clientId,
     required String clientSecret,
     String? apiKey,
   }) async {
-    if (clientId.trim().isEmpty || clientSecret.trim().isEmpty) return null;
+    final id = clientId.trim();
+    final secret = clientSecret.trim();
+    if (id.isEmpty) {
+      return const NeoAssetsConnectionResult(
+        success: false,
+        message: 'Client ID is required.',
+      );
+    }
+    if (secret.isEmpty) {
+      return const NeoAssetsConnectionResult(
+        success: false,
+        message: 'Client Secret is required.',
+      );
+    }
+
     try {
       final response = await http
           .get(
             Uri.parse('$_baseUrl/api/v1/scrape/account'),
             headers: _headers(
-              clientId: clientId.trim(),
-              clientSecret: clientSecret.trim(),
+              clientId: id,
+              clientSecret: secret,
               apiKey: apiKey,
             ),
           )
           .timeout(const Duration(seconds: 20));
-      if (response.statusCode != 200) {
-        _log.w(
-          'NeoAssets credential verification returned ${response.statusCode}',
-        );
-        return null;
+
+      Map<String, dynamic>? decoded;
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) decoded = body;
+      } catch (_) {
+        // Some proxy/server errors are plain text or HTML. The status code is
+        // still useful and is reported below.
       }
-      final decoded = jsonDecode(response.body);
-      return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+
+      if (response.statusCode == 200) {
+        return NeoAssetsConnectionResult(
+          success: true,
+          message: 'NeoAssets connected successfully.',
+          account: decoded ?? <String, dynamic>{},
+        );
+      }
+
+      final apiMessage =
+          decoded?['error']?.toString() ??
+          decoded?['message']?.toString() ??
+          decoded?['detail']?.toString();
+      final message = switch (response.statusCode) {
+        401 => 'NeoAssets rejected the Client ID or Client Secret.',
+        403 => 'NeoAssets refused access for this developer application.',
+        429 => 'NeoAssets rate limit reached. Try again shortly.',
+        _ =>
+          apiMessage != null && apiMessage.trim().isNotEmpty
+              ? 'NeoAssets error ${response.statusCode}: ${apiMessage.trim()}'
+              : 'NeoAssets returned HTTP ${response.statusCode}.',
+      };
+      _log.w('NeoAssets credential verification: $message');
+      return NeoAssetsConnectionResult(success: false, message: message);
+    } on TimeoutException {
+      const message = 'NeoAssets connection timed out after 20 seconds.';
+      _log.w(message);
+      return const NeoAssetsConnectionResult(success: false, message: message);
     } catch (e) {
       _log.e('NeoAssets credential verification failed: $e');
-      return null;
+      return NeoAssetsConnectionResult(
+        success: false,
+        message: 'Could not reach NeoAssets: $e',
+      );
     }
+  }
+
+  static Future<Map<String, dynamic>?> verifyCredentials({
+    required String clientId,
+    required String clientSecret,
+    String? apiKey,
+  }) async {
+    final result = await testCredentials(
+      clientId: clientId,
+      clientSecret: clientSecret,
+      apiKey: apiKey,
+    );
+    return result.success ? result.account ?? <String, dynamic>{} : null;
   }
 
   static Future<bool> saveCredentials({

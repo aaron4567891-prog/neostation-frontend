@@ -313,18 +313,48 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
       await _loadNeoAssetsStatus();
       return;
     }
+    final connection = await NeoAssetsScraperService.testCredentials(
+      clientId: clientId,
+      clientSecret: clientSecret,
+      apiKey: apiKey,
+    );
+    if (!mounted) return;
+
+    if (!connection.success) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('NeoAssets connection failed'),
+          content: Text(connection.message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final saved = await NeoAssetsScraperService.saveCredentials(
       clientId: clientId,
       clientSecret: clientSecret,
       apiKey: apiKey,
     );
     if (!mounted) return;
+    if (!saved) {
+      AppNotification.showNotification(
+        context,
+        'NeoAssets connected, but the credentials could not be saved.',
+        type: NotificationType.error,
+      );
+      return;
+    }
     AppNotification.showNotification(
       context,
-      saved
-          ? 'NeoAssets connected successfully.'
-          : 'NeoAssets rejected those credentials.',
-      type: saved ? NotificationType.success : NotificationType.error,
+      connection.message,
+      type: NotificationType.success,
     );
     await _loadNeoAssetsStatus();
   }
