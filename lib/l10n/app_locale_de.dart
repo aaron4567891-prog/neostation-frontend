@@ -73,6 +73,17 @@ const Map<String, dynamic> appLocaleDe = {
   AppLocale.recentCardSizeDefault: 'Standard',
   AppLocale.recentCardSize2x1: 'Kompakt',
   AppLocale.themesSubtitle: 'Personalisiere das Design von NeoStation',
+  AppLocale.neoglassGroup: 'NeoGlass',
+  AppLocale.neoglassBlur: 'Glas-Blur',
+  AppLocale.neoglassBlurSubtitle: 'Froststärke: Aus, 1 oder 2',
+  AppLocale.neoglassBlurOff: 'Aus',
+  AppLocale.neoglassBlurGpuWarning:
+      'Nur auf einer leistungsstarken GPU aktivieren — auf schwacher Hardware kann der Frost-Blur nicht flüssig bleiben.',
+  AppLocale.neoglassTransparency: 'Glas-Transparenz',
+  AppLocale.neoglassTransparencySubtitle:
+      '0 = keine Transparenz, 30 = 50 % Transparenz',
+  AppLocale.neoglassBorderWidth: 'Glas-Rahmen',
+  AppLocale.neoglassBorderWidthSubtitle: 'Breite des Glasrands',
   AppLocale.systemTheme: 'Systemdesign',
   AppLocale.importTheme: 'Theme importieren',
   AppLocale.importThemeSuccess: 'Theme „%s“ importiert',
@@ -305,6 +316,7 @@ const Map<String, dynamic> appLocaleDe = {
   AppLocale.raFixMatchUseAutomatic: 'Automatische Zuordnung verwenden',
   AppLocale.raFixMatchUpdated: 'Zuordnung aktualisiert.',
   AppLocale.raFixMatchAchievements: '{count} Achievements',
+  AppLocale.raHash: 'RA-Hash',
   AppLocale.notifications: 'Benachrichtigungen',
   AppLocale.clearAll: 'Alle löschen',
   AppLocale.noActiveNotifications: 'Keine aktiven Benachrichtigungen',
@@ -1020,6 +1032,10 @@ const Map<String, dynamic> appLocaleDe = {
   AppLocale.folderNotEmptyBody:
       'Dieser Ordner enthält bereits {count} Element(e). NeoStation speichert seine eigenen Daten hier, zusammen mit den vorhandenen Inhalten.',
   AppLocale.folderNotEmptyUseAnyway: 'Trotzdem verwenden',
+  AppLocale.userDataFolderNotWritable:
+      "In diesen Ordner kann nicht geschrieben werden. Wähle einen anderen oder behalte den Standardort.",
+  AppLocale.userDataFolderGrantAllFiles:
+      "Um diesen Ordner zu nutzen, erlaube NeoStation den Zugriff auf alle Dateien unter Android-Einstellungen → Apps → Spezieller App-Zugriff → Zugriff auf alle Dateien und wähle ihn dann erneut.",
   AppLocale.moveUserDataTitle: 'Benutzerdaten verschieben?',
   AppLocale.moveUserDataBody:
       'NeoStation verschiebt seine eigenen Daten – Datenbank, gescrapte Medien und Einstellungen – vom aktuellen Ordner in den neuen. Dateien, die nicht von NeoStation erstellt wurden, bleiben unberührt.',
@@ -1087,6 +1103,13 @@ const Map<String, dynamic> appLocaleDe = {
   AppLocale.rommNoRoms: 'Keine ROMs gefunden',
   AppLocale.rommSearch: 'Suchen',
   AppLocale.rommSearching: 'RomM wird durchsucht...',
+  AppLocale.rommSearchHint: 'Diese Plattform durchsuchen',
+  AppLocale.rommSearchCollectionHint: 'Diese Sammlung durchsuchen',
+  AppLocale.rommSearchResultCount: '{count} Ergebnisse',
+  AppLocale.rommSearchResultCountOne: '1 Ergebnis',
+  AppLocale.rommSearchResultCountMore: '{count}+ Ergebnisse',
+  AppLocale.rommSearchNoResults: 'Keine Ergebnisse für {term}',
+  AppLocale.rommSearchClear: 'Suche löschen',
   AppLocale.rommDownloading: 'Wird heruntergeladen...',
   AppLocale.rommDownloaded: 'Heruntergeladen',
   AppLocale.rommDownloadComplete: 'Download abgeschlossen',
@@ -1181,6 +1204,10 @@ const Map<String, dynamic> appLocaleDe = {
   AppLocale.raCouldNotResolveLocalSystem:
       'Das lokale System für dieses Spiel konnte nicht ermittelt werden',
   AppLocale.raMissable: 'VERPASSBAR',
+  AppLocale.raFilterLocked: 'Gesperrt',
+  AppLocale.raFilterMissables: 'Verpassbare',
+  AppLocale.raNoAchievementsForFilter:
+      'Keine Erfolge entsprechen diesem Filter.',
   AppLocale.raComments: 'KOMMENTARE',
   AppLocale.raCommentsCouldNotLoad: 'Kommentare konnten nicht geladen werden.',
   AppLocale.raNoCommentsYet: 'Noch keine Kommentare.',
@@ -1211,6 +1238,7 @@ const Map<String, dynamic> appLocaleDe = {
   AppLocale.raAotwOpenLocalGame: 'Lokales Spiel öffnen',
   AppLocale.raAotwDownloadFromRomm: 'Von RomM herunterladen',
   AppLocale.raGamesPlayed: '{count} Spiele gespielt',
+  AppLocale.raGamesBeaten: '{count} Spiele abgeschlossen',
   AppLocale.raAchievementProgress: '{earned}/{total} Erfolge',
   AppLocale.raRecent30Days: '30 Tage',
 

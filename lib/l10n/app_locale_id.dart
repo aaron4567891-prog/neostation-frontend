@@ -72,6 +72,17 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.recentCardSizeDefault: 'Bawaan',
   AppLocale.recentCardSize2x1: 'Ringkas',
   AppLocale.themesSubtitle: 'Personalisasi tampilan NeoStation',
+  AppLocale.neoglassGroup: 'NeoGlass',
+  AppLocale.neoglassBlur: 'Blur Kaca',
+  AppLocale.neoglassBlurSubtitle: 'Kekuatan buram: Mati, 1 atau 2',
+  AppLocale.neoglassBlurOff: 'Mati',
+  AppLocale.neoglassBlurGpuWarning:
+      'Aktifkan hanya pada GPU yang kuat — pada perangkat kelas bawah, blur buram mungkin tidak tetap halus.',
+  AppLocale.neoglassTransparency: 'Transparansi Kaca',
+  AppLocale.neoglassTransparencySubtitle:
+      '0 = tanpa transparansi, 30 = 50% transparansi',
+  AppLocale.neoglassBorderWidth: 'Bingkai Kaca',
+  AppLocale.neoglassBorderWidthSubtitle: 'Ketebalan tepi kaca',
   AppLocale.systemTheme: 'Tema Sistem',
   AppLocale.importTheme: 'Impor Tema',
   AppLocale.importThemeSuccess: 'Tema "%s" diimpor',
@@ -293,6 +304,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.raFixMatchUseAutomatic: 'Gunakan pencocokan otomatis',
   AppLocale.raFixMatchUpdated: 'Kecocokan game diperbarui.',
   AppLocale.raFixMatchAchievements: '{count} prestasi',
+  AppLocale.raHash: 'Hash RA',
   AppLocale.notifications: 'Notifikasi',
   AppLocale.clearAll: 'Hapus semua',
   AppLocale.noActiveNotifications: 'Tidak ada notifikasi aktif',
@@ -988,6 +1000,10 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.folderNotEmptyBody:
       'Folder ini sudah berisi {count} item. NeoStation akan menyimpan datanya sendiri di sini, bersama konten yang sudah ada.',
   AppLocale.folderNotEmptyUseAnyway: 'Tetap Gunakan',
+  AppLocale.userDataFolderNotWritable:
+      "Tidak dapat menulis ke folder ini. Pilih folder lain, atau gunakan lokasi default.",
+  AppLocale.userDataFolderGrantAllFiles:
+      "Untuk memakai folder ini, izinkan akses semua file untuk NeoStation di Setelan Android → Aplikasi → Akses aplikasi khusus → Akses semua file, lalu pilih lagi.",
   AppLocale.moveUserDataTitle: 'Pindahkan Data Pengguna?',
   AppLocale.moveUserDataBody:
       'NeoStation akan memindahkan datanya sendiri — basis data, media hasil scrape, dan pengaturan — dari folder saat ini ke folder baru. Berkas yang tidak dibuat oleh NeoStation tidak akan diubah.',
@@ -1055,6 +1071,13 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.rommNoRoms: 'Tidak ada ROM ditemukan',
   AppLocale.rommSearch: 'Cari',
   AppLocale.rommSearching: 'Mencari di RomM...',
+  AppLocale.rommSearchHint: 'Cari di platform ini',
+  AppLocale.rommSearchCollectionHint: 'Cari di koleksi ini',
+  AppLocale.rommSearchResultCount: '{count} hasil',
+  AppLocale.rommSearchResultCountOne: '1 hasil',
+  AppLocale.rommSearchResultCountMore: '{count}+ hasil',
+  AppLocale.rommSearchNoResults: 'Tidak ada hasil untuk {term}',
+  AppLocale.rommSearchClear: 'Hapus pencarian',
   AppLocale.rommDownloading: 'Mengunduh...',
   AppLocale.rommDownloaded: 'Terunduh',
   AppLocale.rommDownloadComplete: 'Unduhan selesai',
@@ -1148,6 +1171,10 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.raCouldNotResolveLocalSystem:
       'Tidak dapat menemukan sistem lokal untuk game ini',
   AppLocale.raMissable: 'BISA TERLEWAT',
+  AppLocale.raFilterLocked: 'Terkunci',
+  AppLocale.raFilterMissables: 'Bisa Terlewat',
+  AppLocale.raNoAchievementsForFilter:
+      'Tidak ada pencapaian yang sesuai dengan filter ini.',
   AppLocale.raComments: 'KOMENTAR',
   AppLocale.raCommentsCouldNotLoad: 'Komentar tidak dapat dimuat.',
   AppLocale.raNoCommentsYet: 'Belum ada komentar.',
@@ -1177,6 +1204,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.raAotwOpenLocalGame: 'Buka game lokal',
   AppLocale.raAotwDownloadFromRomm: 'Unduh dari RomM',
   AppLocale.raGamesPlayed: '{count} game dimainkan',
+  AppLocale.raGamesBeaten: '{count} game ditamatkan',
   AppLocale.raAchievementProgress: '{earned}/{total} pencapaian',
   AppLocale.raRecent30Days: '30 hari',
 

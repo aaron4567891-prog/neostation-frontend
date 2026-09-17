@@ -93,6 +93,16 @@ class RommProvider extends ChangeNotifier {
   RommConnectionStatus _status = RommConnectionStatus.disconnected;
   String? _lastError;
 
+  /// The failure of the query that produced [roms], or null when that query
+  /// succeeded (or has not run).
+  ///
+  /// Separate from [lastError], which every call on this provider writes:
+  /// [loadPlatforms] and [loadCollections] run on every entry to the browse
+  /// screen, so a global error would put a failing `/api/collections` under
+  /// the search field of a search that worked. Scoped here, the search caption
+  /// only ever reports the search.
+  String? _romsError;
+
   String _serverUrl = '';
   String _username = '';
 
@@ -109,6 +119,12 @@ class RommProvider extends ChangeNotifier {
   bool _romsHasMore = false;
   int _romsOffset = 0;
   String _searchTerm = '';
+
+  /// Bumped every time the ROM list is reset (a new search term, a different
+  /// platform or collection, backing out). A page request carries the
+  /// generation it was issued under, so one that lands after the list moved on
+  /// can be dropped instead of appended to the list that replaced it.
+  int _romsGeneration = 0;
   // True while browsing a library-wide search (no platform/collection filter):
   // ROMs are queried by [_searchTerm] alone across the whole server.
   bool _librarySearch = false;
@@ -202,6 +218,7 @@ class RommProvider extends ChangeNotifier {
   RommConnectionStatus get status => _status;
   bool get isConnected => _status == RommConnectionStatus.connected;
   String? get lastError => _lastError;
+  String? get romsError => _romsError;
   String get serverUrl => _serverUrl;
   String get username => _username;
 
@@ -534,10 +551,8 @@ class RommProvider extends ChangeNotifier {
     _currentPlatform = null;
     _currentCollection = null;
     _librarySearch = false;
-    _roms = [];
-    _romsOffset = 0;
-    _romsHasMore = false;
     _searchTerm = '';
+    _resetRoms();
     _downloads.clear();
     _raGameLookupCache.clear();
     _raEarnedByGameId = {};
@@ -618,9 +633,7 @@ class RommProvider extends ChangeNotifier {
     _currentPlatform = platform;
     _librarySearch = false;
     _searchTerm = search;
-    _roms = [];
-    _romsOffset = 0;
-    _romsHasMore = false;
+    _resetRoms();
     notifyListeners();
     await loadMoreRoms();
   }
@@ -634,9 +647,7 @@ class RommProvider extends ChangeNotifier {
     _currentCollection = collection;
     _librarySearch = false;
     _searchTerm = search;
-    _roms = [];
-    _romsOffset = 0;
-    _romsHasMore = false;
+    _resetRoms();
     notifyListeners();
     await loadMoreRoms();
   }
@@ -691,9 +702,7 @@ class RommProvider extends ChangeNotifier {
     _currentCollection = null;
     _librarySearch = true;
     _searchTerm = term;
-    _roms = [];
-    _romsOffset = 0;
-    _romsHasMore = false;
+    _resetRoms();
     notifyListeners();
     // An empty term would page the entire server library (and mass-init a tile
     // per ROM). Library search is query-driven: wait for the user to type.
@@ -707,15 +716,29 @@ class RommProvider extends ChangeNotifier {
     _currentPlatform = null;
     _currentCollection = null;
     _librarySearch = false;
+    _searchTerm = '';
+    _resetRoms();
+    notifyListeners();
+  }
+
+  /// Empties the ROM list and retires whatever page request is on the wire:
+  /// the loading flag is released here so the query that replaces it isn't
+  /// blocked by a request whose answer is about to be discarded.
+  void _resetRoms() {
     _roms = [];
+    _romsError = null;
     _romsOffset = 0;
     _romsHasMore = false;
-    _searchTerm = '';
-    notifyListeners();
+    _loadingRoms = false;
+    _romsGeneration++;
   }
 
   /// Loads the next page of ROMs for the current platform, collection or
   /// library-wide search.
+  ///
+  /// A page that comes back after the list has been reset — a newer search
+  /// term, a different platform, or backing out — is dropped rather than
+  /// appended: it answers a question the user is no longer asking.
   Future<void> loadMoreRoms() async {
     final platform = _currentPlatform;
     final collection = _currentCollection;
@@ -725,8 +748,12 @@ class RommProvider extends ChangeNotifier {
     }
     // A library search with no term must not page the whole server library.
     if (_librarySearch && _searchTerm.trim().isEmpty) return;
+    final generation = _romsGeneration;
+    final term = _searchTerm;
+    final offset = _romsOffset;
     _loadingRoms = true;
     _lastError = null;
+    _romsError = null;
     notifyListeners();
     try {
       final page = await _service.getRoms(
@@ -737,21 +764,51 @@ class RommProvider extends ChangeNotifier {
         virtualCollectionId: (collection != null && collection.isVirtual)
             ? collection.id
             : null,
-        search: _searchTerm,
+        search: term,
         limit: _pageSize,
-        offset: _romsOffset,
+        offset: offset,
       );
+      // Refreshed tokens are account state, not list state: keep them even
+      // when the page itself is stale.
+      await _persistRefreshedTokens();
+      if (generation != _romsGeneration) {
+        _log.d(
+          'RomM ROM page dropped as stale: generation=$generation '
+          'current=$_romsGeneration term="$term" offset=$offset '
+          'count=${page.length}',
+        );
+        return;
+      }
       _roms = [..._roms, ...page];
       _romsOffset += page.length;
       _romsHasMore = page.length >= _pageSize;
-      await _persistRefreshedTokens();
     } on RommException catch (e) {
+      if (generation != _romsGeneration) {
+        _log.d(
+          'RomM ROM page failure dropped as stale: generation=$generation '
+          'current=$_romsGeneration term="$term" error=${e.message}',
+        );
+        return;
+      }
       _lastError = e.message;
+      _romsError = e.message;
     } catch (e) {
+      if (generation != _romsGeneration) {
+        _log.d(
+          'RomM ROM page failure dropped as stale: generation=$generation '
+          'current=$_romsGeneration term="$term" error=$e',
+        );
+        return;
+      }
       _lastError = 'Failed to load ROMs: $e';
+      _romsError = _lastError;
     } finally {
-      _loadingRoms = false;
-      notifyListeners();
+      // A stale request's loading flag was already released by [_resetRoms];
+      // clearing it here would cancel the flag of the load that replaced it.
+      if (generation == _romsGeneration) {
+        _loadingRoms = false;
+        notifyListeners();
+      }
     }
   }
 

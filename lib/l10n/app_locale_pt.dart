@@ -73,6 +73,17 @@ const Map<String, dynamic> appLocalePt = {
   AppLocale.recentCardSizeDefault: 'Padrão',
   AppLocale.recentCardSize2x1: 'Compacto',
   AppLocale.themesSubtitle: 'Personalize o visual do NeoStation',
+  AppLocale.neoglassGroup: 'NeoGlass',
+  AppLocale.neoglassBlur: 'Desfoque do vidro',
+  AppLocale.neoglassBlurSubtitle: 'Intensidade do desfoque: Desligado, 1 ou 2',
+  AppLocale.neoglassBlurOff: 'Desligado',
+  AppLocale.neoglassBlurGpuWarning:
+      'Ative apenas em uma GPU potente — em hardware de baixo custo o desfoque fosco pode não se manter fluido.',
+  AppLocale.neoglassTransparency: 'Transparência do vidro',
+  AppLocale.neoglassTransparencySubtitle:
+      '0 = sem transparência, 30 = 50% de transparência',
+  AppLocale.neoglassBorderWidth: 'Borda do vidro',
+  AppLocale.neoglassBorderWidthSubtitle: 'Espessura da borda do vidro',
   AppLocale.systemTheme: 'Tema do Sistema',
   AppLocale.importTheme: 'Importar tema',
   AppLocale.importThemeSuccess: 'Tema "%s" importado',
@@ -302,6 +313,7 @@ const Map<String, dynamic> appLocalePt = {
   AppLocale.raFixMatchUseAutomatic: 'Usar associação automática',
   AppLocale.raFixMatchUpdated: 'Associação atualizada.',
   AppLocale.raFixMatchAchievements: '{count} conquistas',
+  AppLocale.raHash: 'Hash do RA',
   AppLocale.notifications: 'Notificações',
   AppLocale.clearAll: 'Limpar tudo',
   AppLocale.noActiveNotifications: 'Nenhuma notificação ativa',
@@ -999,6 +1011,10 @@ const Map<String, dynamic> appLocalePt = {
   AppLocale.folderNotEmptyBody:
       'Esta pasta já contém {count} item(ns). O NeoStation irá armazenar os seus próprios dados aqui, junto com o conteúdo existente.',
   AppLocale.folderNotEmptyUseAnyway: 'Usar mesmo assim',
+  AppLocale.userDataFolderNotWritable:
+      "Não é possível gravar nesta pasta. Escolha outra ou mantenha o local padrão.",
+  AppLocale.userDataFolderGrantAllFiles:
+      "Para usar esta pasta, permita o acesso a todos os arquivos para o NeoStation em Configurações do Android → Apps → Acesso especial a apps → Acesso a todos os arquivos e selecione-a novamente.",
   AppLocale.moveUserDataTitle: 'Mover dados do usuário?',
   AppLocale.moveUserDataBody:
       'O NeoStation moverá seus próprios dados — banco de dados, mídia obtida e configurações — da pasta atual para a nova. Arquivos não criados pelo NeoStation permanecem intactos.',
@@ -1065,6 +1081,13 @@ const Map<String, dynamic> appLocalePt = {
   AppLocale.rommNoRoms: 'Nenhuma ROM encontrada',
   AppLocale.rommSearch: 'Buscar',
   AppLocale.rommSearching: 'Pesquisando no RomM...',
+  AppLocale.rommSearchHint: 'Pesquisar nesta plataforma',
+  AppLocale.rommSearchCollectionHint: 'Pesquisar nesta coleção',
+  AppLocale.rommSearchResultCount: '{count} resultados',
+  AppLocale.rommSearchResultCountOne: '1 resultado',
+  AppLocale.rommSearchResultCountMore: '{count}+ resultados',
+  AppLocale.rommSearchNoResults: 'Nenhum resultado para {term}',
+  AppLocale.rommSearchClear: 'Limpar pesquisa',
   AppLocale.rommDownloading: 'Baixando...',
   AppLocale.rommDownloaded: 'Baixado',
   AppLocale.rommDownloadComplete: 'Download concluído',
@@ -1158,6 +1181,10 @@ const Map<String, dynamic> appLocalePt = {
   AppLocale.raCouldNotResolveLocalSystem:
       'Não foi possível resolver o sistema local para este jogo',
   AppLocale.raMissable: 'PERDÍVEL',
+  AppLocale.raFilterLocked: 'Bloqueadas',
+  AppLocale.raFilterMissables: 'Perdíveis',
+  AppLocale.raNoAchievementsForFilter:
+      'Nenhuma conquista corresponde a este filtro.',
   AppLocale.raComments: 'COMENTÁRIOS',
   AppLocale.raCommentsCouldNotLoad: 'Não foi possível carregar os comentários.',
   AppLocale.raNoCommentsYet: 'Nenhum comentário ainda.',
@@ -1188,6 +1215,7 @@ const Map<String, dynamic> appLocalePt = {
   AppLocale.raAotwOpenLocalGame: 'Abrir jogo local',
   AppLocale.raAotwDownloadFromRomm: 'Baixar do RomM',
   AppLocale.raGamesPlayed: '{count} jogos jogados',
+  AppLocale.raGamesBeaten: '{count} jogos concluídos',
   AppLocale.raAchievementProgress: '{earned}/{total} conquistas',
   AppLocale.raRecent30Days: '30 dias',
 

@@ -79,6 +79,17 @@ mixin AppLocale {
   static const String exit = 'exit';
   static const String launcher = 'launcher';
   static const String themesSubtitle = 'themes_subtitle';
+  static const String neoglassGroup = 'neoglass_group';
+  static const String neoglassBlur = 'neoglass_blur';
+  static const String neoglassBlurSubtitle = 'neoglass_blur_subtitle';
+  static const String neoglassBlurOff = 'neoglass_blur_off';
+  static const String neoglassBlurGpuWarning = 'neoglass_blur_gpu_warning';
+  static const String neoglassTransparency = 'neoglass_transparency';
+  static const String neoglassTransparencySubtitle =
+      'neoglass_transparency_subtitle';
+  static const String neoglassBorderWidth = 'neoglass_border_width';
+  static const String neoglassBorderWidthSubtitle =
+      'neoglass_border_width_subtitle';
   static const String systemTheme = 'system_theme';
   static const String importTheme = 'import_theme';
   static const String importThemeSuccess = 'import_theme_success';
@@ -295,6 +306,9 @@ mixin AppLocale {
   static const String raFixMatchUseAutomatic = 'ra_fix_match_use_automatic';
   static const String raFixMatchUpdated = 'ra_fix_match_updated';
   static const String raFixMatchAchievements = 'ra_fix_match_achievements';
+
+  /// Label for the RetroAchievements ROM hash shown on the achievements panel.
+  static const String raHash = 'ra_hash';
 
   // ---------------------------------------------------------------------------
   // Notification center
@@ -1065,6 +1079,10 @@ mixin AppLocale {
   static const String folderNotEmptyTitle = 'folder_not_empty_title';
   static const String folderNotEmptyBody = 'folder_not_empty_body';
   static const String folderNotEmptyUseAnyway = 'folder_not_empty_use_anyway';
+  static const String userDataFolderNotWritable =
+      'user_data_folder_not_writable';
+  static const String userDataFolderGrantAllFiles =
+      'user_data_folder_grant_all_files';
   static const String moveUserDataTitle = 'move_user_data_title';
   static const String moveUserDataBody = 'move_user_data_body';
   static const String moveUserDataDestNotEmpty =
@@ -1147,6 +1165,14 @@ mixin AppLocale {
   static const String rommNoRoms = 'romm_no_roms';
   static const String rommSearch = 'romm_search';
   static const String rommSearching = 'romm_searching';
+  static const String rommSearchHint = 'romm_search_hint';
+  static const String rommSearchCollectionHint = 'romm_search_collection_hint';
+  static const String rommSearchResultCount = 'romm_search_result_count';
+  static const String rommSearchResultCountOne = 'romm_search_result_count_one';
+  static const String rommSearchResultCountMore =
+      'romm_search_result_count_more';
+  static const String rommSearchNoResults = 'romm_search_no_results';
+  static const String rommSearchClear = 'romm_search_clear';
   static const String rommDownloading = 'romm_downloading';
   static const String rommDownloaded = 'romm_downloaded';
   static const String rommDownloadComplete = 'romm_download_complete';
@@ -1231,6 +1257,10 @@ mixin AppLocale {
   static const String raCouldNotResolveLocalSystem =
       'ra_could_not_resolve_local_system';
   static const String raMissable = 'ra_missable';
+  static const String raFilterLocked = 'ra_filter_locked';
+  static const String raFilterMissables = 'ra_filter_missables';
+  static const String raNoAchievementsForFilter =
+      'ra_no_achievements_for_filter';
   static const String raComments = 'ra_comments';
   static const String raCommentsCouldNotLoad = 'ra_comments_could_not_load';
   static const String raNoCommentsYet = 'ra_no_comments_yet';
@@ -1257,6 +1287,7 @@ mixin AppLocale {
   static const String raAotwOpenLocalGame = 'ra_aotw_open_local_game';
   static const String raAotwDownloadFromRomm = 'ra_aotw_download_from_romm';
   static const String raGamesPlayed = 'ra_games_played';
+  static const String raGamesBeaten = 'ra_games_beaten';
   static const String raAchievementProgress = 'ra_achievement_progress';
   static const String raRecent30Days = 'ra_recent_30_days';
 

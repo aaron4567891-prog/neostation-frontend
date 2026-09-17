@@ -73,6 +73,17 @@ const Map<String, dynamic> appLocaleEs = {
   AppLocale.recentCardSizeDefault: 'Predeterminado',
   AppLocale.recentCardSize2x1: 'Compacto',
   AppLocale.themesSubtitle: 'Personaliza la apariencia de tu NeoStation',
+  AppLocale.neoglassGroup: 'NeoGlass',
+  AppLocale.neoglassBlur: 'Desenfoque de cristal',
+  AppLocale.neoglassBlurSubtitle: 'Intensidad del desenfoque: Apagado, 1 o 2',
+  AppLocale.neoglassBlurOff: 'Apagado',
+  AppLocale.neoglassBlurGpuWarning:
+      'Actívalo solo en una GPU potente: en hardware de gama baja el desenfoque esmerilado puede no mantenerse fluido.',
+  AppLocale.neoglassTransparency: 'Transparencia del cristal',
+  AppLocale.neoglassTransparencySubtitle:
+      '0 = sin transparencia, 30 = 50% de transparencia',
+  AppLocale.neoglassBorderWidth: 'Borde del cristal',
+  AppLocale.neoglassBorderWidthSubtitle: 'Grosor del borde del cristal',
   AppLocale.systemTheme: 'Sistema',
   AppLocale.importTheme: 'Importar tema',
   AppLocale.importThemeSuccess: 'Tema "%s" importado',
@@ -306,6 +317,7 @@ const Map<String, dynamic> appLocaleEs = {
   AppLocale.raFixMatchUseAutomatic: 'Usar emparejamiento automático',
   AppLocale.raFixMatchUpdated: 'Emparejamiento actualizado.',
   AppLocale.raFixMatchAchievements: '{count} logros',
+  AppLocale.raHash: 'Hash de RA',
   AppLocale.notifications: 'Notificaciones',
   AppLocale.clearAll: 'Borrar todo',
   AppLocale.noActiveNotifications: 'No hay notificaciones activas',
@@ -1016,6 +1028,10 @@ const Map<String, dynamic> appLocaleEs = {
   AppLocale.folderNotEmptyBody:
       'Esta carpeta ya contiene {count} elemento(s). NeoStation almacenará sus propios datos aquí, junto con el contenido existente.',
   AppLocale.folderNotEmptyUseAnyway: 'Usar de todos modos',
+  AppLocale.userDataFolderNotWritable:
+      "No se puede escribir en esta carpeta. Elige otra o mantén la ubicación predeterminada.",
+  AppLocale.userDataFolderGrantAllFiles:
+      "Para usar esta carpeta, permite el acceso a todos los archivos para NeoStation en Ajustes de Android → Aplicaciones → Acceso especial de aplicaciones → Acceso a todos los archivos y vuelve a elegirla.",
   AppLocale.moveUserDataTitle: '¿Mover datos de usuario?',
   AppLocale.moveUserDataBody:
       'NeoStation moverá sus propios datos (base de datos, medios extraídos y ajustes) de la carpeta actual a la nueva. Los archivos no creados por NeoStation permanecen intactos.',
@@ -1084,6 +1100,13 @@ const Map<String, dynamic> appLocaleEs = {
   AppLocale.rommNoRoms: 'No se encontraron ROMs',
   AppLocale.rommSearch: 'Buscar',
   AppLocale.rommSearching: 'Buscando en RomM...',
+  AppLocale.rommSearchHint: 'Buscar en esta plataforma',
+  AppLocale.rommSearchCollectionHint: 'Buscar en esta colección',
+  AppLocale.rommSearchResultCount: '{count} resultados',
+  AppLocale.rommSearchResultCountOne: '1 resultado',
+  AppLocale.rommSearchResultCountMore: '{count}+ resultados',
+  AppLocale.rommSearchNoResults: 'Sin resultados para {term}',
+  AppLocale.rommSearchClear: 'Borrar búsqueda',
   AppLocale.rommDownloading: 'Descargando...',
   AppLocale.rommDownloaded: 'Descargado',
   AppLocale.rommDownloadComplete: 'Descarga completada',
@@ -1175,6 +1198,9 @@ const Map<String, dynamic> appLocaleEs = {
   AppLocale.raCouldNotResolveLocalSystem:
       'No se pudo resolver el sistema local de este juego',
   AppLocale.raMissable: 'EVITABLE',
+  AppLocale.raFilterLocked: 'Bloqueados',
+  AppLocale.raFilterMissables: 'Perdibles',
+  AppLocale.raNoAchievementsForFilter: 'Ningún logro coincide con este filtro.',
   AppLocale.raComments: 'COMENTARIOS',
   AppLocale.raCommentsCouldNotLoad: 'No se pudieron cargar los comentarios.',
   AppLocale.raNoCommentsYet: 'Aún no hay comentarios.',
@@ -1206,6 +1232,7 @@ const Map<String, dynamic> appLocaleEs = {
   AppLocale.raAotwOpenLocalGame: 'Abrir juego local',
   AppLocale.raAotwDownloadFromRomm: 'Descargar desde RomM',
   AppLocale.raGamesPlayed: '{count} juegos jugados',
+  AppLocale.raGamesBeaten: '{count} juegos completados',
   AppLocale.raAchievementProgress: '{earned}/{total} logros',
   AppLocale.raRecent30Days: '30 días',
 

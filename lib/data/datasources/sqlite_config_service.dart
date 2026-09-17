@@ -280,6 +280,25 @@ class SqliteConfigService {
                 ) ??
                 0) ==
             1,
+        // Missing column/row => 0 => blur off (the default). The frosted blur
+        // is only smooth on a powerful GPU, so it starts disabled.
+        neoglassBlur:
+            (int.tryParse(userConfig?['neoglass_blur']?.toString() ?? '0') ?? 0)
+                .clamp(0, 2),
+        // Missing column/row => 10 => the default transparency (0–30 scale).
+        neoglassTransparency:
+            (int.tryParse(
+                      userConfig?['neoglass_transparency']?.toString() ?? '10',
+                    ) ??
+                    10)
+                .clamp(0, 30),
+        // Missing column/row => 2 => the feature's default rim stroke width.
+        neoglassBorderWidth:
+            (double.tryParse(
+                      userConfig?['neoglass_border_width']?.toString() ?? '2',
+                    ) ??
+                    2)
+                .clamp(0.0, 8.0),
       );
     } catch (e) {
       _log.e('Error applying configuration in loadConfig: $e');
@@ -346,6 +365,9 @@ class SqliteConfigService {
         showCloudSyncIcon: config.showCloudSyncIcon ? 1 : 0,
         raMatchOnStartup: config.raMatchOnStartup ? 1 : 0,
         subfolderViewAll: config.subfolderViewAll ? 1 : 0,
+        neoglassBlur: config.neoglassBlur,
+        neoglassTransparency: config.neoglassTransparency,
+        neoglassBorderWidth: config.neoglassBorderWidth,
       );
 
       await SqliteService.saveUserRomFolders(config.romFolders);
