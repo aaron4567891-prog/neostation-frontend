@@ -18,6 +18,7 @@ import '../providers/scraping_provider.dart';
 import '../l10n/app_locale.dart';
 import '../widgets/scraping_summary_dialog.dart';
 import 'thegamesdb_service.dart';
+import 'neoassets_scraper_service.dart';
 import 'steamgriddb_service.dart';
 import 'scraper_provider_preferences.dart';
 
@@ -63,6 +64,31 @@ class ScreenScraperService {
       return false;
     }
     return !hasScreenScraper && hasTheGamesDb;
+  }
+
+  /// Whether the currently selected primary metadata provider is ready.
+  static Future<bool> hasActiveProviderCredentials() async {
+    final provider = await ScraperProviderPreferences.getMetadataProvider();
+    switch (provider) {
+      case MetadataScraperProvider.neoAssets:
+        return NeoAssetsScraperService.hasCredentials();
+      case MetadataScraperProvider.theGamesDb:
+        return TheGamesDbService.hasApiKey();
+      case MetadataScraperProvider.screenScraper:
+        return hasSavedCredentials();
+    }
+  }
+
+  static Future<String> activeProviderLabel() async {
+    final provider = await ScraperProviderPreferences.getMetadataProvider();
+    switch (provider) {
+      case MetadataScraperProvider.neoAssets:
+        return 'NeoAssets';
+      case MetadataScraperProvider.theGamesDb:
+        return 'TheGamesDB';
+      case MetadataScraperProvider.screenScraper:
+        return 'ScreenScraper';
+    }
   }
 
   /// Authenticates user credentials against the ScreenScraper API.
@@ -700,6 +726,20 @@ class ScreenScraperService {
     bool forceOverwrite = false,
   }) async {
     try {
+      final metadataProvider =
+          await ScraperProviderPreferences.getMetadataProvider();
+      if (metadataProvider == MetadataScraperProvider.neoAssets &&
+          await NeoAssetsScraperService.hasCredentials()) {
+        return await NeoAssetsScraperService.scrapeSingleGame(
+          appSystemId: appSystemId,
+          romName: romName,
+          systemFolder: systemFolder,
+          romPath: romPath,
+          gameName: gameName,
+          onProgress: onProgress,
+          forceOverwrite: forceOverwrite,
+        );
+      }
       onProgress?.call(AppLocale.checkingCredentials, 0.05);
 
       // Prefer the established ScreenScraper account when both providers are
@@ -852,6 +892,25 @@ class ScreenScraperService {
     bool Function()? shouldCancel,
   }) async {
     try {
+      final metadataProvider =
+          await ScraperProviderPreferences.getMetadataProvider();
+      if (!context.mounted) {
+        return false;
+      }
+      if (metadataProvider == MetadataScraperProvider.neoAssets) {
+        final hasNeoAssetsCredentials =
+            await NeoAssetsScraperService.hasCredentials();
+        if (!context.mounted) {
+          return false;
+        }
+        if (hasNeoAssetsCredentials) {
+          return await NeoAssetsScraperService.startMetadataScraping(
+            context,
+            scrapingProvider,
+            shouldCancel: shouldCancel,
+          );
+        }
+      }
       if (await _shouldUseTheGamesDb()) {
         return await TheGamesDbService.startMetadataScraping(
           scrapingProvider,

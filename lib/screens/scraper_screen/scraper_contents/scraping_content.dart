@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:neostation/providers/scraping_provider.dart';
 import 'package:neostation/services/global_notification_service.dart';
 import 'package:neostation/services/screenscraper_service.dart';
+import 'package:neostation/services/scraper_provider_preferences.dart';
 import 'package:neostation/services/screenscraper/screenscraper_exceptions.dart';
 import 'package:neostation/widgets/custom_notification.dart';
 import 'package:neostation/services/logger_service.dart';
@@ -68,9 +69,15 @@ class ScrapingContentState extends State<ScrapingContent> {
 
     setState(() {});
 
-    // Obtener maxThreads de las credenciales
-    final credentials = await ScreenScraperService.getSavedCredentials();
-    final maxThreads = int.tryParse(credentials?['maxthreads'] ?? '4') ?? 4;
+    final metadataProvider =
+        await ScraperProviderPreferences.getMetadataProvider();
+    final credentials =
+        metadataProvider == MetadataScraperProvider.screenScraper
+        ? await ScreenScraperService.getSavedCredentials()
+        : null;
+    final maxThreads = metadataProvider == MetadataScraperProvider.neoAssets
+        ? 2
+        : int.tryParse(credentials?['maxthreads'] ?? '4') ?? 4;
 
     scrapingProvider.startScraping(maxThreads: maxThreads);
 
@@ -86,9 +93,13 @@ class ScrapingContentState extends State<ScrapingContent> {
         ongoing: true,
       );
 
-      // Paso 1: Sincronizar system IDs
-      _log.i('Step 1: Synchronizing system IDs...');
-      final syncSuccess = await ScreenScraperService.syncSystemIds();
+      // ScreenScraper needs its numeric system map. NeoAssets and TheGamesDB
+      // resolve their own platform IDs and must not be blocked by this step.
+      _log.i('Step 1: Preparing scraper system mapping...');
+      final syncSuccess =
+          metadataProvider == MetadataScraperProvider.screenScraper
+          ? await ScreenScraperService.syncSystemIds()
+          : true;
 
       if (!syncSuccess) {
         GlobalNotificationService().update(

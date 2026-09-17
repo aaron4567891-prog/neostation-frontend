@@ -1,6 +1,6 @@
 import 'credential_store.dart';
 
-enum MetadataScraperProvider { screenScraper, theGamesDb }
+enum MetadataScraperProvider { screenScraper, theGamesDb, neoAssets }
 
 enum ArtworkScraperPriority {
   primaryScraperFirst,
@@ -17,9 +17,10 @@ class ScraperProviderPreferences {
 
   static Future<MetadataScraperProvider> getMetadataProvider() async {
     final value = await CredentialStore.read(_metadataKey);
-    return value == MetadataScraperProvider.theGamesDb.name
-        ? MetadataScraperProvider.theGamesDb
-        : MetadataScraperProvider.screenScraper;
+    return MetadataScraperProvider.values.firstWhere(
+      (provider) => provider.name == value,
+      orElse: () => MetadataScraperProvider.screenScraper,
+    );
   }
 
   static Future<void> setMetadataProvider(

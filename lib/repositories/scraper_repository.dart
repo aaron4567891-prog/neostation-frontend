@@ -54,6 +54,28 @@ class ScraperRepository {
         .toList();
   }
 
+  /// Returns detected systems for metadata providers that do not use
+  /// ScreenScraper numeric platform IDs.
+  static Future<List<Map<String, dynamic>>> getDetectedScraperSystems() async {
+    final db = await SqliteService.getDatabase();
+    final results = await db.rawQuery('''
+      SELECT s.id, s.real_name, s.folder_name
+      FROM user_detected_systems uds
+      JOIN app_systems s ON uds.app_system_id = s.id
+      WHERE s.folder_name != 'android-apps'
+      ORDER BY s.real_name
+    ''');
+    return results
+        .map(
+          (row) => {
+            'id': row['id'].toString(),
+            'name': row['real_name'].toString(),
+            'folder_name': row['folder_name'].toString(),
+          },
+        )
+        .toList();
+  }
+
   /// Returns current enabled/disabled config per system ID.
   /// Defaults all to enabled when no config row exists.
   static Future<Map<String, bool>> getSystemScraperConfig() async {

@@ -421,10 +421,16 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     });
   }
 
-  String get _metadataProviderLabel =>
-      _metadataProvider == MetadataScraperProvider.screenScraper
-      ? 'ScreenScraper'
-      : 'TheGamesDB';
+  String get _metadataProviderLabel {
+    switch (_metadataProvider) {
+      case MetadataScraperProvider.screenScraper:
+        return 'ScreenScraper';
+      case MetadataScraperProvider.theGamesDb:
+        return 'TheGamesDB';
+      case MetadataScraperProvider.neoAssets:
+        return 'NeoAssets';
+    }
+  }
 
   String get _artworkPriorityLabel {
     switch (_artworkPriority) {
@@ -456,6 +462,11 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
               MetadataScraperProvider.theGamesDb,
             ),
             child: const Text('TheGamesDB'),
+          ),
+          SimpleDialogOption(
+            onPressed: () =>
+                Navigator.pop(dialogContext, MetadataScraperProvider.neoAssets),
+            child: const Text('NeoAssets'),
           ),
         ],
       ),

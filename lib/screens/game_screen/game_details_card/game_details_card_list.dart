@@ -1488,11 +1488,11 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
 
     if (!context.mounted) return;
 
-    if (!await ScreenScraperService.hasSavedCredentials()) {
+    if (!await ScreenScraperService.hasActiveProviderCredentials()) {
       if (!mounted) return;
       AppNotification.showNotification(
         context,
-        'Please log in to ScreenScraper in the Scraping tab first.',
+        'Please connect the selected metadata scraper in the Scraping tab first.',
         type: NotificationType.info,
       );
       return;
