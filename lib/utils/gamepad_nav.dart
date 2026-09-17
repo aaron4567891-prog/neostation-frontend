@@ -1061,12 +1061,12 @@ class GamepadNavigation {
             _stopRepeatTimer(GamepadInputType.dpadRight);
           }
         } else {
-          if (event.value > 0.75) {
+          if (event.value > 0.60) {
             _handleDirectionalAction(
               GamepadInputType.dpadRight,
               onNavigateRight,
             );
-          } else if (event.value < -0.75) {
+          } else if (event.value < -0.60) {
             _handleDirectionalAction(GamepadInputType.dpadLeft, onNavigateLeft);
           }
         }
@@ -1092,9 +1092,9 @@ class GamepadNavigation {
             _stopRepeatTimer(GamepadInputType.dpadDown);
           }
         } else {
-          if (event.value > 0.75) {
+          if (event.value > 0.60) {
             _handleDirectionalAction(GamepadInputType.dpadUp, onNavigateUp);
-          } else if (event.value < -0.75) {
+          } else if (event.value < -0.60) {
             _handleDirectionalAction(GamepadInputType.dpadDown, onNavigateDown);
           }
         }
