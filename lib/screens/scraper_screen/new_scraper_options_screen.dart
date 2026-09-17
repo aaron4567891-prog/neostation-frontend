@@ -10,6 +10,7 @@ import 'package:neostation/widgets/custom_notification.dart';
 import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/repositories/scraper_repository.dart';
 import 'package:neostation/services/thegamesdb_service.dart';
+import 'package:neostation/services/neoassets_scraper_service.dart';
 import 'package:neostation/services/steamgriddb_service.dart';
 import 'package:neostation/services/scraper_provider_preferences.dart';
 import 'scraper_contents/account_content.dart';
@@ -69,6 +70,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   List<String> _currentEnabledMediaTypes = [];
   bool _steamGridDbConnected = false;
   bool _theGamesDbConnected = false;
+  bool _neoAssetsConnected = false;
   MetadataScraperProvider _metadataProvider =
       MetadataScraperProvider.screenScraper;
   ArtworkScraperPriority _artworkPriority =
@@ -84,6 +86,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     _loadCurrentMediaConfig();
     _loadSteamGridDbStatus();
     _loadTheGamesDbStatus();
+    _loadNeoAssetsStatus();
     _loadProviderPreferences();
   }
 
@@ -228,6 +231,102 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
   Future<void> _loadTheGamesDbStatus() async {
     final connected = await TheGamesDbService.hasApiKey();
     if (mounted) setState(() => _theGamesDbConnected = connected);
+  }
+
+  Future<void> _loadNeoAssetsStatus() async {
+    final connected = await NeoAssetsScraperService.hasCredentials();
+    if (mounted) setState(() => _neoAssetsConnected = connected);
+  }
+
+  Future<void> _configureNeoAssets() async {
+    final existing = await NeoAssetsScraperService.getCredentials();
+    if (!mounted) return;
+    final clientIdController = TextEditingController(
+      text: existing?['clientId'] ?? '',
+    );
+    final clientSecretController = TextEditingController();
+    final apiKeyController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('NeoAssets API'),
+        content: SizedBox(
+          width: 420.w,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: clientIdController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Client ID'),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: clientSecretController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Client Secret',
+                  hintText: existing == null
+                      ? 'Required'
+                      : 'Enter again to reconnect',
+                ),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: apiKeyController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Personal API Key (optional)',
+                  helperText: 'Adds your NeoAssets user quota when supplied.',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          if (_neoAssetsConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, '__connect__'),
+            child: const Text('Test & Connect'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    final clientId = clientIdController.text;
+    final clientSecret = clientSecretController.text;
+    final apiKey = apiKeyController.text;
+    clientIdController.dispose();
+    clientSecretController.dispose();
+    apiKeyController.dispose();
+    if (result == null) return;
+    if (result == '__disconnect__') {
+      await NeoAssetsScraperService.clearCredentials();
+      await _loadNeoAssetsStatus();
+      return;
+    }
+    final saved = await NeoAssetsScraperService.saveCredentials(
+      clientId: clientId,
+      clientSecret: clientSecret,
+      apiKey: apiKey,
+    );
+    if (!mounted) return;
+    AppNotification.showNotification(
+      context,
+      saved
+          ? 'NeoAssets connected successfully.'
+          : 'NeoAssets rejected those credentials.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+    await _loadNeoAssetsStatus();
   }
 
   Future<void> _configureTheGamesDb() async {
@@ -562,7 +661,7 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
     if (selectedKey == AppLocale.systems) {
       return _systemsKey.currentState?.getItemCount() ?? 0;
     }
-    if (selectedKey == AppLocale.account) return 5;
+    if (selectedKey == AppLocale.account) return 6;
     return 0;
   }
 
@@ -591,6 +690,8 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
         _configureTheGamesDb();
       } else if (_selectedContentIndex == 4) {
         _configureSteamGridDb();
+      } else if (_selectedContentIndex == 5) {
+        _configureNeoAssets();
       }
     }
   }
@@ -861,6 +962,8 @@ class _NewScraperOptionsScreenState extends State<NewScraperOptionsScreen> {
         onConfigureTheGamesDb: _configureTheGamesDb,
         steamGridDbConnected: _steamGridDbConnected,
         onConfigureSteamGridDb: _configureSteamGridDb,
+        neoAssetsConnected: _neoAssetsConnected,
+        onConfigureNeoAssets: _configureNeoAssets,
         metadataProvider: _metadataProviderLabel,
         artworkPriority: _artworkPriorityLabel,
         onChooseMetadataProvider: _chooseMetadataProvider,

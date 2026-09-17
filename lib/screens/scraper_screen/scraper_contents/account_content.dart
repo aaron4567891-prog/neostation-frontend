@@ -22,7 +22,7 @@ class _AccountScrollView extends StatefulWidget {
 
 class _AccountScrollViewState extends State<_AccountScrollView> {
   final _controller = ScrollController();
-  final _rowKeys = List<GlobalKey>.generate(5, (_) => GlobalKey());
+  final _rowKeys = List<GlobalKey>.generate(6, (_) => GlobalKey());
 
   @override
   void initState() {
@@ -79,6 +79,8 @@ class AccountContent extends StatelessWidget {
   final VoidCallback onConfigureTheGamesDb;
   final bool steamGridDbConnected;
   final VoidCallback onConfigureSteamGridDb;
+  final bool neoAssetsConnected;
+  final VoidCallback onConfigureNeoAssets;
   final String metadataProvider;
   final String artworkPriority;
   final VoidCallback onChooseMetadataProvider;
@@ -94,6 +96,8 @@ class AccountContent extends StatelessWidget {
     required this.onConfigureTheGamesDb,
     required this.steamGridDbConnected,
     required this.onConfigureSteamGridDb,
+    required this.neoAssetsConnected,
+    required this.onConfigureNeoAssets,
     required this.metadataProvider,
     required this.artworkPriority,
     required this.onChooseMetadataProvider,
@@ -214,6 +218,18 @@ class AccountContent extends StatelessWidget {
             name: 'SteamGridDB',
             purpose: 'artwork',
             onPressed: onConfigureSteamGridDb,
+          ),
+          SizedBox(height: 10.h),
+          _buildProviderButton(
+            context,
+            theme,
+            index: 5,
+            rowKey: rowKeys[5],
+            connected: neoAssetsConnected,
+            icon: Symbols.cloud_download_rounded,
+            name: 'NeoAssets',
+            purpose: 'metadata + artwork',
+            onPressed: onConfigureNeoAssets,
           ),
         ],
       ),
