@@ -392,7 +392,7 @@ class GameModel {
   /// or second entry. It is probed because RomM imports before 0.10.1 saved
   /// covers under the source's own extension, leaving `.webp` box art on disk
   /// that nothing could resolve.
-  static const List<String> _mediaExtensions = ['png', 'jpg', 'webp'];
+  static const List<String> _mediaExtensions = ['png', 'jpg', 'jpeg', 'webp'];
 
   /// The existing NeoStation-owned media file for [imageType], or null when
   /// NeoStation has no art of its own for this ROM.

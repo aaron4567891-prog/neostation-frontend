@@ -287,8 +287,30 @@ class NeoAssetsScraperService {
           'public_url',
           'src',
           'download_url',
+          'downloadUrl',
+          'image_url',
+          'imageUrl',
+          'uri',
         ]);
-        if (url != null) add(type, url);
+        if (url != null) {
+          final format = _firstString(map, [
+            'format',
+            'extension',
+            'file_extension',
+            'mime_type',
+            'content_type',
+          ]);
+          if (format == null) {
+            add(type, url);
+          } else {
+            output.add({
+              'type': type,
+              'url': url,
+              'format': format,
+              'region': _firstString(map, ['region', 'locale']) ?? 'wor',
+            });
+          }
+        }
       } else if (value is List) {
         for (final entry in value) {
           if (entry is Map) {
@@ -306,7 +328,12 @@ class NeoAssetsScraperService {
       }
     }
 
-    final media = game['media'] ?? game['medias'] ?? game['assets'];
+    final media =
+        game['media'] ??
+        game['medias'] ??
+        game['assets'] ??
+        game['images'] ??
+        game['artwork'];
     if (media is Map) {
       final map = Map<String, dynamic>.from(media);
       for (final entry in map.entries) {
@@ -419,7 +446,12 @@ class NeoAssetsScraperService {
       if (ext.isEmpty) {
         ext = path.extension(uri?.path ?? '').replaceFirst('.', '');
       }
-      if (ext.isEmpty) {
+      ext = ext.toLowerCase().trim();
+      if (ext.contains('/')) ext = ext.split('/').last;
+      if (ext == 'jpeg') ext = 'jpg';
+      if (ext.isEmpty ||
+          ext.length > 5 ||
+          !RegExp(r'^[a-z0-9]+$').hasMatch(ext)) {
         ext = type == 'video' ? 'mp4' : 'png';
       }
       final file = File(
@@ -501,7 +533,7 @@ class NeoAssetsScraperService {
         };
       }
       final root = Map<String, dynamic>.from(decoded);
-      final rawGame = root['game'];
+      final rawGame = root['game'] ?? root['data'] ?? root['result'];
       if (rawGame is! Map) {
         return {'success': false, 'message': 'Game not found on NeoAssets.'};
       }
