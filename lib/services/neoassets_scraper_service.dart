@@ -383,6 +383,7 @@ class NeoAssetsScraperService {
   }
 
   static Future<bool> _downloadMedia(
+    String appSystemId,
     String systemFolder,
     String romName,
     List<Map<String, dynamic>> medias, {
@@ -391,7 +392,7 @@ class NeoAssetsScraperService {
     final mediaPath = await ConfigService.getMediaPath();
     final cleanName = await ScreenscraperRomHasher.getCleanRomName(
       romName,
-      null,
+      appSystemId,
     );
     const folders = {
       'box-2D': 'box2d',
@@ -512,6 +513,7 @@ class NeoAssetsScraperService {
       );
       onProgress?.call('Downloading NeoAssets media', 0.35);
       final ok = await _downloadMedia(
+        appSystemId,
         systemFolder,
         romName,
         _normaliseMedia(game),
