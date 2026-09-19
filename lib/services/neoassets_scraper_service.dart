@@ -6,11 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 
+import '../models/rom_fingerprint.dart';
 import '../providers/scraping_provider.dart';
 import '../repositories/scraper_repository.dart';
 import 'config_service.dart';
 import 'credential_store.dart';
 import 'logger_service.dart';
+import 'retroachievements_hash_service.dart';
+import 'rom_fingerprint_service.dart';
 import 'screenscraper/rom_hasher.dart';
 
 /// Authentication and account client for the NeoAssets scraping API.
@@ -236,6 +239,7 @@ class NeoAssetsScraperService {
         final candidates = [
           id,
           map['slug'],
+          map['external_id'],
           map['name'],
           map['short_name'],
           map['folder'],
@@ -266,7 +270,8 @@ class NeoAssetsScraperService {
     return null;
   }
 
-  static List<Map<String, dynamic>> _normaliseMedia(Map<String, dynamic> game) {
+  @visibleForTesting
+  static List<Map<String, dynamic>> normaliseMedia(Map<String, dynamic> game) {
     final output = <Map<String, dynamic>>[];
     void add(String type, Object? value) {
       if (value == null) return;
@@ -298,6 +303,7 @@ class NeoAssetsScraperService {
             'extension',
             'file_extension',
             'mime_type',
+            'mime',
             'content_type',
           ]);
           if (format == null) {
@@ -385,7 +391,8 @@ class NeoAssetsScraperService {
     return 'ss';
   }
 
-  static Map<String, dynamic> _metadataFor(
+  @visibleForTesting
+  static Map<String, dynamic> metadataFor(
     String romName,
     Map<String, dynamic> game,
   ) {
@@ -396,6 +403,7 @@ class NeoAssetsScraperService {
       'filename': romName,
       'real_name': _firstString(game, ['name', 'title', 'game_name']),
       'description_en': _firstString(game, [
+        'description_en',
         'description',
         'overview',
         'synopsis',
@@ -462,7 +470,7 @@ class NeoAssetsScraperService {
         final response = await http
             .get(Uri.parse(url))
             .timeout(const Duration(seconds: 60));
-        if (response.statusCode == 200) {
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
           await file.create(recursive: true);
           await file.writeAsBytes(response.bodyBytes);
         } else {
@@ -473,8 +481,22 @@ class NeoAssetsScraperService {
         _log.w('NeoAssets media download failed: $e');
       }
     }
-    return !anyFailure;
+    return seen.isNotEmpty && !anyFailure;
   }
+
+  /// Hash identity takes priority on the API; name remains its fallback.
+  @visibleForTesting
+  static Map<String, String> lookupQuery({
+    required String systemId,
+    required String romName,
+    String? gameName,
+    RomFingerprint? fingerprint,
+  }) => {
+    'system_id': systemId,
+    'name': gameName?.trim().isNotEmpty == true ? gameName!.trim() : romName,
+    if (fingerprint != null) 'crc': fingerprint.crc32,
+    if (fingerprint?.md5 != null) 'md5': fingerprint!.md5!,
+  };
 
   /// Resolves and stores one game using NeoAssets metadata and media URLs.
   static Future<Map<String, dynamic>> scrapeSingleGame({
@@ -498,14 +520,32 @@ class NeoAssetsScraperService {
       if (systemId == null) {
         return {'success': false, 'message': 'NeoAssets system not mapped.'};
       }
+      RomFingerprint? fingerprint;
+      // NeoAssets gives hashes priority and falls back to the supplied name.
+      // The shared SAF-aware fingerprinter identifies the ROM inside archives,
+      // except for systems such as arcade where the packed set is the ROM.
+      try {
+        final policy = await RetroAchievementsHashService.policyForSystem(
+          systemFolder,
+        );
+        final attempt = await RomFingerprintService.computeInBackground(
+          romPath,
+          systemFolder,
+          keepsArchivesPacked: policy.keepsArchivesPacked,
+        );
+        fingerprint = attempt.fingerprint;
+      } catch (e) {
+        // Unreadable, unsupported or unavailable ROMs can still match by name.
+        _log.w('NeoAssets fingerprint unavailable; using name lookup: $e');
+      }
       final response = await _authenticatedGet(
         '/api/v1/scrape/games',
-        query: {
-          'system_id': systemId,
-          'name': gameName?.trim().isNotEmpty == true
-              ? gameName!.trim()
-              : romName,
-        },
+        query: lookupQuery(
+          systemId: systemId,
+          romName: romName,
+          gameName: gameName,
+          fingerprint: fingerprint,
+        ),
       );
       if (response == null) {
         return {
@@ -539,7 +579,7 @@ class NeoAssetsScraperService {
       }
       final game = Map<String, dynamic>.from(rawGame);
       await ScraperRepository.saveGameMetadata(
-        _metadataFor(romName, game),
+        metadataFor(romName, game),
         appSystemId,
         isFullyScraped: false,
       );
@@ -548,7 +588,7 @@ class NeoAssetsScraperService {
         appSystemId,
         systemFolder,
         romName,
-        _normaliseMedia(game),
+        normaliseMedia(game),
         forceOverwrite: forceOverwrite,
       );
       if (ok) await ScraperRepository.markGameFullyScraped(romName);

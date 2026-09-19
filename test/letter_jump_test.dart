@@ -63,17 +63,20 @@ void main() {
       );
     });
 
-    test('backward rewinds to the start of the current group first', () {
-      expect(
-        LetterJump.targetIndex(
-          length: 5,
-          currentIndex: 3,
-          forward: false,
-          letterAt: lettersOf('AABBC'),
-        ),
-        2,
-      );
-    });
+    test(
+      'backward from mid-group lands at the start of the previous group',
+      () {
+        expect(
+          LetterJump.targetIndex(
+            length: 5,
+            currentIndex: 3,
+            forward: false,
+            letterAt: lettersOf('AABBC'),
+          ),
+          0,
+        );
+      },
+    );
 
     test('backward from a group start steps into the previous group', () {
       expect(
