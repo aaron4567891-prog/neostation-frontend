@@ -1,7 +1,9 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import '../../../models/game_model.dart';
 import '../../../services/android_service.dart';
 
@@ -28,6 +30,7 @@ class AndroidAppCard extends StatefulWidget {
 class _AndroidAppCardState extends State<AndroidAppCard> {
   Uint8List? _iconBytes;
   bool _isLoadingIcon = true;
+  int _iconRequest = 0;
   late final FocusNode _focusNode;
 
   @override
@@ -35,6 +38,16 @@ class _AndroidAppCardState extends State<AndroidAppCard> {
     super.initState();
     _focusNode = FocusNode(skipTraversal: true);
     _loadIcon();
+  }
+
+  @override
+  void didUpdateWidget(covariant AndroidAppCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.app.romPath != widget.app.romPath) {
+      _iconBytes = null;
+      _isLoadingIcon = true;
+      _loadIcon();
+    }
   }
 
   @override
@@ -46,6 +59,7 @@ class _AndroidAppCardState extends State<AndroidAppCard> {
   /// Retrieves the application's native icon via the AndroidService.
   Future<void> _loadIcon() async {
     if (!mounted) return;
+    final request = ++_iconRequest;
     final packageName = widget.app.romPath;
     if (packageName == null || packageName.isEmpty) {
       if (mounted) setState(() => _isLoadingIcon = false);
@@ -53,7 +67,7 @@ class _AndroidAppCardState extends State<AndroidAppCard> {
     }
 
     final bytes = await AndroidService.getAppIcon(packageName);
-    if (mounted) {
+    if (mounted && request == _iconRequest) {
       setState(() {
         _iconBytes = bytes;
         _isLoadingIcon = false;
@@ -106,9 +120,8 @@ class _AndroidAppCardState extends State<AndroidAppCard> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.secondary.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.secondary
+                      .withValues(alpha: 0.3),
                   blurRadius: 15.r,
                   spreadRadius: 2.r,
                 ),

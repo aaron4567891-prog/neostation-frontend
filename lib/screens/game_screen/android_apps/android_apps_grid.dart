@@ -6,6 +6,7 @@ import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/services/sfx_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+
 import '../../../models/system_model.dart';
 import '../../../models/game_model.dart';
 import '../../../services/game_service.dart';
@@ -432,6 +433,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
                   final top = row * (itemHeight + spacing);
 
                   return Positioned(
+                    key: ValueKey(_apps[index].romPath ?? _apps[index].name),
                     left: left,
                     top: top,
                     width: itemWidth,
