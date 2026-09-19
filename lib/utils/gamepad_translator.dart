@@ -212,10 +212,11 @@ class GamepadEventTranslator {
       value = _normalizeAxisValue(gamepadId, inputType, value);
 
       if (inputType == GamepadInputType.unknown) {
-        if (diagnostics)
+        if (diagnostics) {
           _log.i(
             '[GamepadTranslate] unknown key=${rawEvent.key} raw=${rawEvent.value}',
           );
+        }
         return null;
       }
 

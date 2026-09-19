@@ -820,8 +820,9 @@ class GamepadNavigation {
       // the reactivation grace below is: the translator must observe every edge
       // or its press/release state sticks and swallows the next real press.
       if (!DesktopWindowFocus.allowsInput) {
-        if (_debugLogging)
+        if (_debugLogging) {
           _log.i('[GamepadDecision] ignored: window unfocused');
+        }
         DesktopWindowFocus.verifySoon();
         return;
       }
@@ -839,8 +840,9 @@ class GamepadNavigation {
           _activationTime != null &&
           now.difference(_activationTime!).inMilliseconds <
               _reactivationGraceMs) {
-        if (_debugLogging)
+        if (_debugLogging) {
           _log.i('[GamepadDecision] ignored: reactivation grace');
+        }
         return;
       }
 
@@ -939,8 +941,9 @@ class GamepadNavigation {
         GamepadInputType.buttonB,
       };
       if (!allowedWhileTyping.contains(event.inputType)) {
-        if (_debugLogging)
+        if (_debugLogging) {
           _log.i('[GamepadDecision] ignored: text field focused');
+        }
         return;
       }
     }
