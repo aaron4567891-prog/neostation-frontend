@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:flutter_localization/flutter_localization.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:neostation/l10n/app_locale.dart';
 import 'package:neostation/services/game_service.dart';
 import 'package:neostation/utils/gamepad_nav.dart';
+
 import '../services/update_service.dart';
 import 'custom_notification.dart';
 import 'core_footer.dart';
@@ -23,6 +25,7 @@ class UpdateDialog extends StatefulWidget {
 
 class _UpdateDialogState extends State<UpdateDialog> {
   bool _isDownloading = false;
+  bool _isClosing = false;
   double _downloadProgress = 0.0;
   late final GamepadNavigation _gamepadNav;
 
@@ -31,7 +34,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
     super.initState();
     _gamepadNav = GamepadNavigation(
       onSelectItem: () {
-        if (!_isDownloading) _startUpdate();
+        if (!_isDownloading && !_isClosing) _startUpdate();
       },
       onBack: _closeDialog,
     );
@@ -60,8 +63,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
   }
 
   void _closeDialog() {
-    if (_isDownloading) return;
-    _cleanupGamepad();
+    if (_isDownloading || _isClosing) return;
+    _isClosing = true;
+    // Stop repeated button presses during the closing animation, but keep the
+    // modal layer until dispose. Removing it before Navigator.pop tries to
+    // activate the underlying carousel while its route is still non-current.
+    _gamepadNav.deactivate();
     Navigator.of(context).pop(false);
   }
 
