@@ -166,8 +166,13 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
         clearStaleSecondaryNowPlaying()
         super.onCreate(savedInstanceState)
 
-        // Disable focus highlight for the entire activity
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        // Keep Android's soft-input resize contract intact.  With decor fitting
+        // disabled, some handheld firmwares (including the AYN Odin 3) overlay
+        // the IME on Flutter instead of reducing its viewport, leaving focused
+        // metadata fields behind the keyboard despite `adjustResize` in the
+        // manifest. System bars remain hidden below, so this does not change
+        // the immersive presentation.
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
             window.insetsController?.let { controller ->
                 controller.hide(android.view.WindowInsets.Type.systemBars())
