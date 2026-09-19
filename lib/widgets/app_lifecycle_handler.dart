@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/material.dart';
 import 'package:neostation/services/logger_service.dart';
+
 import '../services/notification_service.dart';
 import '../services/neosync/auth_service.dart';
 import '../sync/sync_manager.dart';
@@ -11,6 +13,7 @@ import '../widgets/plan_farewell_modal.dart';
 import '../services/game_service.dart';
 import '../services/music_player_service.dart';
 import '../providers/sqlite_config_provider.dart';
+
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -122,6 +125,7 @@ class _AppLifecycleHandlerState extends State<AppLifecycleHandler>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+    debugPrint('[ControllerFocusLifecycle] state=${state.name}');
 
     if (state == AppLifecycleState.resumed) {
       await GameService.handleAppResumed();

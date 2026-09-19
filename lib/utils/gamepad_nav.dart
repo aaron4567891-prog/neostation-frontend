@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:neostation/services/logger_service.dart';
+import 'package:neostation/services/gamepad/gamepad_navigation_manager.dart';
 import 'package:neostation/services/sfx_service.dart';
+
 import '../responsive.dart';
 import 'desktop_window_focus.dart';
 import 'gamepad_translator.dart';
@@ -154,6 +157,14 @@ class GamepadNavigation {
   final bool Function()? isTextFieldFocused;
 
   static final _log = LoggerService.instance;
+  DateTime? _lastFocusAxisTrace;
+  void _focusTrace(String message) {
+    _log.i(
+      '[ControllerFocusNav] handler=${identityHashCode(this)} '
+      'active=$_isActive owner=${_activeNavigator == null ? "none" : identityHashCode(_activeNavigator!)} '
+      'stack=${GamepadNavigationManager.diagnosticStack} $message',
+    );
+  }
 
   /// When true, all raw input events are logged for diagnostic purposes.
   static bool _debugLogging = false;
@@ -422,9 +433,11 @@ class GamepadNavigation {
 
   /// Starts listening for gamepad and keyboard events.
   void initialize() async {
+    _focusTrace('initialize begin');
     _subscription?.cancel();
 
     await _initializeGamepadInfo();
+    _focusTrace('device enumeration complete; subscribing');
 
     _subscription = Gamepads.events.listen(
       (event) {
@@ -545,6 +558,7 @@ class GamepadNavigation {
 
   /// Enables input processing for this navigator instance.
   void activate() {
+    _focusTrace('activate');
     final wasInactive = !_isActive;
     _isActive = true;
     // Take over any synthetic shoulder repeat still running from the layer we
@@ -571,6 +585,7 @@ class GamepadNavigation {
 
   /// Disables input processing and cancels any active auto-repeat timers.
   void deactivate() {
+    _focusTrace('deactivate');
     _cancelLeftBumperHold();
     _isActive = false;
     _activationTime = null;
@@ -694,6 +709,7 @@ class GamepadNavigation {
 
   /// Releases resources held by the navigator.
   void dispose() {
+    _focusTrace('dispose');
     _cancelLeftBumperHold();
     _subscription?.cancel();
     _subscription = null;
@@ -729,6 +745,19 @@ class GamepadNavigation {
 
   /// Orchestrates the processing of a raw [GamepadEvent].
   void _handleGamepadEvent(GamepadEvent event) async {
+    final traceNow = DateTime.now();
+    final trace =
+        event.type.name == 'button' ||
+        _lastFocusAxisTrace == null ||
+        traceNow.difference(_lastFocusAxisTrace!).inMilliseconds >= 250;
+    if (trace) {
+      if (event.type.name != 'button') {
+        _lastFocusAxisTrace = traceNow;
+      }
+      _focusTrace(
+        'received control=${event.key} device=${event.gamepadId} value=${event.value}',
+      );
+    }
     // Ends a synthetic shoulder repeat. Deliberately ahead of the active check:
     // every navigator subscribes to the raw stream, and the release that ends a
     // hold can land while this layer is the deactivated one (mid tab switch, or
@@ -751,6 +780,9 @@ class GamepadNavigation {
         );
         _currentGamepadId = event.gamepadId;
         await _ensureConnectionTypeDetected(event.gamepadId);
+        if (trace) {
+          _focusTrace('connection detection complete');
+        }
       }
 
       if (_debugLogging) {
@@ -801,7 +833,11 @@ class GamepadNavigation {
       }
 
       final translatedEvent = _translator.translateEvent(event);
-
+      if (trace) {
+        _focusTrace(
+          'translation=$translatedEvent windowInput=${DesktopWindowFocus.allowsInput}',
+        );
+      }
       if (translatedEvent == null) return;
 
       if (DesktopWindowFocus.allowsInput &&
@@ -833,6 +869,9 @@ class GamepadNavigation {
           _activationTime != null &&
           now.difference(_activationTime!).inMilliseconds <
               _reactivationGraceMs) {
+        if (trace) {
+          _focusTrace('ignored: activation grace');
+        }
         return;
       }
 
@@ -927,6 +966,11 @@ class GamepadNavigation {
         _lastEventTime = now;
       }
 
+      if (trace) {
+        _focusTrace(
+          'dispatch $translatedEvent textFocus=${_isTextFieldFocused()}',
+        );
+      }
       _handleTranslatedEvent(translatedEvent);
     } catch (e) {
       _log.e('Error processing gamepad event: $e');

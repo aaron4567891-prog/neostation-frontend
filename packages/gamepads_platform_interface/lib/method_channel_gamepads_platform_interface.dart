@@ -8,6 +8,7 @@ import 'package:gamepads_platform_interface/gamepads_platform_interface.dart';
 import 'package:gamepads_platform_interface/method_channel_interface.dart';
 
 class MethodChannelGamepadsPlatformInterface extends GamepadsPlatformInterface {
+  DateTime? _lastAxisTrace;
   final MethodChannel _channel = const MethodChannel('xyz.luan/gamepads');
 
   MethodChannelGamepadsPlatformInterface() {
@@ -28,7 +29,21 @@ class MethodChannelGamepadsPlatformInterface extends GamepadsPlatformInterface {
   Future<void> platformCallHandler(MethodCall call) async {
     switch (call.method) {
       case 'onGamepadEvent':
-        emitGamepadEvent(GamepadEvent.parse(call.args));
+        final event = GamepadEvent.parse(call.args);
+        final now = DateTime.now();
+        if (event.type.name == 'button' ||
+            _lastAxisTrace == null ||
+            now.difference(_lastAxisTrace!).inMilliseconds >= 250) {
+          if (event.type.name != 'button') {
+            _lastAxisTrace = now;
+          }
+          debugPrint(
+            '[ControllerFocusBridge] control=${event.key} device=${event.gamepadId} '
+            'value=${event.value} listeners=${_gamepadEventsStreamController.hasListener} '
+            'closed=${_gamepadEventsStreamController.isClosed}',
+          );
+        }
+        emitGamepadEvent(event);
     }
   }
 
