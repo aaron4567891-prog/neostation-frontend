@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:neostation/services/logger_service.dart';
 import 'package:neostation/services/sfx_service.dart';
+
 import '../responsive.dart';
 import 'desktop_window_focus.dart';
 import 'gamepad_translator.dart';
@@ -156,7 +158,7 @@ class GamepadNavigation {
   static final _log = LoggerService.instance;
 
   /// When true, all raw input events are logged for diagnostic purposes.
-  static bool _debugLogging = false;
+  static bool _debugLogging = const bool.fromEnvironment('GAMEPAD_DIAGNOSTICS');
   static bool get debugLogging => _debugLogging;
   static void setDebugLogging(bool enabled) {
     _debugLogging = enabled;
@@ -799,7 +801,10 @@ class GamepadNavigation {
         _shoulderReleasedSinceDispatch = true;
       }
 
-      final translatedEvent = _translator.translateEvent(event);
+      final translatedEvent = _translator.translateEvent(
+        event,
+        diagnostics: _debugLogging,
+      );
 
       if (translatedEvent == null) return;
 
@@ -815,6 +820,8 @@ class GamepadNavigation {
       // the reactivation grace below is: the translator must observe every edge
       // or its press/release state sticks and swallows the next real press.
       if (!DesktopWindowFocus.allowsInput) {
+        if (_debugLogging)
+          _log.i('[GamepadDecision] ignored: window unfocused');
         DesktopWindowFocus.verifySoon();
         return;
       }
@@ -832,6 +839,8 @@ class GamepadNavigation {
           _activationTime != null &&
           now.difference(_activationTime!).inMilliseconds <
               _reactivationGraceMs) {
+        if (_debugLogging)
+          _log.i('[GamepadDecision] ignored: reactivation grace');
         return;
       }
 
@@ -859,6 +868,11 @@ class GamepadNavigation {
             if (_lastDirectionalEventTime != null &&
                 now.difference(_lastDirectionalEventTime!).inMilliseconds <
                     _directionalThrottleMs) {
+              if (_debugLogging) {
+                _log.i(
+                  '[GamepadDecision] ignored: directional throttle ${_directionalThrottleMs}ms',
+                );
+              }
               return;
             }
           }
@@ -903,6 +917,9 @@ class GamepadNavigation {
         _lastEventTime = now;
       }
 
+      if (_debugLogging) {
+        _log.i('[GamepadDecision] dispatch $translatedEvent');
+      }
       _handleTranslatedEvent(translatedEvent);
     } catch (e) {
       _log.e('Error processing gamepad event: $e');
@@ -921,7 +938,11 @@ class GamepadNavigation {
         GamepadInputType.buttonRB,
         GamepadInputType.buttonB,
       };
-      if (!allowedWhileTyping.contains(event.inputType)) return;
+      if (!allowedWhileTyping.contains(event.inputType)) {
+        if (_debugLogging)
+          _log.i('[GamepadDecision] ignored: text field focused');
+        return;
+      }
     }
 
     // Select (View) is first and foremost a chord modifier. Track its state —
@@ -1039,6 +1060,11 @@ class GamepadNavigation {
         break;
 
       case GamepadInputType.leftStickX:
+        if (_debugLogging) {
+          _log.i(
+            '[GamepadStick] X=${event.value} navigationAbs>${isWindows ? 0.65 : 0.60}',
+          );
+        }
         if (isWindows) {
           // GameInput reports the stick axis normalized to [-1, 1], +X = right.
           final normalizedValue = event.value;
@@ -1073,6 +1099,11 @@ class GamepadNavigation {
         break;
 
       case GamepadInputType.leftStickY:
+        if (_debugLogging) {
+          _log.i(
+            '[GamepadStick] Y=${event.value} navigationAbs>${isWindows ? 0.65 : 0.60}',
+          );
+        }
         if (isWindows) {
           // GameInput reports the stick axis normalized to [-1, 1], +Y = up.
           final normalizedValue = event.value;
@@ -1327,6 +1358,11 @@ class GamepadNavigation {
 
   /// Handles a directional movement and initializes the auto-repeat timer if necessary.
   void _handleDirectionalAction(dynamic key, Function? action) {
+    if (_debugLogging) {
+      _log.i(
+        '[GamepadMove] direction=$key callback=${action != null} alreadyRepeating=${_repeatTimers.containsKey(key)}',
+      );
+    }
     if (action == null) return;
 
     if (_repeatTimers.containsKey(key)) {

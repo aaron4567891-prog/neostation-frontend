@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:gamepads/gamepads.dart';
 import 'package:neostation/services/logger_service.dart';
+
 import 'gamepad_mapping.dart' hide GamepadConnectionType;
 
 /// Standardized gamepad input types supported by NeoStation.
@@ -123,7 +125,10 @@ class GamepadEventTranslator {
   /// Translates a raw [GamepadEvent] into a standardized [TranslatedGamepadEvent].
   ///
   /// Returns null if the event is unrecognized or filtered (e.g., duplicates).
-  TranslatedGamepadEvent? translateEvent(GamepadEvent rawEvent) {
+  TranslatedGamepadEvent? translateEvent(
+    GamepadEvent rawEvent, {
+    bool diagnostics = false,
+  }) {
     try {
       final gamepadId = rawEvent.gamepadId;
       final key = rawEvent.key.toLowerCase();
@@ -207,6 +212,10 @@ class GamepadEventTranslator {
       value = _normalizeAxisValue(gamepadId, inputType, value);
 
       if (inputType == GamepadInputType.unknown) {
+        if (diagnostics)
+          _log.i(
+            '[GamepadTranslate] unknown key=${rawEvent.key} raw=${rawEvent.value}',
+          );
         return null;
       }
 
@@ -245,6 +254,21 @@ class GamepadEventTranslator {
 
       final isPressed = (!wasPressed && isNowPressed) || forcePress;
       final isReleased = wasPressed && !isNowPressed;
+      if (diagnostics) {
+        final gate = Platform.isWindows
+            ? 'abs>0.5'
+            : Platform.isAndroid
+            ? 'abs>=0.5'
+            : Platform.isLinux
+            ? 'abs==32767'
+            : 'nonzero';
+        _log.i(
+          '[GamepadTranslate] device=$gamepadId key=$key input=${inputType.name} '
+          'raw=${rawEvent.value} normalized=$value previous=$previousValue '
+          'gate=${isDpadInput ? gate : "value>0.5"} held=$isNowPressed '
+          'pressed=$isPressed released=$isReleased forced=$forcePress',
+        );
+      }
 
       // Update state for future comparisons.
       previousState[inputType] = value;
