@@ -124,6 +124,7 @@ class GamepadNavigation {
 
   StreamSubscription<GamepadEvent>? _subscription;
   DateTime? _lastDirectionalEventTime;
+  String? _lastDirectionalInput;
   DateTime? _lastActionEventTime;
 
   /// Throttle duration for directional inputs to prevent "drifting" or excessive navigation.
@@ -768,6 +769,15 @@ class GamepadNavigation {
         _shoulderReleasedSinceDispatch = true;
       }
 
+      if (translatedEvent.isReleased &&
+          _lastDirectionalInput?.startsWith(
+                '${translatedEvent.inputType.name}:',
+              ) ==
+              true) {
+        _lastDirectionalInput = null;
+        _lastDirectionalEventTime = null;
+      }
+
       if (translatedEvent.isPressed) {
         final isDirectional = [
           GamepadInputType.dpadUp,
@@ -781,13 +791,27 @@ class GamepadNavigation {
         final isShoulder = isShoulderInput;
 
         if (isDirectional) {
-          if (!isWindows) {
+          final isStick =
+              translatedEvent.inputType == GamepadInputType.leftStickX ||
+              translatedEvent.inputType == GamepadInputType.leftStickY;
+          // Sub-threshold samples must not consume the first navigation step.
+          // Releases still pass through to stop the existing repeat timers.
+          if (isStick &&
+              translatedEvent.value.abs() <= (isWindows ? 0.65 : 0.60)) {
+            return;
+          }
+          final direction =
+              '${translatedEvent.inputType.name}:${translatedEvent.value.sign}';
+          // Pace only a continuing hold. Fresh taps and direction changes
+          // should respond immediately, including changes between stick axes.
+          if (!isWindows && _lastDirectionalInput == direction) {
             if (_lastDirectionalEventTime != null &&
                 now.difference(_lastDirectionalEventTime!).inMilliseconds <
                     _directionalThrottleMs) {
               return;
             }
           }
+          _lastDirectionalInput = direction;
           _lastDirectionalEventTime = now;
         } else if (isShoulder) {
           // No release since the last switch means the bumper is still held:
