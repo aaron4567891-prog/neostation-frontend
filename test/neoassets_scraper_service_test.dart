@@ -3,6 +3,10 @@ import 'package:neostation/models/rom_fingerprint.dart';
 import 'package:neostation/services/neoassets_scraper_service.dart';
 
 void main() {
+  test('scraper uses the NeoAssets API hostname', () {
+    expect(NeoAssetsScraperService.apiBaseUrl, 'https://api.neoassets.dev');
+  });
+
   test('renamed ROM sends identity hashes with the name fallback', () {
     final query = NeoAssetsScraperService.lookupQuery(
       systemId: 'gba',

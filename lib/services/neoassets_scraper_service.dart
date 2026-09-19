@@ -37,7 +37,8 @@ class NeoAssetsConnectionResult {
 class NeoAssetsScraperService {
   NeoAssetsScraperService._();
 
-  static const _baseUrl = 'https://neoassets.dev';
+  @visibleForTesting
+  static const apiBaseUrl = 'https://api.neoassets.dev';
   static const _clientIdKey = 'neoassets_client_id';
   static const _clientSecretKey = 'neoassets_client_secret';
   static const _apiKeyKey = 'neoassets_personal_api_key';
@@ -103,7 +104,7 @@ class NeoAssetsScraperService {
     try {
       final response = await http
           .get(
-            Uri.parse('$_baseUrl/api/v1/scrape/account'),
+            Uri.parse('$apiBaseUrl/api/v1/scrape/account'),
             headers: _headers(
               clientId: id,
               clientSecret: secret,
@@ -121,11 +122,20 @@ class NeoAssetsScraperService {
         // still useful and is reported below.
       }
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && decoded != null) {
         return NeoAssetsConnectionResult(
           success: true,
           message: 'NeoAssets connected successfully.',
-          account: decoded ?? <String, dynamic>{},
+          account: decoded,
+        );
+      }
+
+      if (response.statusCode == 200) {
+        const message = 'NeoAssets returned an invalid JSON response.';
+        _log.w('NeoAssets credential verification: $message');
+        return const NeoAssetsConnectionResult(
+          success: false,
+          message: message,
         );
       }
 
@@ -198,7 +208,7 @@ class NeoAssetsScraperService {
   }) async {
     final credentials = await getCredentials();
     if (credentials == null) return null;
-    final uri = Uri.parse('$_baseUrl$route').replace(queryParameters: query);
+    final uri = Uri.parse('$apiBaseUrl$route').replace(queryParameters: query);
     return http
         .get(
           uri,
