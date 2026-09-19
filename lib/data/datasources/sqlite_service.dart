@@ -1941,7 +1941,7 @@ class SqliteService {
         -- moves whenever the asset is regenerated. See migration v138.
         ra_seed_stamp TEXT DEFAULT '',
         neostation_app_version TEXT DEFAULT '',
-        auto_update_app INTEGER DEFAULT 1,
+        auto_update_app INTEGER DEFAULT 0,
         auto_update_systems INTEGER DEFAULT 1,
         system_grid_columns TEXT DEFAULT 'M',
         game_grid_columns TEXT DEFAULT 'M',

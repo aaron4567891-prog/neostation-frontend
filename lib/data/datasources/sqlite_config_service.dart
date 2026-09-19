@@ -220,8 +220,8 @@ class SqliteConfigService {
         activeSyncProvider:
             userConfig?['active_sync_provider']?.toString() ?? 'neosync',
         autoUpdateApp:
-            (int.tryParse(userConfig?['auto_update_app']?.toString() ?? '1') ??
-                1) ==
+            (int.tryParse(userConfig?['auto_update_app']?.toString() ?? '0') ??
+                0) ==
             1,
         autoUpdateSystems:
             (int.tryParse(
