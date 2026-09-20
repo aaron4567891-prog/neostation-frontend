@@ -358,7 +358,8 @@ class GameListViewState extends State<GameListView>
                   _centeredScrollController.scrollController,
                 ]),
                 builder: (context, child) {
-                  if (!_centeredScrollController.scrollController.hasClients) {
+                  if (widget.wheelArtworkType != null ||
+                      !_centeredScrollController.scrollController.hasClients) {
                     return const SizedBox.shrink();
                   }
 
@@ -396,17 +397,16 @@ class GameListViewState extends State<GameListView>
                         decoration: BoxDecoration(
                           color: highlightColor,
                           borderRadius:
-                              Theme.of(
-                                context,
-                              ).extension<CornerRadii>()?.radiusInternal ??
+                              Theme.of(context)
+                                  .extension<CornerRadii>()
+                                  ?.radiusInternal ??
                               BorderRadius.circular(14.r),
                           boxShadow: clearHighlight
                               ? null
                               : [
                                   BoxShadow(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.shadow.withValues(alpha: 0.1),
+                                    color: Theme.of(context).colorScheme.shadow
+                                        .withValues(alpha: 0.1),
                                     blurRadius: 4.r,
                                     offset: Offset(2.0.r, 2.0.r),
                                   ),
@@ -534,7 +534,8 @@ class GameListViewState extends State<GameListView>
                                 // the system, signed out, no ScreenScraper id),
                                 // so the row is unchanged for everyone who does
                                 // not use cloud saves.
-                                if (isSelected &&
+                                if (widget.useMarqueeLogos &&
+                                    isSelected &&
                                     _showCloudSyncIcon &&
                                     _syncProvider != null)
                                   NeoSyncStatusIcon(
@@ -681,7 +682,34 @@ class GameListViewState extends State<GameListView>
       _ => 350.0,
     };
 
-    Widget fallback() => _buildTextLabel(game, isSelected, theme);
+    final highlightBackground = context
+        .read<SqliteConfigProvider>()
+        .config
+        .gameListHighlightBackground;
+    final highlightColor = switch (highlightBackground) {
+      'clear' => Colors.transparent,
+      'black' => Colors.black,
+      'grey' => Colors.grey,
+      'red' => Colors.red,
+      'green' => Colors.green,
+      'blue' => Colors.blue,
+      'purple' => Colors.purple,
+      _ => theme.colorScheme.primary,
+    };
+
+    Widget framed(Widget child) => AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.all(4.r),
+      decoration: BoxDecoration(
+        color: isSelected ? highlightColor : Colors.transparent,
+        borderRadius:
+            theme.extension<CornerRadii>()?.radiusInternal ??
+            BorderRadius.circular(14.r),
+      ),
+      child: child,
+    );
+
+    Widget fallback() => framed(_buildTextLabel(game, isSelected, theme));
     if (artworkPath.isEmpty || !File(artworkPath).existsSync()) {
       return fallback();
     }
@@ -696,15 +724,20 @@ class GameListViewState extends State<GameListView>
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         alignment: Alignment.centerLeft,
-        child: Image.file(
-          File(artworkPath),
-          key: ValueKey('${type}_${game.romPath ?? game.romname}'),
-          height: baseHeight.r,
-          width: baseWidth.r,
-          fit: BoxFit.contain,
-          alignment: Alignment.centerLeft,
-          cacheHeight: 256,
-          errorBuilder: (_, _, _) => fallback(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: baseWidth.r),
+          child: framed(
+            Image.file(
+              File(artworkPath),
+              key: ValueKey('${type}_${game.romPath ?? game.romname}'),
+              height: baseHeight.r,
+              fit: BoxFit.contain,
+              alignment: Alignment.centerLeft,
+              cacheHeight: 256,
+              errorBuilder: (_, _, _) =>
+                  _buildTextLabel(game, isSelected, theme),
+            ),
+          ),
         ),
       ),
     );
