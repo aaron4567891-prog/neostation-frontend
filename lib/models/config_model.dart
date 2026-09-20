@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:neostation/constants/recent_card_sizes.dart';
-
 import 'emulator_model.dart';
 
 /// Represents the global application configuration and user preferences.
@@ -279,7 +278,7 @@ class ConfigModel {
     this.hideTabRomm = false,
     this.hideTabSearch = false,
     this.activeSyncProvider = 'neosync',
-    this.autoUpdateApp = false,
+    this.autoUpdateApp = true,
     this.autoUpdateSystems = true,
     this.systemGridColumns = 'M',
     this.gameGridColumns = 'M',
@@ -442,11 +441,10 @@ class ConfigModel {
                   json['active_sync_provider'] ??
                   'neosync')
               .toString(),
-      autoUpdateApp: const ['1', 'true'].contains(
-        (json['autoUpdateApp'] ?? json['auto_update_app'] ?? false)
-            .toString()
-            .toLowerCase(),
-      ),
+      autoUpdateApp:
+          (json['autoUpdateApp'] ?? json['auto_update_app'] ?? 1).toString() ==
+              '1' ||
+          (json['autoUpdateApp'] ?? true).toString().toLowerCase() == 'true',
       autoUpdateSystems:
           (json['autoUpdateSystems'] ?? json['auto_update_systems'] ?? 1)
                   .toString() ==
