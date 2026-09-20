@@ -21,6 +21,7 @@ extension _GamepadNav on _SystemEmulatorSettingsDialogState {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _gamepadNav.initialize();
       GamepadNavigationManager.pushLayer(
         'system_emulator_settings_dialog',

@@ -578,14 +578,16 @@ class _SystemEmulatorSettingsDialogState
   }
 
   void _closeDialog() {
-    // Limpiar gamepad antes de cerrar
+    // Close a nested menu before dismissing the dialog.
     if (_openMenuIndex != -1) {
       if (_openMenuIndex < _menuControllers.length) {
         _menuControllers[_openMenuIndex].close();
       }
       return;
     }
-    _cleanupGamepad();
+    // dispose releases the navigation layer after this route is popped.
+    // Releasing it here would reactivate the systems grid while its route is
+    // still covered, so the grid refuses activation and loses controller input.
     Navigator.of(context).pop();
   }
 
