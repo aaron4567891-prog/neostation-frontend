@@ -860,12 +860,20 @@ class GamepadNavigation {
           translatedEvent.inputType == GamepadInputType.buttonLB ||
           translatedEvent.inputType == GamepadInputType.buttonRB;
 
-      // Reactivation grace: swallow inputs that leak in from the screen we just
-      // came from. The shoulder buttons are exempt — every tab switch rebuilds
-      // a navigation layer, so each switch restarted the grace and ate the next
-      // L1/R1 press, which is why tabs often needed a second press. A stray
-      // bumper only moves one tab and is trivially undone, unlike a stray A/B.
+      final isDirectional = [
+        GamepadInputType.dpadUp,
+        GamepadInputType.dpadDown,
+        GamepadInputType.dpadLeft,
+        GamepadInputType.dpadRight,
+        GamepadInputType.leftStickX,
+        GamepadInputType.leftStickY,
+      ].contains(translatedEvent.inputType);
+
+      // Keep A/B from leaking through a closing menu, but allow navigation
+      // immediately. Dropping a fresh direction here can consume its press
+      // edge and force the user to release and press again.
       if (!isShoulderInput &&
+          !isDirectional &&
           _activationTime != null &&
           now.difference(_activationTime!).inMilliseconds <
               _reactivationGraceMs) {
@@ -892,15 +900,6 @@ class GamepadNavigation {
       }
 
       if (translatedEvent.isPressed) {
-        final isDirectional = [
-          GamepadInputType.dpadUp,
-          GamepadInputType.dpadDown,
-          GamepadInputType.dpadLeft,
-          GamepadInputType.dpadRight,
-          GamepadInputType.leftStickX,
-          GamepadInputType.leftStickY,
-        ].contains(translatedEvent.inputType);
-
         final isShoulder = isShoulderInput;
 
         if (isDirectional) {
@@ -1250,13 +1249,22 @@ class GamepadNavigation {
 
     final isKeyDown = event is KeyDownEvent;
 
-    // Q/E (tab switching) bypass the reactivation grace for the same reason the
-    // shoulder buttons do: switching tabs rebuilds a navigation layer, so the
-    // grace would eat the next tab key press.
+    // Navigation stays responsive after closing a menu. Confirm/back keys
+    // retain the grace period so the dismissal cannot act on the next screen.
+    final isDirectionKey =
+        event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowDown ||
+        event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.keyW ||
+        event.logicalKey == LogicalKeyboardKey.keyA ||
+        event.logicalKey == LogicalKeyboardKey.keyS ||
+        event.logicalKey == LogicalKeyboardKey.keyD;
     final isTabKey =
         event.logicalKey == LogicalKeyboardKey.keyQ ||
         event.logicalKey == LogicalKeyboardKey.keyE;
     if (!isTabKey &&
+        !isDirectionKey &&
         _activationTime != null &&
         DateTime.now().difference(_activationTime!).inMilliseconds <
             _reactivationGraceMs) {
