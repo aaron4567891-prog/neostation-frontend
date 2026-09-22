@@ -58,6 +58,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
         ];
 
     final int numTabs = visibleTabs.length;
+    if (numTabs == 0) return const SizedBox.shrink();
     final double tabWidth = 36.r;
     final double totalTabsWidth = numTabs * tabWidth;
 
@@ -72,72 +73,80 @@ class GameDetailsTabsHeader extends StatelessWidget {
       child: Container(
         height: 46.r,
         padding: EdgeInsets.only(top: 4.r, right: 8.r),
-        child: Row(
-          children: [
-            const Spacer(),
+        // Fit the complete strip, including both D-pad hints, to the card.
+        // Fixed-width children previously overflowed when the RA tab was added.
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // D-pad glyphs sit outside the pill so the pill reads as a single
+                // switch and the hardware hints stay visually distinct from it.
+                const DpadGlyph(isLeft: true),
+                SizedBox(width: 6.r),
 
-            // D-pad glyphs sit outside the pill so the pill reads as a single
-            // switch and the hardware hints stay visually distinct from it.
-            const DpadGlyph(isLeft: true),
-            SizedBox(width: 6.r),
-
-            // Tab Navigation Group: Hardware-mapped navigation controls.
-            NeoGlass(
-              cornerRadius:
-                  Theme.of(
-                    context,
-                  ).extension<CornerRadii>()?.radiusExternalRadius ??
-                  12.r,
-              child: SizedBox(
-                height: 36.r,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.r),
+                // Tab Navigation Group: Hardware-mapped navigation controls.
+                NeoGlass(
+                  cornerRadius:
+                      Theme.of(context)
+                          .extension<CornerRadii>()
+                          ?.radiusExternalRadius ??
+                      12.r,
                   child: SizedBox(
-                    width: totalTabsWidth,
                     height: 36.r,
-                    child: Stack(
-                      children: [
-                        // Transition Cursor: Fluidly follows the active selection.
-                        AnimatedPositioned(
-                          duration: const Duration(milliseconds: 160),
-                          curve: Curves.easeInOut,
-                          left: visualIndex * tabWidth,
-                          top: 4.r,
-                          bottom: 4.r,
-                          width: tabWidth,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              borderRadius:
-                                  Theme.of(
-                                    context,
-                                  ).extension<CornerRadii>()?.radiusInternal ??
-                                  BorderRadius.circular(14.r),
-                            ),
-                          ),
-                        ),
-                        Row(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.r),
+                      child: SizedBox(
+                        width: totalTabsWidth,
+                        height: 36.r,
+                        child: Stack(
                           children: [
-                            for (final tab in visibleTabs)
-                              _TabItem(
-                                icon: _iconForTab(tab),
-                                tab: tab,
-                                width: tabWidth,
-                                isSelected: currentTab == tab,
-                                onTap: onTabChanged,
+                            // Transition Cursor: Fluidly follows the active selection.
+                            AnimatedPositioned(
+                              duration: const Duration(milliseconds: 160),
+                              curve: Curves.easeInOut,
+                              left: visualIndex * tabWidth,
+                              top: 4.r,
+                              bottom: 4.r,
+                              width: tabWidth,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius:
+                                      Theme.of(context)
+                                          .extension<CornerRadii>()
+                                          ?.radiusInternal ??
+                                      BorderRadius.circular(14.r),
+                                ),
                               ),
+                            ),
+                            Row(
+                              children: [
+                                for (final tab in visibleTabs)
+                                  _TabItem(
+                                    icon: _iconForTab(tab),
+                                    tab: tab,
+                                    width: tabWidth,
+                                    isSelected: currentTab == tab,
+                                    onTap: onTabChanged,
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
 
-            SizedBox(width: 6.r),
-            const DpadGlyph(isLeft: false),
-          ],
+                SizedBox(width: 6.r),
+                const DpadGlyph(isLeft: false),
+              ],
+            ),
+          ),
         ),
       ),
     );
