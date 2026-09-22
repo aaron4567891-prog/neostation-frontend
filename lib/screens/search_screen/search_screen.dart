@@ -30,6 +30,7 @@ import 'package:neostation/services/sfx_service.dart';
 import 'package:neostation/utils/gamepad_nav.dart';
 import 'package:neostation/utils/game_launch_utils.dart';
 import 'package:neostation/widgets/custom_notification.dart';
+import 'package:neostation/widgets/achievements_badge.dart';
 import 'package:neostation/screens/game_screen/my_games_list.dart';
 import 'package:neostation/screens/app_screen.dart';
 
@@ -74,6 +75,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   bool _loading = true;
   List<DatabaseGameModel> _all = [];
+  bool _showAchievementsBadge = false;
 
   // Filter options for the current selection, recomputed on every change: each
   // dimension only offers values still reachable from the live results (empty
@@ -1324,6 +1326,9 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    _showAchievementsBadge = context.select<SqliteConfigProvider, bool>(
+      (provider) => provider.config.showAchievementsBadge,
+    );
     // Tab content sits under the global header, so it carries no Scaffold or
     // AppBar of its own — the leading SizedBox clears the header the same way
     // the other tabs do (32.r tab strip + margin).
@@ -2339,6 +2344,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildResultTile(ThemeData theme, DatabaseGameModel g, int index) {
     final scheme = theme.colorScheme;
     final isFocused = _rowFocused(index);
+    final game = GameModel.fromDatabaseModel(g);
 
     final subtitleParts = <String>[
       if ((g.systemShortName ?? g.systemRealName) != null)
@@ -2374,15 +2380,30 @@ class _SearchScreenState extends State<SearchScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      g.realName ?? g.filename,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.r,
-                        fontWeight: FontWeight.w700,
-                        color: scheme.onSurface,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            g.realName ?? g.filename,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.r,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        if (_showAchievementsBadge &&
+                            AchievementsBadge.showsFor(game))
+                          Padding(
+                            padding: EdgeInsets.only(left: 4.r),
+                            child: AchievementsBadge.inline(
+                              game: game,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                      ],
                     ),
                     if (subtitleParts.isNotEmpty)
                       Text(
