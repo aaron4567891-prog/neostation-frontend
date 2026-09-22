@@ -73,13 +73,12 @@ class GameDetailsTabsHeader extends StatelessWidget {
       child: Container(
         height: 46.r,
         padding: EdgeInsets.only(top: 4.r, right: 8.r),
-        // Fit the complete strip, including both D-pad hints, to the card.
-        // Fixed-width children previously overflowed when the RA tab was added.
+        // Keep the original icon size; scroll when the card is narrow.
         child: Align(
           alignment: Alignment.centerRight,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerRight,
+          child: _ScrollableTabStrip(
+            selectedIndex: visualIndex,
+            tabWidth: tabWidth,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -228,6 +227,66 @@ class _TabItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Keeps controller-selected tabs visible without shrinking the artwork icons.
+class _ScrollableTabStrip extends StatefulWidget {
+  final int selectedIndex;
+  final double tabWidth;
+  final Widget child;
+
+  const _ScrollableTabStrip({
+    required this.selectedIndex,
+    required this.tabWidth,
+    required this.child,
+  });
+
+  @override
+  State<_ScrollableTabStrip> createState() => _ScrollableTabStripState();
+}
+
+class _ScrollableTabStripState extends State<_ScrollableTabStrip> {
+  final _controller = ScrollController();
+  double? _lastWidth;
+  double? _lastTabWidth;
+  int? _lastIndex;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (_lastWidth != constraints.maxWidth ||
+            _lastTabWidth != widget.tabWidth ||
+            _lastIndex != widget.selectedIndex) {
+          _lastWidth = constraints.maxWidth;
+          _lastTabWidth = widget.tabWidth;
+          _lastIndex = widget.selectedIndex;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_controller.hasClients) return;
+            // Left hint (22), gap (6), and pill padding (8) precede tabs.
+            final center =
+                36.r + (widget.selectedIndex + 0.5) * widget.tabWidth;
+            final position = _controller.position;
+            final target = (center - position.viewportDimension / 2)
+                .clamp(0.0, position.maxScrollExtent)
+                .toDouble();
+            _controller.jumpTo(target);
+          });
+        }
+        return SingleChildScrollView(
+          controller: _controller,
+          scrollDirection: Axis.horizontal,
+          child: widget.child,
+        );
+      },
     );
   }
 }
