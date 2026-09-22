@@ -75,8 +75,8 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// Toggles the application's fullscreen state.
   Future<void> updateIsFullscreen(bool value) async {
     _config = _config.copyWith(isFullscreen: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Persists the user's ES-DE application folder path (used by ES-DE import
@@ -89,8 +89,8 @@ extension SqliteConfigMutators on SqliteConfigProvider {
 
   Future<void> updateHideRecentCard(bool value) async {
     _config = _config.copyWith(hideRecentCard: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Persists the cell span of the "Recently Played" card in the systems grid
@@ -104,15 +104,15 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// Persists whether library tiles show the RetroAchievements badge.
   Future<void> updateShowAchievementsBadge(bool value) async {
     _config = _config.copyWith(showAchievementsBadge: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Persists whether the game views draw the cloud-save status mark.
   Future<void> updateShowCloudSyncIcon(bool value) async {
     _config = _config.copyWith(showCloudSyncIcon: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Persists the game details card tab last chosen with L1/R1, as the
@@ -129,13 +129,14 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// Routed through the tab's [NavTabSpec] so a future tab needs only a spec
   /// entry, not another mutator. A tab with no `withHidden` (Systems, Settings)
   /// can't be hidden and is ignored.
+  // Refresh visibility before waiting for disk so touch and gamepad agree.
   Future<void> updateNavTabHidden(NavTab tab, bool hidden) async {
     final applyHidden = navTabSpec(tab).withHidden;
     if (applyHidden == null) return;
 
     _config = applyHidden(_config, hidden);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   Future<void> updateActiveSyncProvider(String providerId) async {
@@ -147,30 +148,30 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// Toggles the visibility of detailed game metadata in the UI.
   Future<void> updateShowGameInfo(bool show) async {
     _config = _config.copyWith(showGameInfo: show);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Configures whether the application should shut down the host OS upon exit (Arcade/Cabinet mode).
   Future<void> updateBartopExitPoweroff(bool value) async {
     _config = _config.copyWith(bartopExitPoweroff: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Updates whether startup scan is enabled
   Future<void> updateScanOnStartup(bool value) async {
     _config = _config.copyWith(scanOnStartup: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Persists whether the startup scan is followed by a RetroAchievements
   /// match pass over the ROMs it added.
   Future<void> updateRaMatchOnStartup(bool value) async {
     _config = _config.copyWith(raMatchOnStartup: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Persists the global "Show Subfolders" choice and applies it to every
@@ -192,8 +193,8 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// Updates whether hidden files/folders are ignored during ROM scans.
   Future<void> updateIgnoreHiddenFiles(bool ignoreHiddenFiles) async {
     _config = _config.copyWith(ignoreHiddenFiles: ignoreHiddenFiles);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Updates whether the header clock uses a 12-hour (AM/PM) format.
@@ -202,21 +203,21 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// the same preference and runs in an engine that can't see this provider.
   Future<void> updateUse12HourClock(bool value) async {
     _config = _config.copyWith(use12HourClock: value);
-    await SqliteConfigService.saveConfig(_config);
     _secondaryDisplayState?.updateState(use12HourClock: value);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Updates whether UI navigation SFX sounds are enabled
   Future<void> updateSfxEnabled(bool value) async {
     _config = _config.copyWith(sfxEnabled: value);
-    await SqliteConfigService.saveConfig(_config);
     // Apply immediately to the running service — no restart needed.
     SfxService().setEnabled(value);
     // The secondary display runs its own engine with its own SfxService
     // singleton, so it has to be told separately or it keeps playing.
     _secondaryDisplayState?.updateState(sfxEnabled: value);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Updates and persists the UI SFX volume, playing a sound at the new level
@@ -326,9 +327,9 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   /// pushes the value to the secondary display.
   Future<void> updateDockEnabled(bool enabled) async {
     _config = _config.copyWith(dockEnabled: enabled);
-    await SqliteConfigService.saveConfig(_config);
     _secondaryDisplayState?.updateState(dockEnabled: enabled);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Sets how many secondary dock slots are visible, clamped to
@@ -354,14 +355,14 @@ extension SqliteConfigMutators on SqliteConfigProvider {
 
   Future<void> updateAutoUpdateApp(bool value) async {
     _config = _config.copyWith(autoUpdateApp: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   Future<void> updateAutoUpdateSystems(bool value) async {
     _config = _config.copyWith(autoUpdateSystems: value);
-    await SqliteConfigService.saveConfig(_config);
     _notify();
+    await SqliteConfigService.saveConfig(_config);
   }
 
   /// Updates the sorting criteria for the system list.
