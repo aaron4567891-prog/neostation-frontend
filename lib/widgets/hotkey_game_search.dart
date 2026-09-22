@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:neostation/models/database_game_model.dart';
@@ -96,6 +97,8 @@ class _SearchDialogState extends State<_SearchDialog> {
   List<_SearchEntry> _entries = [];
   int _selected = 0;
   bool _loading = true;
+  bool _closing = false;
+  bool _layerRegistered = false;
   String? _error;
 
   List<_SearchEntry> get _results {
@@ -135,13 +138,14 @@ class _SearchDialogState extends State<_SearchDialog> {
       isTextFieldFocused: () => false,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || _closing) return;
       _nav.initialize();
       GamepadNavigationManager.pushLayer(
         _layer,
         onActivate: _nav.activate,
         onDeactivate: _nav.deactivate,
       );
+      _layerRegistered = true;
     });
     _load();
   }
@@ -258,19 +262,28 @@ class _SearchDialogState extends State<_SearchDialog> {
 
   void _close() => _closeWith(null);
   void _closeWith(_SearchEntry? entry) {
+    if (!mounted || _closing) return;
+    _closing = true;
     _focus.unfocus();
     _nav.deactivate();
-    GamepadNavigationManager.popLayer(_layer);
+    // Keep the modal layer until disposal. Reactivating the screen underneath
+    // while the dialog still owns route focus can leave its controls inactive.
     Navigator.of(context).pop(entry);
   }
 
   @override
   void dispose() {
-    GamepadNavigationManager.popLayer(_layer);
+    _closing = true;
     _nav.dispose();
     _query.dispose();
     _focus.dispose();
     _scroll.dispose();
+    // Dispose the search input/focus first, then restore the previous owner
+    // exactly once, including barrier taps and Android Back dismissal.
+    if (_layerRegistered) {
+      _layerRegistered = false;
+      GamepadNavigationManager.popLayer(_layer);
+    }
     super.dispose();
   }
 
