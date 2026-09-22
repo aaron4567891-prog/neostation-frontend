@@ -17,13 +17,10 @@ import '../../models/game_model.dart';
 import '../../utils/rom_tree.dart';
 import '../../constants/system_folder_names.dart';
 import '../../providers/collections_provider.dart';
-import '../../sync/i_sync_provider.dart';
-import '../../sync/sync_manager.dart';
 import '../../utils/effective_system.dart';
 import '../../widgets/achievements_badge.dart';
 import '../../widgets/collection_badge.dart';
 import '../../widgets/marquee_text.dart';
-import '../../widgets/neo_sync_status_icon.dart';
 import '../../widgets/system_logo_fallback.dart';
 
 /// A high-performance list view specialized for game browsing with gamepad support.
@@ -113,19 +110,6 @@ class GameListViewState extends State<GameListView>
   // Read once per build rather than per row: the row builder runs for every
   // visible entry, and a provider lookup there would subscribe each one.
   bool _showAchievementsBadge = false;
-
-  /// Whether the user wants the cloud mark at all, read once per build.
-  ///
-  /// A settings toggle, so it moves rarely; kept beside the provider lookup it
-  /// gates rather than checked per row.
-  bool _showCloudSyncIcon = true;
-
-  /// The active cloud-sync provider, read once per build.
-  ///
-  /// Null when nothing is signed in, which is the common case and costs the
-  /// rows nothing. Only the selected row draws a cloud mark, so one lookup
-  /// answers the whole list.
-  ISyncProvider? _syncProvider;
 
   /// ROM paths filed in at least one collection, read once per build.
   ///
@@ -306,20 +290,6 @@ class GameListViewState extends State<GameListView>
     _collections = SystemFolderNames.isCollection(widget.system.folderName)
         ? null
         : context.watch<CollectionsProvider>();
-    // Watched, not read: the mark is a live readout — it spins while a save is
-    // uploading and settles when it lands — so the row has to rebuild when the
-    // provider's state moves. Sync events are rare compared to cursor moves, so
-    // this adds no work to navigation.
-    //
-    // Nullable lookup: a host that has no SyncManager above it gets no mark
-    // rather than an exception, which is what keeps this view pumpable on its
-    // own — the collections and config providers it already reads are declared
-    // the same way.
-    _showCloudSyncIcon = context.select<SqliteConfigProvider, bool>(
-      (p) => p.config.showCloudSyncIcon,
-    );
-    _syncProvider = context.watch<SyncManager?>()?.active;
-
     final theme = Theme.of(context);
     final gameViewMode = context.select<SqliteConfigProvider, String>(
       (p) => p.config.gameViewMode,
@@ -508,63 +478,7 @@ class GameListViewState extends State<GameListView>
                                           ),
                                   ),
                                 ),
-                                // Cloud-sync state, first of the marks at the
-                                // end of the title.
-                                //
-                                // Ahead of the other two because it is the one
-                                // that changes while you look at it: it spins
-                                // as a save uploads and settles when it lands,
-                                // where the collection diamond and the trophy
-                                // are facts about the game that were already
-                                // true. It also comes and goes with the cursor,
-                                // and a mark that appears *between* two settled
-                                // ones pushes them sideways as the selection
-                                // moves.
-                                //
-                                // The selected row only. This reports what the
-                                // provider is doing with *the game the cursor
-                                // is on* — it is the same one-game readout the
-                                // details card carried, moved to where the
-                                // selection actually is — and a library's worth
-                                // of identical cloud glyphs would say nothing
-                                // the one under the cursor does not.
-                                //
-                                // The widget collapses to nothing on its own
-                                // when there is nothing to report (sync off for
-                                // the system, signed out, no ScreenScraper id),
-                                // so the row is unchanged for everyone who does
-                                // not use cloud saves.
-                                if (widget.useMarqueeLogos &&
-                                    isSelected &&
-                                    _showCloudSyncIcon &&
-                                    _syncProvider != null)
-                                  NeoSyncStatusIcon(
-                                    // The game's own system: in an aggregate
-                                    // view the list's system is a placeholder,
-                                    // and NeoSync's per-system settings hang
-                                    // off the real one.
-                                    system: _effectiveSystemFor(game),
-                                    game: game,
-                                    syncProvider: _syncProvider!,
-                                    // A mark among the row's other marks: the
-                                    // badges' own size, no chip, and no shadow
-                                    // — this row is flat surface, not artwork.
-                                    size: 11,
-                                    showBackground: false,
-                                    showGlyphShadow: false,
-                                    // The selected row's foreground, for the
-                                    // states that have no colour of their own.
-                                    mutedColor: theme.colorScheme.onPrimary,
-                                    margin: EdgeInsets.only(left: 4.r),
-                                  ),
-                                // Collection mark, between the cloud glyph and
-                                // the achievements trophy. The favourite heart
-                                // stays on the left of the name: it is the one
-                                // mark the user sets on the game itself, while
-                                // these three report what the game belongs to,
-                                // what it is matched against and what the cloud
-                                // has of it, so they cluster together at the
-                                // end of the row.
+                                // Collection membership and achievements remain visible.
                                 if (_collections?.isInAnyCollection(
                                       game.romPath,
                                     ) ==
