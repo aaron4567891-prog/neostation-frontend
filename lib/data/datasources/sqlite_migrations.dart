@@ -609,6 +609,9 @@ class SqliteMigrations {
       case 157:
         await _migrateToVersion157(db);
         break;
+      case 158:
+        await _migrateToVersion158(db);
+        break;
       default:
         _log.w('No migration defined for version $version');
     }
@@ -6964,9 +6967,8 @@ class SqliteMigrations {
   /// Migration v157: Adds the saved secondary-screen browsing media choice
   /// and the NeoGlass frosted-glass appearance columns to `user_config`.
   ///
-  /// Idempotent — each column is added only when absent, allowing builds that
-  /// previously ran either branch's v157 migration to safely add the other
-  /// branch's columns.
+  /// Idempotent — each column is added only when absent. The v158 backfill
+  /// reaches devices that already ran either branch's original v157.
   static Future<void> _migrateToVersion157(Database db) async {
     _log.i('Migration v157: Adding secondary media and NeoGlass columns');
     try {
@@ -7013,5 +7015,16 @@ class SqliteMigrations {
       _log.e('   StackTrace: $stackTrace');
       rethrow;
     }
+  }
+
+  /// Repairs the v157 collision between secondary media and NeoGlass settings.
+  /// Devices that reached v157 before the merge skip the combined migration,
+  /// so whole-config saves (including dropping a reordered system tile) fail
+  /// on the missing columns. Reuse the guarded additions to preserve all rows
+  /// and any settings already present from either branch.
+  static Future<void> _migrateToVersion158(Database db) async {
+    _log.i('Migration v158: Backfilling merged v157 settings columns');
+    await _migrateToVersion157(db);
+    _log.i('Migration v158 completed');
   }
 }
