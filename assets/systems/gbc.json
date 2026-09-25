@@ -42,6 +42,18 @@
   },
   "emulators": [
     {
+      "name": "Standalone mGBA Android",
+      "unique_id": "gbc.com.aaron.mgbaandroid",
+      "description": "Supported extensions: gb, gba, gbc, zip.",
+      "is_retroachievements_compatible": false,
+      "platforms": {
+        "android": {
+          "keep_saf_uri": true,
+          "launch_arguments": "-n com.aaron.mgbaandroid/com.aaron.mgbaandroid.MainActivity -a android.intent.action.VIEW -d \"{file.localuri}\" -t application/octet-stream"
+        }
+      }
+    },
+    {
       "name": "Standalone Pizza Boy C Basic",
       "unique_id": "gbc.it.dbtecno.pizzaboy",
       "description": "Supported extensions: gb, gbc, gbs, zip, 7z.",
