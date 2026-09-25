@@ -197,10 +197,10 @@ class GameListViewState extends State<GameListView>
       // now, the shorter of the two while isNavigatingFast; if the feel needs
       // changing, change it for both.
       final moveDuration = widget.isNavigatingFast
-          ? const Duration(milliseconds: 180)
-          : const Duration(milliseconds: 360);
+          ? const Duration(milliseconds: 90)
+          : const Duration(milliseconds: 140);
 
-      const curve = Curves.easeOutQuart;
+      const curve = Curves.easeOutCubic;
 
       final double begin = _selectionAnimation.value;
       final double end = widget.selectedIndex.toDouble();

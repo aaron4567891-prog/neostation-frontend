@@ -44,6 +44,11 @@ class GameSettingsDialog extends StatefulWidget {
   /// artwork) so the parent can refetch the game.
   final VoidCallback? onGameUpdated;
 
+  /// Called after only the per-game emulator override changes. This lets the
+  /// parent refresh the launch metadata without tearing down/restarting media
+  /// on the secondary display.
+  final VoidCallback? onEmulatorUpdated;
+
   /// Called after the game is permanently deleted; the dialog closes itself
   /// right after invoking this.
   final void Function(String romname)? onGameDeleted;
@@ -61,6 +66,7 @@ class GameSettingsDialog extends StatefulWidget {
     this.syncProvider,
     this.isAllMode = false,
     this.onGameUpdated,
+    this.onEmulatorUpdated,
     this.onGameDeleted,
     this.onGameHidden,
   });
@@ -267,7 +273,8 @@ class _GameSettingsDialogState extends State<GameSettingsDialog> {
                     game: widget.game,
                     system: effectiveSystem,
                     isAllMode: widget.isAllMode,
-                    onGameUpdated: widget.onGameUpdated,
+                    onGameUpdated:
+                        widget.onEmulatorUpdated ?? widget.onGameUpdated,
                   ),
                   GameSettingsScrappingTab(
                     key: _scrappingTabKey,

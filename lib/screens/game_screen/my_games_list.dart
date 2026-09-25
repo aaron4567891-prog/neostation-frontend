@@ -672,6 +672,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
         syncProvider: context.read<SyncManager>().active,
         isAllMode: SystemFolderNames.isAggregate(widget.system.folderName),
         onGameUpdated: _handleGameUpdated,
+        onEmulatorUpdated: _handleEmulatorUpdated,
         onGameDeleted: _handleGameDeleted,
         onGameHidden: _handleGameHidden,
       ),
@@ -2048,6 +2049,32 @@ class _SystemGamesListState extends State<SystemGamesList> {
       _updateSecondaryDisplay(_selectedGame!);
       _updateBackground(_selectedGame!);
       _startVideoTimer();
+    }
+  }
+
+  /// Refreshes only launch metadata after a per-game emulator override changes.
+  ///
+  /// Emulator selection does not alter artwork, video, descriptions, or sort
+  /// order. Keeping this path separate avoids [_resetVideoState] and the forced
+  /// secondary-display media refresh in [_handleGameUpdated], which otherwise
+  /// produces a visible flash on dual-screen devices.
+  Future<void> _handleEmulatorUpdated() async {
+    final selected = _selectedGame;
+    if (selected == null) return;
+
+    try {
+      final updatedGame = await GameService.getGameDetails(
+        widget.system,
+        selected.romname,
+      );
+      if (!mounted || updatedGame == null) return;
+
+      setState(() {
+        _selectedGame = updatedGame;
+        _games = replaceGameInList(_games, updatedGame);
+      });
+    } catch (e) {
+      _log.e('Error refreshing emulator override in list: $e');
     }
   }
 
