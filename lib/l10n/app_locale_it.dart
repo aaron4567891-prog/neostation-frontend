@@ -330,6 +330,11 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.thankYou: 'Grazie per aver usato NeoStation !',
   AppLocale.visitWebsite: 'Visita il nostro sito ufficiale',
   AppLocale.joinCommunity: 'Unisciti alla nostra community per supporto',
+  AppLocale.exportLogs: 'Esporta log',
+  AppLocale.exportLogsDesc:
+      'Per segnalare bug. Include percorsi dei file e nomi dei giochi.',
+  AppLocale.exportLogsSaved: 'Log salvati in {path}',
+  AppLocale.exportLogsFailed: 'Impossibile esportare i log',
   AppLocale.specialThanks: 'Ringraziamenti Speciali',
   AppLocale.forInvaluableContributions: 'per i contributi inestimabili',
   AppLocale.supportOnKofi: 'Sostienici su Ko-fi',
@@ -730,7 +735,7 @@ const Map<String, dynamic> appLocaleIt = {
   AppLocale.progress: 'Progresso',
   AppLocale.raLogin: 'Login RetroAchievements',
   AppLocale.raOfflineBanner:
-      'Offline — mostra i tuoi ultimi obiettivi sincronizzati',
+      'Offline — mostra i tuoi ultimi obiettivi sincronizzati. Nuovo tentativo…',
   AppLocale.raWhatIs: 'Cos’è RetroAchievements ?',
   AppLocale.raDescription:
       'RetroAchievements è una community che offre obiettivi per i giochi classici tramite emulazione.',
