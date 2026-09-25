@@ -132,6 +132,7 @@ class DatabaseTestHelper {
         recent_card_size TEXT DEFAULT 'default',
         active_sync_provider TEXT DEFAULT 'neosync',
         game_view_mode TEXT DEFAULT 'list',
+        game_list_highlight_background TEXT DEFAULT 'theme',
         rom_folders TEXT,
         systems_version TEXT DEFAULT '',
         neostation_app_version TEXT DEFAULT '',

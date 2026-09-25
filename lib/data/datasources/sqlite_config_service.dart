@@ -118,6 +118,9 @@ class SqliteConfigService {
         detectedSystems: detectedSystems.map((s) => s.folderName).toList(),
         emulators: detectedEmulators,
         gameViewMode: userConfig?['game_view_mode']?.toString() ?? 'list',
+        gameListHighlightBackground:
+            userConfig?['game_list_highlight_background']?.toString() ??
+            'theme',
         systemViewMode: userConfig?['system_view_mode']?.toString() ?? 'grid',
         showGameInfo:
             (int.tryParse(userConfig?['show_game_info']?.toString() ?? '0') ??
@@ -333,6 +336,7 @@ class SqliteConfigService {
       await SqliteService.saveUserConfig(
         lastScan: config.lastScan?.toIso8601String(),
         gameViewMode: config.gameViewMode,
+        gameListHighlightBackground: config.gameListHighlightBackground,
         systemViewMode: config.systemViewMode,
         showGameInfo: config.showGameInfo ? 1 : 0,
         isFullscreen: config.isFullscreen ? 1 : 0,

@@ -612,6 +612,9 @@ class SqliteMigrations {
       case 158:
         await _migrateToVersion158(db);
         break;
+      case 159:
+        await _migrateToVersion159(db);
+        break;
       default:
         _log.w('No migration defined for version $version');
     }
@@ -7026,5 +7029,35 @@ class SqliteMigrations {
     _log.i('Migration v158: Backfilling merged v157 settings columns');
     await _migrateToVersion157(db);
     _log.i('Migration v158 completed');
+  }
+
+  /// Migration v159: Adds the persisted game-list selection highlight.
+  ///
+  /// The setting already existed in [ConfigModel] and the live provider, but
+  /// older builds never stored it in SQLite. Without this column a restart
+  /// rebuilt the model with its default ('theme'), which appeared as the blue
+  /// selection highlight in the list views.
+  static Future<void> _migrateToVersion159(Database db) async {
+    _log.i(
+      'Migration v159: Adding game_list_highlight_background to user_config',
+    );
+    try {
+      final tableInfo = db.select('PRAGMA table_info(user_config)');
+      final columns = tableInfo.map((c) => c['name'].toString()).toList();
+      if (!columns.contains('game_list_highlight_background')) {
+        db.execute(
+          "ALTER TABLE user_config ADD COLUMN "
+          "game_list_highlight_background TEXT DEFAULT 'theme'",
+        );
+        _log.i('Column game_list_highlight_background added via v159');
+      } else {
+        _log.i('Column game_list_highlight_background already exists');
+      }
+      _log.i('Migration v159 completed');
+    } catch (e, stackTrace) {
+      _log.e('Error in migration v159: $e');
+      _log.e('   StackTrace: $stackTrace');
+      rethrow;
+    }
   }
 }

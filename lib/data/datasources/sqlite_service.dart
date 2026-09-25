@@ -459,7 +459,7 @@ class SqliteService {
   SqliteService._internal();
 
   // Database configuration
-  static const int _databaseVersion = 158;
+  static const int _databaseVersion = 159;
   static const String _databaseName = 'data.sqlite';
 
   DatabaseAdapter? _database;
@@ -1904,6 +1904,7 @@ class SqliteService {
         id INTEGER PRIMARY KEY CHECK (id = 1),
         last_scan TEXT,
         game_view_mode TEXT DEFAULT 'list',
+        game_list_highlight_background TEXT DEFAULT 'theme',
         system_view_mode TEXT DEFAULT 'grid',
         theme_name TEXT DEFAULT 'system',
         video_sound INTEGER DEFAULT 1,
@@ -2754,6 +2755,7 @@ class SqliteService {
   static Future<void> saveUserConfig({
     String? lastScan,
     String? gameViewMode,
+    String? gameListHighlightBackground,
     String? systemViewMode,
     String? themeName,
     int? videoSound,
@@ -2823,6 +2825,9 @@ class SqliteService {
     // Update fields if provided
     if (lastScan != null) updates['last_scan'] = lastScan;
     if (gameViewMode != null) updates['game_view_mode'] = gameViewMode;
+    if (gameListHighlightBackground != null) {
+      updates['game_list_highlight_background'] = gameListHighlightBackground;
+    }
     if (systemViewMode != null) updates['system_view_mode'] = systemViewMode;
     if (themeName != null) updates['theme_name'] = themeName;
     if (videoSound != null) updates['video_sound'] = videoSound;
