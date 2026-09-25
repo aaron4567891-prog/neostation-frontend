@@ -898,7 +898,6 @@ class GamepadNavigation {
         _lastDirectionalInput = null;
         _lastDirectionalEventTime = null;
       }
-
       if (translatedEvent.isPressed) {
         final isShoulder = isShoulderInput;
 
