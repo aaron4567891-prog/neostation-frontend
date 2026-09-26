@@ -197,10 +197,10 @@ class GameListViewState extends State<GameListView>
       // now, the shorter of the two while isNavigatingFast; if the feel needs
       // changing, change it for both.
       final moveDuration = widget.isNavigatingFast
-          ? const Duration(milliseconds: 90)
-          : const Duration(milliseconds: 140);
+          ? const Duration(milliseconds: 180)
+          : const Duration(milliseconds: 360);
 
-      const curve = Curves.easeOutCubic;
+      const curve = Curves.easeOutQuart;
 
       final double begin = _selectionAnimation.value;
       final double end = widget.selectedIndex.toDouble();
@@ -367,16 +367,17 @@ class GameListViewState extends State<GameListView>
                         decoration: BoxDecoration(
                           color: highlightColor,
                           borderRadius:
-                              Theme.of(context)
-                                  .extension<CornerRadii>()
-                                  ?.radiusInternal ??
+                              Theme.of(
+                                context,
+                              ).extension<CornerRadii>()?.radiusInternal ??
                               BorderRadius.circular(14.r),
                           boxShadow: clearHighlight
                               ? null
                               : [
                                   BoxShadow(
-                                    color: Theme.of(context).colorScheme.shadow
-                                        .withValues(alpha: 0.1),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.shadow.withValues(alpha: 0.1),
                                     blurRadius: 4.r,
                                     offset: Offset(2.0.r, 2.0.r),
                                   ),

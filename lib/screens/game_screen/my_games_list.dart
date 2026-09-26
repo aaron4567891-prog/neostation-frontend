@@ -1533,10 +1533,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _buildGameFanartBackground(
-                    _selectedGame!,
-                    artworkVersion: _artworkVersion,
-                  ),
+                  _buildGameFanartBackground(_selectedGame!),
                   Container(
                     color: Theme.of(
                       context,
@@ -1596,10 +1593,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
   }
 
   /// Renders the selected game's fanart as a full-screen background.
-  Widget _buildGameFanartBackground(
-    GameModel game, {
-    required int artworkVersion,
-  }) {
+  Widget _buildGameFanartBackground(GameModel game) {
     final imageSystemFolder =
         game.systemFolderName ?? widget.system.primaryFolderName;
 
@@ -1609,47 +1603,22 @@ class _SystemGamesListState extends State<SystemGamesList> {
       _fileProvider,
     );
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 512),
-      switchInCurve: Curves.easeOutExpo,
-      switchOutCurve: Curves.easeInCubic,
-      layoutBuilder: (currentChild, previousChildren) {
-        return Stack(
-          fit: StackFit.expand,
-          alignment: Alignment.center,
-          children: [...previousChildren, ?currentChild],
-        );
-      },
-      transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 1.0, end: 1.1).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            ),
-            child: child,
-          ),
-        );
-      },
-      child: Builder(
-        key: ValueKey(
-          'list_fanart_${game.romPath ?? game.romname}_v$artworkVersion',
-        ),
-        builder: (context) {
-          final file = File(fanartPath);
-          if (file.existsSync()) {
-            return Image.file(
-              file,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              cacheWidth: 1920,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
+    final file = File(fanartPath);
+    if (!file.existsSync()) return const SizedBox.shrink();
+
+    // Keep a single stable Image element. Flutter retains its current decoded
+    // frame while the next provider loads, then swaps atomically. Crossfading
+    // fanart made even one outgoing image visible as a flash, and rapid input
+    // could retain several outgoing images at once.
+    return Image.file(
+      file,
+      key: ValueKey(_artworkVersion),
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      cacheWidth: 1920,
+      gaplessPlayback: true,
+      errorBuilder: (_, _, _) => const SizedBox.shrink(),
     );
   }
 
