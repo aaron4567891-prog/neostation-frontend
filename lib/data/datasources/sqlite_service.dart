@@ -459,7 +459,7 @@ class SqliteService {
   SqliteService._internal();
 
   // Database configuration
-  static const int _databaseVersion = 157;
+  static const int _databaseVersion = 160;
   static const String _databaseName = 'data.sqlite';
 
   DatabaseAdapter? _database;
@@ -1934,6 +1934,7 @@ class SqliteService {
         hide_tab_scraper INTEGER DEFAULT 0,
         hide_tab_romm INTEGER DEFAULT 0,
         hide_tab_search INTEGER DEFAULT 0,
+        hide_search_card INTEGER DEFAULT 1,
         active_sync_provider TEXT DEFAULT 'neosync',
         systems_version TEXT DEFAULT '',
         -- Generation stamp of the bundled RA seed asset that is currently
@@ -1958,6 +1959,7 @@ class SqliteService {
         show_cloud_sync_icon INTEGER DEFAULT 1,
         ra_match_on_startup INTEGER DEFAULT 0,
         subfolder_view_all INTEGER DEFAULT 0,
+        hide_system_logos INTEGER DEFAULT 0,
         neoglass_blur INTEGER DEFAULT 0,
         neoglass_transparency INTEGER DEFAULT 10,
         neoglass_border_width REAL DEFAULT 2
@@ -2780,7 +2782,7 @@ class SqliteService {
     int? hideTabAchievements,
     int? hideTabScraper,
     int? hideTabRomm,
-    int? hideTabSearch,
+    int? hideSearchCard,
     String? activeSyncProvider,
     String? systemsVersion,
     String? raSeedStamp,
@@ -2801,6 +2803,7 @@ class SqliteService {
     int? showCloudSyncIcon,
     int? raMatchOnStartup,
     int? subfolderViewAll,
+    int? hideSystemLogos,
     int? neoglassBlur,
     int? neoglassTransparency,
     double? neoglassBorderWidth,
@@ -2890,8 +2893,8 @@ class SqliteService {
     if (hideTabRomm != null) {
       updates['hide_tab_romm'] = hideTabRomm;
     }
-    if (hideTabSearch != null) {
-      updates['hide_tab_search'] = hideTabSearch;
+    if (hideSearchCard != null) {
+      updates['hide_search_card'] = hideSearchCard;
     }
     if (activeSyncProvider != null) {
       updates['active_sync_provider'] = activeSyncProvider;
@@ -2946,6 +2949,9 @@ class SqliteService {
     }
     if (subfolderViewAll != null) {
       updates['subfolder_view_all'] = subfolderViewAll;
+    }
+    if (hideSystemLogos != null) {
+      updates['hide_system_logos'] = hideSystemLogos;
     }
     if (neoglassBlur != null) {
       updates['neoglass_blur'] = neoglassBlur;
@@ -3253,7 +3259,7 @@ class SqliteService {
     return config?['theme_name']?.toString() ?? 'system';
   }
 
-  /// Retrieves the active asset theme (neostation-assets).
+  /// Retrieves the active System Art pack folder.
   static Future<String> getActiveTheme() async {
     final config = await getUserConfig();
     return config?['active_theme']?.toString() ?? '';
