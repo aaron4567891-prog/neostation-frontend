@@ -32,7 +32,7 @@ import 'package:neostation/services/retro_achievements_helper.dart';
 import 'package:neostation/screens/game_screen/game_details_card/dialogs/game_achievements_dialog.dart';
 
 class GamesCarousel extends StatefulWidget {
-  final String navigationLayerId;
+  final String navLayerId;
   final void Function(bool forward)? onSwitchSystem;
   final SystemModel system;
   final List<GameModel> games;
@@ -110,7 +110,7 @@ class GamesCarousel extends StatefulWidget {
     this.onSettings,
     this.onScrape,
     this.onSwitchSystem,
-    this.navigationLayerId = 'games_carousel',
+    this.navLayerId = 'games_carousel',
     this.scrapingGameRomnames = const {},
     this.scrapeProgress = const {},
     this.folderCount = 0,
@@ -451,7 +451,7 @@ class _GamesCarouselState extends State<GamesCarousel> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _gamepadNav.initialize();
       GamepadNavigationManager.pushLayer(
-        widget.navigationLayerId,
+        widget.navLayerId,
         onActivate: () => _gamepadNav.activate(),
         onDeactivate: () => _gamepadNav.deactivate(),
       );
@@ -489,7 +489,7 @@ class _GamesCarouselState extends State<GamesCarousel> {
   }
 
   void _cleanupGamepad() {
-    GamepadNavigationManager.popLayer(widget.navigationLayerId);
+    GamepadNavigationManager.popLayer(widget.navLayerId);
     _gamepadNav.dispose();
   }
 

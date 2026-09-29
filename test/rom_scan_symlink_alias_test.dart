@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path/path.dart' as p;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neostation/data/datasources/sqlite_database_service.dart';
@@ -73,7 +74,10 @@ void main() {
 
       final rows = await romRows();
       expect(rows, hasLength(1));
-      expect(rows.single['rom_path'], '${root.path}/gc/18 Wheeler.rvz');
+      expect(
+        rows.single['rom_path'],
+        p.normalize('${root.path}/gc/18 Wheeler.rvz'),
+      );
     });
 
     test('still scans an alias that is a real directory of its own', () async {
@@ -113,7 +117,10 @@ void main() {
 
         final rows = await romRows();
         expect(rows, hasLength(1));
-        expect(rows.single['rom_path'], '${real.path}/Wave Race.rvz');
+        expect(
+          rows.single['rom_path'],
+          p.normalize('${real.path}/Wave Race.rvz'),
+        );
       },
     );
 
@@ -158,7 +165,7 @@ void main() {
       final rows = await romRows();
       expect(rows, hasLength(1));
       final row = rows.single;
-      expect(row['rom_path'], realPath);
+      expect(row['rom_path'], p.normalize(realPath));
       expect(row['is_favorite'], 1);
       expect(row['play_time'], 3720); // Each launch hit exactly one row.
       expect(row['last_played'], '2026-08-01T10:00:00Z');
@@ -179,7 +186,10 @@ void main() {
 
       final rows = await romRows();
       expect(rows, hasLength(1));
-      expect(rows.single['rom_path'], '${root.path}/gc/18 Wheeler.rvz');
+      expect(
+        rows.single['rom_path'],
+        p.normalize('${root.path}/gc/18 Wheeler.rvz'),
+      );
       expect(rows.single['is_favorite'], 1);
       expect(rows.single['play_time'], 900);
       expect(rows.single['id_ra'], 77);

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path/path.dart' as p;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neostation/services/retroarch_config_service.dart';
@@ -20,13 +21,15 @@ void main() {
 
       expect(
         candidates.any(
-          (c) => c.contains('.var/app/org.libretro.RetroArch/config/retroarch'),
+          (c) => c.contains(
+            p.normalize('.var/app/org.libretro.RetroArch/config/retroarch'),
+          ),
         ),
         isTrue,
         reason: 'the Flatpak/EmuDeck config location must be probed',
       );
       expect(
-        candidates.any((c) => c.contains('.config/retroarch')),
+        candidates.any((c) => c.contains(p.normalize('.config/retroarch'))),
         isTrue,
         reason: 'the native XDG location must still be probed',
       );
@@ -44,7 +47,10 @@ void main() {
             '/home/deck/.local/share/flatpak/exports/bin/org.libretro.RetroArch',
       );
 
-      expect(candidates.first, contains('.var/app/org.libretro.RetroArch'));
+      expect(
+        candidates.first,
+        contains(p.normalize('.var/app/org.libretro.RetroArch')),
+      );
     });
 
     test('prefers the native config for a plain system install', () {
@@ -52,7 +58,7 @@ void main() {
         exePath: '/usr/bin/retroarch',
       );
 
-      expect(candidates.first, contains('.config/retroarch'));
+      expect(candidates.first, contains(p.normalize('.config/retroarch')));
     });
 
     test('falls back to the Flatpak config when no native one exists', () {
@@ -66,7 +72,9 @@ void main() {
 
       expect(candidates.length, greaterThanOrEqualTo(2));
       expect(
-        candidates.any((c) => c.contains('.var/app/org.libretro.RetroArch')),
+        candidates.any(
+          (c) => c.contains(p.normalize('.var/app/org.libretro.RetroArch')),
+        ),
         isTrue,
       );
     });

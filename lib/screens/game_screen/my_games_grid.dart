@@ -33,7 +33,7 @@ import 'package:neostation/services/retro_achievements_helper.dart';
 import 'package:neostation/screens/game_screen/game_details_card/dialogs/game_achievements_dialog.dart';
 
 class GamesGrid extends StatefulWidget {
-  final String navigationLayerId;
+  final String navLayerId;
   final void Function(bool forward)? onSwitchSystem;
   final SystemModel system;
   final List<GameModel> games;
@@ -107,7 +107,7 @@ class GamesGrid extends StatefulWidget {
     required this.fileProvider,
     required this.onGameSelected,
     this.onSwitchSystem,
-    this.navigationLayerId = 'games_grid',
+    this.navLayerId = 'games_grid',
     required this.onBack,
     required this.onPlay,
     required this.onFavorite,
@@ -580,7 +580,7 @@ class _GamesGridState extends State<GamesGrid> {
       if (mounted) {
         _gamepadNav.initialize();
         GamepadNavigationManager.pushLayer(
-          widget.navigationLayerId,
+          widget.navLayerId,
           onActivate: () => _gamepadNav.activate(),
           onDeactivate: () => _gamepadNav.deactivate(),
         );
@@ -836,7 +836,7 @@ class _GamesGridState extends State<GamesGrid> {
     _achievementsDebounce?.cancel();
     _settleTimer?.cancel();
     _cardSizeLabel.dispose();
-    GamepadNavigationManager.popLayer(widget.navigationLayerId);
+    GamepadNavigationManager.popLayer(widget.navLayerId);
     _gamepadNav.dispose();
     _scrollController.dispose();
     super.dispose();

@@ -173,117 +173,23 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
   }
 
-  testWidgets('the mark is on the selected row and nowhere else', (
-    tester,
-  ) async {
-    useProvider(_FakeSync(GameSyncStatus.upToDate));
-    await pumpList(tester, selectedIndex: 1);
-
-    final mark = find.byIcon(Symbols.check_circle_outline_rounded);
-    expect(
-      mark,
-      findsOneWidget,
-      reason: 'one mark for the one game it reports on',
-    );
-
-    // And it is on that row: the list is three rows of the same shape, so the
-    // mark is placed by which title shares its line.
-    final selected = tester.getRect(find.text('A Link to the Past'));
-    expect(
-      tester.getRect(mark).center.dy,
-      moreOrLessEquals(selected.center.dy, epsilon: 4),
-    );
-
-    // At the end of the title, not before it.
-    expect(tester.getRect(mark).left, greaterThan(selected.left));
-
-    await drain(tester);
-  });
-
-  testWidgets('the mark leads the row\'s other marks', (tester) async {
-    // It is the only one of the three that changes while you look at it — it
-    // spins as a save uploads and settles when it lands — and the only one that
-    // comes and goes with the cursor. Behind the others it would push them
-    // sideways every time the selection moved.
-    //
-    // Pinned structurally rather than by geometry: the collection diamond and
-    // the achievements trophy each need state this harness has no seam for (a
-    // membership, and the config flag that turns the trophy on), so what is
-    // asserted is the slot — the mark sits immediately after the title, and
-    // anything else the row draws is appended behind it.
-    useProvider(_FakeSync(GameSyncStatus.upToDate));
-    await pumpList(tester, selectedIndex: 1);
-
-    final row = tester
-        .widgetList<Row>(
-          find.descendant(
-            of: find
-                .ancestor(
-                  of: find.text('A Link to the Past'),
-                  matching: find.byType(GestureDetector),
-                )
-                .first,
-            matching: find.byType(Row),
-          ),
-        )
-        .first;
-
-    final titleSlot = row.children.indexWhere((w) => w is Expanded);
-    final markSlot = row.children.indexWhere((w) => w is NeoSyncStatusIcon);
-
-    expect(titleSlot, isNonNegative, reason: 'the title takes the row');
-    expect(
-      markSlot,
-      titleSlot + 1,
-      reason: 'first of the marks at the end of the title',
-    );
-
-    // And it is drawn past the title, not before it.
-    expect(
-      tester.getRect(find.byIcon(Symbols.check_circle_outline_rounded)).left,
-      greaterThan(tester.getRect(find.text('A Link to the Past')).left),
-    );
-
-    await drain(tester);
-  });
-
-  testWidgets('the mark follows the selection', (tester) async {
-    useProvider(_FakeSync(GameSyncStatus.upToDate));
-    await pumpList(tester, selectedIndex: 0);
-    final first = tester.getRect(
-      find.byIcon(Symbols.check_circle_outline_rounded),
-    );
-
-    await pumpList(tester, selectedIndex: 2);
-    final third = tester.getRect(
-      find.byIcon(Symbols.check_circle_outline_rounded),
-    );
-
-    expect(
-      third.center.dy,
-      greaterThan(first.center.dy),
-      reason: 'it moved down the list with the cursor, not stayed put',
-    );
-
-    await drain(tester);
-  });
-
-  testWidgets('it reports the state, not just presence', (tester) async {
-    // The mark is the reason the details card can stop carrying one: a glyph
-    // that only ever said "cloud" would be decoration.
-    useProvider(_FakeSync(GameSyncStatus.localOnly));
-    await pumpList(tester);
-
-    expect(find.byIcon(Symbols.cloud_upload_rounded), findsOneWidget);
-    expect(find.byIcon(Symbols.check_circle_outline_rounded), findsNothing);
-
-    await drain(tester);
-  });
+  // The personal UI deliberately omits per-row cloud status badges (8d6dd76).
+  // Preserve that choice when merging upstream's badge implementation.
+  for (final status in [GameSyncStatus.upToDate, GameSyncStatus.localOnly]) {
+    testWidgets('selection rows stay badge-free while sync is $status', (
+      tester,
+    ) async {
+      useProvider(_FakeSync(status));
+      for (final selectedIndex in [0, 2]) {
+        await pumpList(tester, selectedIndex: selectedIndex);
+        expect(find.byType(NeoSyncStatusIcon), findsNothing);
+        expect(find.text(_games[selectedIndex].name), findsOneWidget);
+      }
+      await drain(tester);
+    });
+  }
 
   testWidgets('a system that does not sync gets no mark', (tester) async {
-    // The widget answers this itself, but the row has to let it: the guard is
-    // "is anything signed in", not "is this system synced", so a list that
-    // pushed the second question into the row would drift out of step with it.
     useProvider(_FakeSync(GameSyncStatus.upToDate));
     await pumpList(tester, system: _system(sync: false));
 

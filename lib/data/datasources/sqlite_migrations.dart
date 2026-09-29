@@ -615,6 +615,15 @@ class SqliteMigrations {
       case 159:
         await _migrateToVersion159(db);
         break;
+      case 161:
+        await _migrateToVersion161(db);
+        break;
+      case 162:
+        await _migrateToVersion162(db);
+        break;
+      case 163:
+        await _migrateToVersion163(db);
+        break;
       default:
         _log.w('No migration defined for version $version');
     }
@@ -7059,5 +7068,56 @@ class SqliteMigrations {
       _log.e('   StackTrace: $stackTrace');
       rethrow;
     }
+  }
+
+  static Future<void> _migrateToVersion161(Database db) async {
+    _log.i('Migration v161: Adding hide_system_logos to user_config');
+    try {
+      final tableInfo = db.select('PRAGMA table_info(user_config)');
+      final columns = tableInfo.map((c) => c['name'].toString()).toList();
+      if (!columns.contains('hide_system_logos')) {
+        db.execute(
+          'ALTER TABLE user_config ADD COLUMN hide_system_logos '
+          'INTEGER DEFAULT 0',
+        );
+        _log.i('Column hide_system_logos added via v161');
+      } else {
+        _log.i('Column hide_system_logos already exists');
+      }
+      _log.i('Migration v161 completed');
+    } catch (e, stackTrace) {
+      _log.e('Error in migration v161: $e');
+      _log.e('   StackTrace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  static Future<void> _migrateToVersion162(Database db) async {
+    _log.i('Migration v162: Adding hide_search_card to user_config');
+    try {
+      final tableInfo = db.select('PRAGMA table_info(user_config)');
+      final columns = tableInfo.map((c) => c['name'].toString()).toList();
+      if (!columns.contains('hide_search_card')) {
+        db.execute(
+          'ALTER TABLE user_config ADD COLUMN hide_search_card INTEGER DEFAULT 1',
+        );
+        _log.i('Column hide_search_card added via v162');
+      } else {
+        _log.i('Column hide_search_card already exists');
+      }
+      _log.i('Migration v162 completed');
+    } catch (e, stackTrace) {
+      _log.e('Error in migration v162: $e');
+      _log.e('   StackTrace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Repair either branch's prior version numbering without replacing values.
+  static Future<void> _migrateToVersion163(Database db) async {
+    await _migrateToVersion158(db);
+    await _migrateToVersion159(db);
+    await _migrateToVersion161(db);
+    await _migrateToVersion162(db);
   }
 }

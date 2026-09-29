@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path/path.dart' as p;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neostation/data/datasources/sqlite_database_service.dart';
@@ -56,7 +57,7 @@ void main() {
       // The size survives the isolate hop, and the extension match is
       // case-insensitive.
       expect(entries.map((e) => e.size), [12, 34]);
-      expect(entries.first.path, '${root.path}/Sonic.md');
+      expect(entries.first.path, p.normalize('${root.path}/Sonic.md'));
     });
 
     test('skips extensions the system does not claim', () async {

@@ -37,6 +37,7 @@ import '../../providers/neo_sync_provider.dart';
 import '../../repositories/neosync_save_folder_repository.dart';
 import '../../models/system_model.dart';
 import '../../models/game_model.dart';
+import '../../models/database_game_model.dart';
 import '../../utils/rom_tree.dart';
 import 'game_details_card/game_details_card_list.dart';
 import 'game_details_card/random_game_dialog.dart';
@@ -54,6 +55,7 @@ import '../../widgets/context_menu/game_context_menu.dart';
 import '../../widgets/game_view_mode_dropdown.dart';
 import '../../widgets/letter_indicator.dart';
 import '../../constants/system_folder_names.dart';
+import '../search_screen/search_screen.dart';
 import '../../utils/artwork_cache.dart';
 import '../../utils/game_list_update.dart';
 import 'package:neostation/themes/chrome_surface.dart';
@@ -195,6 +197,13 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// anchored the folder level. Applied on the first load only, so a later
   /// refresh cannot yank the user out of the folder they are browsing.
   bool _initialRomPathAnchored = false;
+
+  /// The folder level a deep link opened on, or null when the list was opened
+  /// at its root. Back treats it as the root: the user arrived *at* the game
+  /// (from search or the RA dashboard) and never walked down to it, so the
+  /// folders above it are not somewhere they came from. Back from here leaves
+  /// the list, straight back to the screen that linked in.
+  String? _deepLinkRelPath;
 
   int get _folderCount => _currentFolderEntries.length;
   bool _isFolderEntry(GameModel? g) =>
@@ -771,8 +780,11 @@ class _SystemGamesListState extends State<SystemGamesList> {
 
   /// Orchestrates a graceful exit from the game list, synchronizing state with previous screens.
   Future<void> _goBack() async {
-    // Subfolder navigation: Back ascends one level before leaving the system.
-    if (_subfolderViewEnabled && _currentRelPath.isNotEmpty) {
+    // Subfolder navigation: Back ascends one level before leaving the system,
+    // stopping at the level a deep link opened on (see [_deepLinkRelPath]).
+    if (_subfolderViewEnabled &&
+        _currentRelPath.isNotEmpty &&
+        _currentRelPath != _deepLinkRelPath) {
       _ascendFolder();
       return;
     }
@@ -1435,9 +1447,10 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// Builds the game carousel view with letter-based navigation.
   Widget _buildGamesCarousel() {
     return GamesCarousel(
-      navigationLayerId: _carouselLayerId,
+      navLayerId: _carouselLayerId,
       onSwitchSystem: _switchSystem,
       key: ValueKey('carousel_$_viewStructureSignature'),
+
       system: widget.system,
       games: _games,
       selectedIndex: _selectedGameIndex,
@@ -1475,9 +1488,10 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// Builds the game grid view with box-2d images.
   Widget _buildGamesGrid() {
     return GamesGrid(
-      navigationLayerId: _gridLayerId,
+      navLayerId: _gridLayerId,
       onSwitchSystem: _switchSystem,
       key: ValueKey('grid_$_viewStructureSignature'),
+
       system: widget.system,
       games: _games,
       selectedIndex: _selectedGameIndex,

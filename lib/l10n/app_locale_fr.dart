@@ -1,6 +1,24 @@
 part of 'app_locale.dart';
 
 const Map<String, dynamic> appLocaleFr = {
+  AppLocale.searchAchievementsLocalOnly:
+      'Le filtre de succès ne s’applique qu’aux jeux locaux',
+  AppLocale.raCoverageNoSet: 'Non',
+  AppLocale.raCoverageMatched: 'Oui',
+  AppLocale.filterAchievements: 'Succès',
+  AppLocale.languageUpdated: 'Langue mise à jour avec succès',
+  AppLocale.scrapeModeUpdated: 'Mode de scraping mis à jour :',
+  AppLocale.region: 'Région',
+  AppLocale.mediaSub: 'Choisissez les types de médias à télécharger',
+  AppLocale.scrapeModeSub: 'Choisissez quoi rechercher',
+  AppLocale.account: 'Compte',
+  AppLocale.showSearchTabSubtitle:
+      'Affiche l’onglet de recherche dans la barre de navigation',
+
+  AppLocale.showSearchTab: 'Afficher l’onglet Rechercher',
+  AppLocale.showScraperTabSubtitle:
+      'Affiche l’onglet de scraping dans la barre de navigation',
+  AppLocale.showScraperTab: 'Afficher l’onglet Scraper',
   AppLocale.navigate: 'Naviguer',
   AppLocale.select: 'Sélectionner',
   AppLocale.back: 'Retour',
@@ -62,6 +80,9 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.systemArtSystemsCovered: '{count} systèmes',
   AppLocale.systemArtSupport: 'Soutenir',
   AppLocale.systemArtApplied: 'Appliqué',
+  AppLocale.systemArtHideLogos: 'Masquer les logos des systèmes',
+  AppLocale.systemArtHideLogosSubtitle:
+      'Masque le logo des cartes de systèmes quand le fond l\'inclut déjà',
   AppLocale.about: 'À propos',
   AppLocale.exit: 'Quitter',
   AppLocale.launcher: 'Lanceur',
@@ -241,15 +262,11 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.showAchievementsTab: 'Afficher l’onglet Succès',
   AppLocale.showAchievementsTabSubtitle:
       'Affiche l’onglet RetroAchievements dans la barre de navigation',
-  AppLocale.showScraperTab: 'Afficher l’onglet Scraper',
-  AppLocale.showScraperTabSubtitle:
-      'Affiche l’onglet de scraping dans la barre de navigation',
   AppLocale.showRommTab: 'Afficher l’onglet RomM',
   AppLocale.showRommTabSubtitle:
       'Affiche l’onglet RomM dans la barre de navigation',
-  AppLocale.showSearchTab: 'Afficher l’onglet Rechercher',
-  AppLocale.showSearchTabSubtitle:
-      'Affiche l’onglet de recherche dans la barre de navigation',
+  AppLocale.searchCard: 'Carte Rechercher',
+  AppLocale.searchCardSubtitle: 'Afficher la carte de recherche dans la grille',
 
   AppLocale.configureDirectories: 'Configurer les Répertoires',
   AppLocale.configureRomsFolder: 'Configurer le Dossier des ROMs',
@@ -539,16 +556,12 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.applyToAll: 'Appliquer à tous les conflits',
   AppLocale.applyToAllDesc: 'Utiliser ce choix pour les conflits restants',
 
-  AppLocale.account: 'Compte',
   AppLocale.scraping: 'Scraping',
   AppLocale.scrapeMode: 'Mode de Scraping',
-  AppLocale.scrapeModeSub: 'Choisissez quoi rechercher',
   AppLocale.media: 'Médias',
-  AppLocale.mediaSub: 'Choisissez les types de médias à télécharger',
   AppLocale.language: 'Langue',
   AppLocale.languageSub: 'Langue préférée pour les métadonnées',
   AppLocale.preferredLanguage: 'Langue Préférée',
-  AppLocale.region: 'Région',
   AppLocale.regionSub: 'Définir la priorité de région pour le scraping',
   AppLocale.regionPriority: 'Priorité de Région',
   AppLocale.regionPrioritySub:
@@ -567,10 +580,8 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.logoutError: 'Erreur lors de la déconnexion',
   AppLocale.newContentOnly: 'Nouveau contenu uniquement',
   AppLocale.allContent: 'Tout le contenu',
-  AppLocale.scrapeModeUpdated: 'Mode de scraping mis à jour :',
   AppLocale.scrapeModeError:
       'Erreur lors de la mise à jour du mode de scraping',
-  AppLocale.languageUpdated: 'Langue mise à jour avec succès',
   AppLocale.languageError: 'Erreur lors de la mise à jour de la langue',
   AppLocale.mediaSettingsError:
       'Erreur lors de l’enregistrement des paramètres médias',
@@ -800,6 +811,8 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.requiresFreeAccount: 'Nécessite un compte gratuit',
   AppLocale.createAccountAt: 'Créez un compte sur',
   AppLocale.toGetCredentials: ' pour obtenir vos identifiants.',
+  AppLocale.screenScraperTitle: 'ScreenScraper',
+  AppLocale.metadata: 'Métadonnées',
   AppLocale.screenScraperLogin: 'Connexion ScreenScraper',
   AppLocale.scanningSystemsRoms: 'Analyse des systèmes et ROMs...',
   AppLocale.ofSystems: '{scanned} sur {total} systèmes',
@@ -1175,17 +1188,12 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.filterGenre: 'Genre',
   AppLocale.filterRating: 'Note',
   AppLocale.filterYear: 'Année',
-  AppLocale.filterAchievements: 'Succès',
-  AppLocale.raCoverageMatched: 'Oui',
-  AppLocale.raCoverageNoSet: 'Non',
   AppLocale.raCoverageUnknown: 'Inconnu',
   AppLocale.filterAny: 'Tous',
   AppLocale.filterSource: 'Source',
   AppLocale.sourceLocal: 'Sur cet appareil',
   AppLocale.searchRatingLocalOnly:
       'Le filtre de note ne s’applique qu’aux jeux locaux',
-  AppLocale.searchAchievementsLocalOnly:
-      'Le filtre de succès ne s’applique qu’aux jeux locaux',
   AppLocale.searchNoRommEquivalent: 'RomM n’a rien classé sous « {value} »',
   AppLocale.resetPlayTimeConfirm: 'Réinitialiser le temps de jeu',
   AppLocale.resetPlayTimeConfirmBody:

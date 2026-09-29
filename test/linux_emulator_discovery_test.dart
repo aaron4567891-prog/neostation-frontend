@@ -1,3 +1,7 @@
+// These fixtures require POSIX executable permission bits and chmod.
+@TestOn('!windows')
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
