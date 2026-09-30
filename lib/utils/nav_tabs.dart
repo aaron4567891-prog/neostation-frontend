@@ -90,7 +90,7 @@ const Map<NavTab, NavTabSpec> navTabSpecs = {
     settingsSubtitleKey: AppLocale.showRommTabSubtitle,
   ),
   NavTab.scraper: NavTabSpec(
-    icon: 'assets/images/icons/box-search.webp',
+    icon: 'assets/images/icons/scraper-bulk.png',
     labelKey: AppLocale.scraping,
     hidden: _hideTabScraper,
     withHidden: _withHideTabScraper,
