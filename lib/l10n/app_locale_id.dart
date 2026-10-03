@@ -47,6 +47,16 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.delete: 'Hapus',
   AppLocale.edit: 'Ubah',
   AppLocale.refresh: 'Segarkan',
+  AppLocale.refreshApps: 'Segarkan aplikasi',
+  AppLocale.refreshGameList: 'Segarkan daftar game',
+  AppLocale.refreshAppsSubtitle:
+      'Temukan aplikasi Android yang baru dipasang atau dihapus.',
+  AppLocale.refreshGameListSubtitle:
+      'Temukan game baru atau yang dihapus untuk sistem ini saja.',
+  AppLocale.libraryUpToDate: '{name} sudah terbaru.',
+  AppLocale.libraryRefreshSummary:
+      '{name} disegarkan: {added} ditambahkan, {removed} dihapus.',
+  AppLocale.libraryRefreshFailed: '{name} tidak dapat disegarkan.',
   AppLocale.upload: 'Unggah',
   AppLocale.download: 'Unduh',
   AppLocale.stop: 'Berhenti',

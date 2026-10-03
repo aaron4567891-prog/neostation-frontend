@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localization/flutter_localization.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:neostation/l10n/app_locale.dart';
 import 'package:neostation/responsive.dart';
 import 'package:neostation/services/android_service.dart';
 import 'package:neostation/services/logger_service.dart';
@@ -80,6 +82,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid>
   /// bounced press landing while the previous handoff is still in flight.
   bool _isLaunching = false;
   bool _isUninstalling = false;
+  bool _isRefreshing = false;
   String? _pendingUninstallPackage;
   DateTime? _lastLaunchTime;
   static const Duration _launchCooldown = Duration(milliseconds: 1500);
@@ -112,6 +115,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid>
       onNavigateRight: _navigateRight,
       onSelectItem: _launchSelectedApp,
       onFavorite: _confirmUninstallSelectedApp,
+      onSettings: _refreshApps,
       // The embedded Apps tab still needs to own Back while its search field
       // is focused. Without a handler the global touch back-swipe can dismiss
       // Android's keyboard while the FocusNode remains active, leaving this
@@ -155,7 +159,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid>
   }
 
   /// Populates the grid by loading detected Android packages from the database.
-  Future<void> _loadApps() async {
+  Future<void> _loadApps({String? preservePackage}) async {
     try {
       final apps = await GameService.loadGamesForSystem(widget.system);
       if (mounted) {
@@ -165,7 +169,10 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid>
           _apps = apps
               .where((app) => app.name.toLowerCase().startsWith(query))
               .toList();
-          _selectedIndex = 0;
+          final preservedIndex = preservePackage == null
+              ? -1
+              : _apps.indexWhere((app) => app.romPath == preservePackage);
+          _selectedIndex = preservedIndex >= 0 ? preservedIndex : 0;
           _isLoading = false;
         });
       }
@@ -174,6 +181,51 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid>
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  /// Rebuilds only the installed-app catalogue, avoiding a full NeoStation
+  /// library scan. This is shared by the R3 shortcut and Android system view.
+  Future<void> _refreshApps({bool showFeedback = true}) async {
+    if (_isRefreshing) return;
+    final selectedPackage = _apps.isEmpty
+        ? null
+        : _apps[_selectedIndex].romPath;
+    setState(() => _isRefreshing = true);
+    try {
+      final summary = await SqliteDatabaseService.scanSystemRoms(
+        widget.system,
+        const [],
+      );
+      if (!mounted) return;
+      await _loadApps(preservePackage: selectedPackage);
+      if (!mounted || !showFeedback) return;
+      final changed = summary.added + summary.removed;
+      final libraryName = AppLocale.androidApps.getString(context);
+      final message = changed == 0
+          ? AppLocale.libraryUpToDate
+                .getString(context)
+                .replaceFirst('{name}', libraryName)
+          : AppLocale.libraryRefreshSummary
+                .getString(context)
+                .replaceFirst('{name}', libraryName)
+                .replaceFirst('{added}', summary.added.toString())
+                .replaceFirst('{removed}', summary.removed.toString());
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      _log.e('Error refreshing Android apps: $e');
+      if (mounted && showFeedback) {
+        final message = AppLocale.libraryRefreshFailed
+            .getString(context)
+            .replaceFirst('{name}', AppLocale.androidApps.getString(context));
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(message)));
+      }
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
     }
   }
 
@@ -338,9 +390,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid>
     await Future<void>.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
     try {
-      await SqliteDatabaseService.scanSystemRoms(widget.system, const []);
-      if (!mounted) return;
-      await _loadApps();
+      await _refreshApps(showFeedback: false);
     } finally {
       if (mounted) setState(() => _isUninstalling = false);
     }
@@ -433,6 +483,8 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid>
                       ? null
                       : _confirmUninstallSelectedApp,
                   uninstalling: _isUninstalling,
+                  onRefresh: _refreshApps,
+                  refreshing: _isRefreshing,
                   onBack: widget.embedded ? null : _handleBack,
                   showBack: !widget.embedded,
                 ),

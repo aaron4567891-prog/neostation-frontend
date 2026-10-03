@@ -51,6 +51,13 @@ mixin AppLocale {
   static const String delete = 'delete';
   static const String edit = 'edit';
   static const String refresh = 'refresh';
+  static const String refreshApps = 'refresh_apps';
+  static const String refreshGameList = 'refresh_game_list';
+  static const String refreshAppsSubtitle = 'refresh_apps_subtitle';
+  static const String refreshGameListSubtitle = 'refresh_game_list_subtitle';
+  static const String libraryUpToDate = 'library_up_to_date';
+  static const String libraryRefreshSummary = 'library_refresh_summary';
+  static const String libraryRefreshFailed = 'library_refresh_failed';
   static const String upload = 'upload';
   static const String download = 'download';
   static const String stop = 'stop';

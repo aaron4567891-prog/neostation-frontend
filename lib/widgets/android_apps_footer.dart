@@ -11,6 +11,8 @@ class AndroidAppsFooter extends CoreFooter {
   final VoidCallback onLaunch;
   final VoidCallback? onUninstall;
   final bool uninstalling;
+  final VoidCallback? onRefresh;
+  final bool refreshing;
   final VoidCallback? onBack;
   final bool showBack;
 
@@ -20,6 +22,8 @@ class AndroidAppsFooter extends CoreFooter {
     required this.onLaunch,
     this.onUninstall,
     this.uninstalling = false,
+    this.onRefresh,
+    this.refreshing = false,
     this.onBack,
     this.showBack = true,
   });
@@ -59,6 +63,15 @@ class AndroidAppsFooter extends CoreFooter {
         ),
         SizedBox(width: 8.r),
       ],
+      GamepadControl(
+        iconPath: 'assets/images/gamepad/Xbox_Menu_button.png',
+        label: AppLocale.refresh.getString(context),
+        onTap: onRefresh,
+        busy: refreshing,
+        textColor: theme.colorScheme.onPrimaryContainer,
+        backgroundColor: theme.colorScheme.primaryContainer,
+      ),
+      SizedBox(width: 8.r),
       GamepadControl(
         iconPath: 'assets/images/gamepad/Xbox_Y_button.png',
         label: AppLocale.delete.getString(context),

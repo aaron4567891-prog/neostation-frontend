@@ -522,8 +522,8 @@ extension _Tabs on _SystemEmulatorSettingsDialogState {
         if (_offersSubfolderView) ...[
           SizedBox(height: 4.r),
           _buildSwitchItem(
-            index: 5,
-            key: _generalItemKeys[5],
+            index: _subfolderGeneralIndex,
+            key: _generalItemKeys[_subfolderGeneralIndex],
             title: AppLocale.subfolderView.getString(context),
             subtitle: AppLocale.subfolderViewSubtitle.getString(context),
             value: _system.subfolderView,
@@ -533,7 +533,82 @@ extension _Tabs on _SystemEmulatorSettingsDialogState {
             enabled: _system.recursiveScan,
           ),
         ],
+        if (_offersSystemRefresh) ...[
+          SizedBox(height: 4.r),
+          _buildGeneralActionItem(
+            index: _refreshGeneralIndex,
+            key: _generalItemKeys[_refreshGeneralIndex],
+            title: _system.folderName == SystemFolderNames.android
+                ? AppLocale.refreshApps.getString(context)
+                : AppLocale.refreshGameList.getString(context),
+            subtitle: _system.folderName == SystemFolderNames.android
+                ? AppLocale.refreshAppsSubtitle.getString(context)
+                : AppLocale.refreshGameListSubtitle.getString(context),
+            icon: Symbols.refresh_rounded,
+            busy: _isRefreshingSystem,
+            onTap: _refreshSystemGames,
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildGeneralActionItem({
+    required int index,
+    required Key key,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool busy,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    final isFocused = _generalIndex == index;
+    final radius =
+        theme.extension<CornerRadii>()?.radiusInternal ??
+        BorderRadius.circular(9.r);
+    return Container(
+      key: key,
+      decoration: BoxDecoration(
+        color: isFocused
+            ? theme.colorScheme.primary.withValues(alpha: 0.2)
+            : Colors.transparent,
+        borderRadius: radius,
+      ),
+      child: InkWell(
+        onTap: busy ? null : onTap,
+        borderRadius: radius,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.r, vertical: 8.r),
+          child: Row(
+            children: [
+              busy
+                  ? SizedBox.square(
+                      dimension: 20.r,
+                      child: const CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(icon, size: 20.r, color: theme.colorScheme.primary),
+              SizedBox(width: 12.r),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.titleSmall),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.65,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

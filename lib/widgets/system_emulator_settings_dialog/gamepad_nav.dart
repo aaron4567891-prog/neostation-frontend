@@ -207,11 +207,14 @@ extension _GamepadNav on _SystemEmulatorSettingsDialogState {
         _toggleHideBrackets(!_system.hideBrackets);
       } else if (_generalIndex == 4 && _offersRecursiveScan) {
         _toggleRecursiveScan(!_system.recursiveScan);
-      } else if (_generalIndex == 5 && _offersSubfolderView) {
+      } else if (_generalIndex == _subfolderGeneralIndex &&
+          _offersSubfolderView) {
         // Inert unless recursive scanning is on (no subfolders to show).
         if (_system.recursiveScan) {
           _toggleSubfolderView(!_system.subfolderView);
         }
+      } else if (_generalIndex == _refreshGeneralIndex) {
+        _refreshSystemGames();
       }
     } else if (_currentTab == 2) {
       if (_appearanceIndex == 0) {

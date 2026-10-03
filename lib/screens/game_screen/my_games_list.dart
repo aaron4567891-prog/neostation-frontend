@@ -308,6 +308,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
   // Navigation & State orchestration.
   bool _isLoading = true;
   bool _isLoadingGames = false; // Prevents redundant reload triggers.
+  bool _isRefreshingGameList = false;
   int _selectedGameIndex = 0;
   late GamepadNavigation
   _gamepadNav; // Unified controller/keyboard input handler.
@@ -1408,6 +1409,22 @@ class _SystemGamesListState extends State<SystemGamesList> {
                   );
                 },
               ),
+
+            if (!isAggregateView) ...[
+              FilledButton.icon(
+                onPressed: _isRefreshingGameList
+                    ? null
+                    : _refreshCurrentGameList,
+                icon: _isRefreshingGameList
+                    ? SizedBox.square(
+                        dimension: 16.r,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Symbols.refresh_rounded, size: 18.r),
+                label: Text(AppLocale.refresh.getString(context)),
+              ),
+              SizedBox(height: 10.r),
+            ],
 
             // Navigation Component: Exit Action.
             Material(

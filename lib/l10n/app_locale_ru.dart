@@ -47,6 +47,16 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.delete: 'Удалить',
   AppLocale.edit: 'Изменить',
   AppLocale.refresh: 'Обновить',
+  AppLocale.refreshApps: 'Обновить приложения',
+  AppLocale.refreshGameList: 'Обновить список игр',
+  AppLocale.refreshAppsSubtitle:
+      'Найти недавно установленные или удалённые приложения Android.',
+  AppLocale.refreshGameListSubtitle:
+      'Найти добавленные или удалённые игры только для этой системы.',
+  AppLocale.libraryUpToDate: '{name} уже обновлены.',
+  AppLocale.libraryRefreshSummary:
+      '{name} обновлены: добавлено {added}, удалено {removed}.',
+  AppLocale.libraryRefreshFailed: 'Не удалось обновить {name}.',
   AppLocale.upload: 'Загрузить',
   AppLocale.download: 'Скачать',
   AppLocale.stop: 'Стоп',

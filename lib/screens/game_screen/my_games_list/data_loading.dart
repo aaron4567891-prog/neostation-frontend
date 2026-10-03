@@ -9,6 +9,57 @@ part of '../my_games_list.dart';
 /// (`State.setState` is `@protected` and can't be invoked from an extension),
 /// and the host's static `_log` is qualified as `_SystemGamesListState._log`.
 extension _DataLoading on _SystemGamesListState {
+  /// Scans only the system currently being viewed and reloads this list.
+  Future<void> _refreshCurrentGameList() async {
+    if (_isRefreshingGameList ||
+        SystemFolderNames.isAggregate(widget.system.folderName)) {
+      return;
+    }
+    rebuild(() => _isRefreshingGameList = true);
+    try {
+      final summary = await context
+          .read<SqliteConfigProvider>()
+          .rescanSystemSilent(widget.system);
+      if (!mounted) return;
+      await context.read<SqliteDatabaseProvider>().loadGamesForSystem(
+        widget.system.folderName,
+      );
+      if (!mounted) return;
+      await _loadGames();
+      if (!mounted) return;
+
+      final message =
+          (summary.hasChanges
+                  ? AppLocale.libraryRefreshSummary
+                  : AppLocale.libraryUpToDate)
+              .getString(context)
+              .replaceFirst('{name}', widget.system.realName)
+              .replaceFirst('{added}', summary.added.toString())
+              .replaceFirst('{removed}', summary.removed.toString());
+      AppNotification.showNotification(
+        context,
+        message,
+        type: summary.hasChanges
+            ? NotificationType.success
+            : NotificationType.info,
+        notificationId: 'game_list_refresh_${widget.system.id}',
+      );
+    } catch (e) {
+      _SystemGamesListState._log.e('Error refreshing current game list: $e');
+      if (mounted) {
+        AppNotification.showNotification(
+          context,
+          AppLocale.errorScanningSystem
+              .getString(context)
+              .replaceFirst('{error}', e.toString()),
+          type: NotificationType.error,
+        );
+      }
+    } finally {
+      if (mounted) rebuild(() => _isRefreshingGameList = false);
+    }
+  }
+
   /// Retrieves localized game descriptions directly from the SQLite database.
   void _loadLocalizedDescription() async {
     if (_selectedGame == null) return;

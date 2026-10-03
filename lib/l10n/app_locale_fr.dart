@@ -47,6 +47,16 @@ const Map<String, dynamic> appLocaleFr = {
   AppLocale.delete: 'Supprimer',
   AppLocale.edit: 'Modifier',
   AppLocale.refresh: 'Actualiser',
+  AppLocale.refreshApps: 'Actualiser les applis',
+  AppLocale.refreshGameList: 'Actualiser la liste des jeux',
+  AppLocale.refreshAppsSubtitle:
+      'Rechercher les applis Android installées ou supprimées.',
+  AppLocale.refreshGameListSubtitle:
+      'Rechercher les jeux ajoutés ou supprimés pour ce système.',
+  AppLocale.libraryUpToDate: '{name} est déjà à jour.',
+  AppLocale.libraryRefreshSummary:
+      '{name} actualisé : {added} ajoutés, {removed} supprimés.',
+  AppLocale.libraryRefreshFailed: 'Impossible d’actualiser {name}.',
   AppLocale.upload: 'Téléverser',
   AppLocale.download: 'Télécharger',
   AppLocale.stop: 'Arrêter',

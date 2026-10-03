@@ -43,6 +43,7 @@ const String _scrapeId = 'scrape';
 const String _viewModeId = 'view_mode';
 const String _randomId = 'random';
 const String _searchId = 'search';
+const String _refreshId = 'refresh';
 const String _togglePrefix = 'toggle:';
 
 /// Opens the per-game Y menu anchored to [anchorKey]'s widget.
@@ -90,6 +91,7 @@ Future<void> showGameContextMenu({
   VoidCallback? onViewMode,
   VoidCallback? onRandom,
   VoidCallback? onSearch,
+  Future<void> Function()? onRefresh,
 }) async {
   assert(
     onCreateTarget == null || createTargetLabel != null,
@@ -142,19 +144,27 @@ Future<void> showGameContextMenu({
         icon: Symbols.search_rounded,
         separatorBefore: true,
       ),
+    if (onRefresh != null)
+      ContextMenuItem(
+        id: _refreshId,
+        label: AppLocale.refresh.getString(context),
+        icon: Symbols.refresh_rounded,
+        separatorBefore: onSearch == null,
+      ),
     if (onViewMode != null)
       ContextMenuItem(
         id: _viewModeId,
         label: AppLocale.viewMode.getString(context),
         icon: Symbols.grid_view_rounded,
-        separatorBefore: onSearch == null,
+        separatorBefore: onSearch == null && onRefresh == null,
       ),
     if (onRandom != null)
       ContextMenuItem(
         id: _randomId,
         label: AppLocale.randomGame.getString(context),
         icon: Symbols.casino_rounded,
-        separatorBefore: onSearch == null && onViewMode == null,
+        separatorBefore:
+            onSearch == null && onRefresh == null && onViewMode == null,
       ),
   ];
 
@@ -194,6 +204,10 @@ Future<void> showGameContextMenu({
   }
   if (result == _searchId) {
     onSearch?.call();
+    return;
+  }
+  if (result == _refreshId) {
+    await onRefresh?.call();
     return;
   }
   if (result == _viewModeId) {

@@ -124,6 +124,9 @@ extension _ContextMenu on _SystemGamesListState {
           GameViewModeDropdown.globalKey.currentState?.showDropdown(),
       onRandom: _showRandomGameDialog,
       onSearch: _openSearchFromMenu,
+      onRefresh: SystemFolderNames.isAggregate(widget.system.folderName)
+          ? null
+          : _refreshCurrentGameList,
     );
 
     _deferFavoriteReseat = false;

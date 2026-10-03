@@ -15,6 +15,7 @@ import '../models/standalone_emulator_model.dart';
 import '../themes/corner_radii.dart';
 import 'system_emulator_settings_dialog/models/emulator_list_item.dart';
 import '../models/system_model.dart';
+import '../data/datasources/sqlite_database_service.dart';
 import '../providers/sqlite_config_provider.dart';
 import '../providers/sqlite_database_provider.dart';
 import '../repositories/system_repository.dart';
@@ -68,6 +69,7 @@ class _SystemEmulatorSettingsDialogState
   // Tabs state
   int _currentTab = 0; // Default to General tab
   int _generalIndex = 0; // Index for General tab items
+  bool _isRefreshingSystem = false;
   int _appearanceIndex = 0; // Index for Appearance tab items
   // Hidden-games tab: the games this system (or the whole library, for the
   // virtual ones) has hidden, plus the row that restores them all at once.
@@ -78,9 +80,8 @@ class _SystemEmulatorSettingsDialogState
   late ScrollController _hiddenScrollController;
   // Emulators tab: 0 = default/core action, 1 = executable picker.
   int _emulatorActionIndex = 0;
-  // 0: Prefer filename, 1: Hide ext, 2: (), 3: [], 4: Recursive (only when
-  // [_offersRecursiveScan]), 5: Show subfolders (only when
-  // [_offersSubfolderView]).
+  // 0: Prefer filename, 1: Hide ext, 2: (), 3: [], then optional recursive
+  // and subfolder toggles, followed by the per-system refresh action.
   late int _totalGeneralItems;
   late List<GlobalKey> _generalItemKeys;
   late List<GlobalKey> _appearanceItemKeys;
@@ -121,7 +122,10 @@ class _SystemEmulatorSettingsDialogState
     // collection's id has no `app_systems` row for the setting to be written
     // against at all.
     _totalGeneralItems =
-        4 + (_offersRecursiveScan ? 1 : 0) + (_offersSubfolderView ? 1 : 0);
+        4 +
+        (_offersRecursiveScan ? 1 : 0) +
+        (_offersSubfolderView ? 1 : 0) +
+        (_offersSystemRefresh ? 1 : 0);
 
     _generalScrollController = ScrollController();
     _hiddenScrollController = ScrollController();
@@ -236,6 +240,63 @@ class _SystemEmulatorSettingsDialogState
           notificationId: 'system_scan_${widget.system.id}',
         );
       }
+    }
+  }
+
+  int get _subfolderGeneralIndex => 4 + (_offersRecursiveScan ? 1 : 0);
+
+  int get _refreshGeneralIndex =>
+      4 + (_offersRecursiveScan ? 1 : 0) + (_offersSubfolderView ? 1 : 0);
+
+  Future<void> _refreshSystemGames() async {
+    if (_isRefreshingSystem || _isVirtualLibrarySystem) return;
+    setState(() => _isRefreshingSystem = true);
+    try {
+      // Android's catalogue comes from PackageManager and does not depend on
+      // configured ROM roots, so it must still refresh on an apps-only setup.
+      final summary = _system.folderName == SystemFolderNames.android
+          ? await SqliteDatabaseService.scanSystemRoms(_system, const [])
+          : await context.read<SqliteConfigProvider>().rescanSystemSilent(
+              _system,
+            );
+      if (!mounted) return;
+      await context.read<SqliteDatabaseProvider>().loadGamesForSystem(
+        _system.folderName,
+      );
+      if (!mounted) return;
+
+      final libraryName = _system.folderName == SystemFolderNames.android
+          ? AppLocale.androidApps.getString(context)
+          : AppLocale.games.getString(context);
+      final message =
+          (summary.hasChanges
+                  ? AppLocale.libraryRefreshSummary
+                  : AppLocale.libraryUpToDate)
+              .getString(context)
+              .replaceFirst('{name}', libraryName)
+              .replaceFirst('{added}', summary.added.toString())
+              .replaceFirst('{removed}', summary.removed.toString());
+      AppNotification.showNotification(
+        context,
+        message,
+        type: summary.hasChanges
+            ? NotificationType.success
+            : NotificationType.info,
+        notificationId: 'system_refresh_${_system.id}',
+      );
+    } catch (e) {
+      _log.e('Error refreshing ${_system.realName}: $e');
+      if (mounted) {
+        AppNotification.showNotification(
+          context,
+          AppLocale.errorScanningSystem
+              .getString(context)
+              .replaceFirst('{error}', e.toString()),
+          type: NotificationType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRefreshingSystem = false);
     }
   }
 
@@ -356,6 +417,8 @@ class _SystemEmulatorSettingsDialogState
   bool get _offersSubfolderView =>
       !SystemFolderNames.subfolderViewExcluded.contains(_system.folderName) &&
       !SystemFolderNames.isCollection(_system.folderName);
+
+  bool get _offersSystemRefresh => !_isVirtualLibrarySystem;
 
   // ── Hidden games ──────────────────────────────────────────────────────────
 

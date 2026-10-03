@@ -10,7 +10,7 @@ import 'package:neostation/widgets/context_menu/game_context_menu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Covers the actions the game context menu absorbed when the vertical action
-/// rail was removed: view mode, random, and scrape. With no rail and no button
+/// rail was removed: view mode, random, refresh, and scrape. With no rail and no button
 /// legend in the games views, this menu is the only route to them for a user
 /// without a gamepad, so each row has to be present when the host binds it and
 /// absent when it does not — scrape included, because a game whose own system
@@ -120,6 +120,28 @@ void main() {
 
     expect(scraped, 1);
     expect(find.text(label(ctx, AppLocale.hintScrape)), findsNothing);
+  });
+
+  testWidgets('refresh is offered when bound and waits for its action', (
+    tester,
+  ) async {
+    final ctx = await pumpHost(tester);
+    var refreshed = 0;
+    // ignore: unawaited_futures
+    showGameContextMenu(
+      context: ctx,
+      targets: targets,
+      onSettings: () {},
+      onRefresh: () async => refreshed++,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(label(ctx, AppLocale.refresh)), findsOneWidget);
+    await tester.tap(find.text(label(ctx, AppLocale.refresh)));
+    await tester.pumpAndSettle();
+
+    expect(refreshed, 1);
+    expect(find.text(label(ctx, AppLocale.refresh)), findsNothing);
   });
 
   testWidgets('opens on Settings, with no submenu pre-opened', (tester) async {
