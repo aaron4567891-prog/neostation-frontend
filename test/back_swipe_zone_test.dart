@@ -34,7 +34,7 @@ void main() {
   /// something else is competing for the pointer. Every real screen under this
   /// zone has its own recognizers, so a bare placeholder here would exercise a
   /// gesture no user can perform.
-  Future<void> pumpZone(WidgetTester tester) async {
+  Future<void> pumpZone(WidgetTester tester, {FocusNode? searchFocus}) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(1920, 1080);
     addTearDown(tester.view.reset);
@@ -46,10 +46,17 @@ void main() {
           home: Stack(
             children: [
               ListView(
-                children: List<Widget>.generate(
-                  40,
-                  (i) => SizedBox(height: 80, child: Text('row $i')),
-                ),
+                children: [
+                  if (searchFocus != null)
+                    Focus(
+                      focusNode: searchFocus,
+                      child: const SizedBox(height: 48),
+                    ),
+                  ...List<Widget>.generate(
+                    40,
+                    (i) => SizedBox(height: 80, child: Text('row $i')),
+                  ),
+                ],
               ),
               const BackSwipeZone(),
             ],
@@ -93,6 +100,36 @@ void main() {
     await swipeRight(tester);
 
     expect(fired, hasLength(1));
+  });
+
+  testWidgets('a swipe releases an embedded search field from typing mode', (
+    tester,
+  ) async {
+    final searchFocus = FocusNode();
+    addTearDown(searchFocus.dispose);
+    await pumpZone(tester, searchFocus: searchFocus);
+
+    searchFocus.requestFocus();
+    await tester.pump();
+    expect(searchFocus.hasFocus, isTrue);
+
+    final nav = GamepadNavigation(
+      onBack: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        searchFocus.unfocus();
+      },
+      isTextFieldFocused: () => searchFocus.hasFocus,
+    );
+    nav.activate();
+    addTearDown(nav.dispose);
+
+    await swipeRight(tester);
+
+    expect(
+      searchFocus.hasFocus,
+      isFalse,
+      reason: 'navigation must not remain locked in text-entry mode',
+    );
   });
 
   testWidgets('the newest active layer is the one that goes back', (

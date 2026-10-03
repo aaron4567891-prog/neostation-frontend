@@ -104,7 +104,11 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
       onNavigateLeft: _navigateLeft,
       onNavigateRight: _navigateRight,
       onSelectItem: _launchSelectedApp,
-      onBack: widget.embedded ? null : _goBack,
+      // The embedded Apps tab still needs to own Back while its search field
+      // is focused. Without a handler the global touch back-swipe can dismiss
+      // Android's keyboard while the FocusNode remains active, leaving this
+      // navigator in its text-entry state and making the grid appear frozen.
+      onBack: _handleBack,
       onXButton: () => _searchFocus.requestFocus(),
       isTextFieldFocused: () => _searchFocus.hasFocus,
       onPreviousTab: widget.embedded ? widget.onPreviousTab : null,
@@ -276,12 +280,18 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
     }
   }
 
-  /// Standard exit handler with gamepad input management.
-  void _goBack() {
+  /// Dismisses search first, then leaves a pushed Apps route on the next Back.
+  ///
+  /// Embedded Apps is a root tab rather than a route, so Back has nowhere to
+  /// pop after the search field is released. It still binds this handler so
+  /// the app-wide touchscreen back swipe can reliably end text-entry mode.
+  void _handleBack() {
     if (_searchFocus.hasFocus) {
+      FocusManager.instance.primaryFocus?.unfocus();
       _searchFocus.unfocus();
       return;
     }
+    if (widget.embedded) return;
     if (_isNavigatingBack) return;
     _isNavigatingBack = true;
 
@@ -314,7 +324,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
       canPop: _canPop,
       onPopInvokedWithResult: (bool didPop, dynamic result) {
         if (didPop) return;
-        _goBack();
+        _handleBack();
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -353,7 +363,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
                 AndroidAppsFooter(
                   appName: _apps.isNotEmpty ? _apps[_selectedIndex].name : '',
                   onLaunch: _launchSelectedApp,
-                  onBack: widget.embedded ? null : _goBack,
+                  onBack: widget.embedded ? null : _handleBack,
                   showBack: !widget.embedded,
                 ),
               ],
