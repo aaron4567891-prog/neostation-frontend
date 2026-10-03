@@ -36,7 +36,7 @@ extension _GamepadNav on _SystemEmulatorSettingsDialogState {
     _gamepadNav.dispose();
   }
 
-  void _navigateUp() {
+  void _navigateUp(bool isRepeat) {
     if (_openMenuIndex != -1) {
       final focusedContext = FocusManager.instance.primaryFocus?.context;
       if (focusedContext != null) {
@@ -64,7 +64,11 @@ extension _GamepadNav on _SystemEmulatorSettingsDialogState {
       }
 
       _centeredScrollController.updateSelectedIndex(_selectedIndex);
-      _scrollToSelected();
+      // Held navigation repeats every 80 ms, much faster than the normal
+      // 360 ms centering animation. Retargeting that animation on every repeat
+      // leaves the viewport several rows behind the selection, so repeated
+      // moves jump directly while a single press remains smooth.
+      _scrollToSelected(animate: !isRepeat);
     } else if (_currentTab == 0) {
       rebuild(() {
         _generalIndex =
@@ -86,7 +90,7 @@ extension _GamepadNav on _SystemEmulatorSettingsDialogState {
     }
   }
 
-  void _navigateDown() {
+  void _navigateDown(bool isRepeat) {
     if (_openMenuIndex != -1) {
       final focusedContext = FocusManager.instance.primaryFocus?.context;
       if (focusedContext != null) {
@@ -114,7 +118,7 @@ extension _GamepadNav on _SystemEmulatorSettingsDialogState {
       }
 
       _centeredScrollController.updateSelectedIndex(_selectedIndex);
-      _scrollToSelected();
+      _scrollToSelected(animate: !isRepeat);
     } else if (_currentTab == 0) {
       rebuild(() {
         _generalIndex = (_generalIndex + 1) % _totalGeneralItems;
