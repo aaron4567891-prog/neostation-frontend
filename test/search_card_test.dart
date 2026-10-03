@@ -21,12 +21,18 @@ void main() {
       expect(AppTabs.achievements, NavTab.achievements.index);
       expect(AppTabs.romm, NavTab.romm.index);
       expect(AppTabs.settings, NavTab.settings.index);
+      expect(AppTabs.androidApps, NavTab.androidApps.index);
       expect(AppTabs.count, NavTab.values.length);
     });
 
     test('Search is no longer a tab or a tab toggle', () {
       expect(NavTab.values.map((t) => t.name), isNot(contains('search')));
       expect(hidableNavTabs().map((t) => t.name), isNot(contains('search')));
+    });
+
+    test('ScreenScraper is only available from Metadata settings', () {
+      expect(NavTab.values.map((t) => t.name), isNot(contains('scraper')));
+      expect(hidableNavTabs().map((t) => t.name), isNot(contains('scraper')));
     });
   });
 

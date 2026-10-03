@@ -1,5 +1,3 @@
-import 'scraper_screen/new_scraper_options_screen.dart';
-import '../widgets/scraper_content.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:neostation/utils/gamepad_nav.dart';
@@ -53,11 +51,10 @@ abstract final class AppTabs {
   static const int achievements = 2;
   static const int romm = 3;
   static const int settings = 4;
-  static const int scraper = 5;
-  static const int androidApps = 6;
+  static const int androidApps = 5;
 
   /// Total number of tabs, used for wrap-around when cycling with the bumpers.
-  static const int count = 7;
+  static const int count = 6;
 }
 
 /// Bridge class providing static access to the main application navigation state.
@@ -511,10 +508,6 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
   // to allow for context-aware navigation patterns (Grid vs List vs Paged).
 
   void _navigateContentRight() {
-    if (_selectedTabIndex == AppTabs.scraper) {
-      NewScraperOptionsScreen.navigateRight();
-      return;
-    }
     if (_selectedTabIndex == AppTabs.systems) {
       return; // Grid navigation delegated to my_systems.dart via provider.
     }
@@ -525,10 +518,6 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
   }
 
   void _navigateContentLeft() {
-    if (_selectedTabIndex == AppTabs.scraper) {
-      NewScraperOptionsScreen.navigateLeft();
-      return;
-    }
     if (_selectedTabIndex == AppTabs.systems) return;
     if (_selectedTabIndex == AppTabs.settings) {
       NewSettingsScreen.navigateLeft();
@@ -544,10 +533,6 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
   /// mounted. Keeping a second route to the same screen is what caused the
   /// double-dispatch bug fixed in #255.
   bool _navigateContentDown() {
-    if (_selectedTabIndex == AppTabs.scraper) {
-      NewScraperOptionsScreen.navigateDown();
-      return true;
-    }
     if (_selectedTabIndex == AppTabs.systems) return true;
     if (_selectedTabIndex == AppTabs.settings) {
       return NewSettingsScreen.navigateDown();
@@ -556,10 +541,6 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
   }
 
   bool _navigateContentUp() {
-    if (_selectedTabIndex == AppTabs.scraper) {
-      NewScraperOptionsScreen.navigateUp();
-      return true;
-    }
     if (_selectedTabIndex == AppTabs.systems) return true;
     if (_selectedTabIndex == AppTabs.settings) {
       return NewSettingsScreen.navigateUp();
@@ -574,20 +555,12 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
   }
 
   void _handleBackNavigation() {
-    if (_selectedTabIndex == AppTabs.scraper) {
-      NewScraperOptionsScreen.backCurrent();
-      return;
-    }
     if (_selectedTabIndex == AppTabs.settings) {
       NewSettingsScreen.backCurrent();
     }
   }
 
   void _selectCurrentItem() async {
-    if (_selectedTabIndex == AppTabs.scraper) {
-      NewScraperOptionsScreen.selectCurrent();
-      return;
-    }
     if (_selectedTabIndex == AppTabs.systems) {
       // The systems grid owns A through its own navigation layer, which is why
       // this returns. On first run that grid is replaced by the setup card,
@@ -657,9 +630,6 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
 
       String tabName = '';
       switch (index) {
-        case AppTabs.scraper:
-          tabName = 'Scraper';
-          break;
         case AppTabs.sync:
           tabName = 'Sync';
           break;
@@ -818,8 +788,6 @@ class AppScreenState extends State<AppScreen> with WidgetsBindingObserver {
         return const NeoSyncContent();
       case AppTabs.achievements:
         return RAContent();
-      case AppTabs.scraper:
-        return ScraperContent();
       case AppTabs.romm:
         // RomM tab hosts its own gamepad navigation layer (browse/connect),
         // so hand off focus like the NeoSync tab does.

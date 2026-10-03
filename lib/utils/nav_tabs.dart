@@ -11,15 +11,7 @@ import 'package:neostation/models/config_model.dart';
 /// (`_selectedTabIndex`, `_buildCurrentTabContent`, the secondary-display tab
 /// names). Append new tabs at the end — inserting one renumbers every existing
 /// tab and silently repoints all of that dispatch.
-enum NavTab {
-  systems,
-  sync,
-  achievements,
-  romm,
-  settings,
-  scraper,
-  androidApps,
-}
+enum NavTab { systems, sync, achievements, romm, settings, androidApps }
 
 /// Static description of one navigation tab: how it is drawn, whether the user
 /// may hide it, and how that preference is read and written.
@@ -99,14 +91,6 @@ const Map<NavTab, NavTabSpec> navTabSpecs = {
     withHidden: _withHideTabRomm,
     settingsTitleKey: AppLocale.showRommTab,
     settingsSubtitleKey: AppLocale.showRommTabSubtitle,
-  ),
-  NavTab.scraper: NavTabSpec(
-    icon: 'assets/images/icons/scraper-bulk.png',
-    labelKey: AppLocale.scraping,
-    hidden: _hideTabScraper,
-    withHidden: _withHideTabScraper,
-    settingsTitleKey: AppLocale.showScraperTab,
-    settingsSubtitleKey: AppLocale.showScraperTabSubtitle,
   ),
   NavTab.settings: NavTabSpec(
     icon: 'assets/images/icons/setting.webp',
@@ -198,7 +182,3 @@ int navTabWindowStart({
       : windowStart;
   return start.clamp(0, tabCount - maxSlots);
 }
-
-bool _hideTabScraper(ConfigModel c) => c.hideTabScraper;
-ConfigModel _withHideTabScraper(ConfigModel c, bool hidden) =>
-    c.copyWith(hideTabScraper: hidden);

@@ -7,8 +7,12 @@ import 'package:neostation/l10n/app_locale.dart';
 import 'package:neostation/providers/scraping_provider.dart';
 import 'package:neostation/repositories/scraper_repository.dart';
 import 'package:neostation/services/logger_service.dart';
+import 'package:neostation/services/neoassets_scraper_service.dart';
+import 'package:neostation/services/scraper_provider_preferences.dart';
 import 'package:neostation/services/screenscraper_service.dart';
 import 'package:neostation/services/sfx_service.dart';
+import 'package:neostation/services/steamgriddb_service.dart';
+import 'package:neostation/services/thegamesdb_service.dart';
 import 'package:neostation/utils/adaptive_scroll.dart';
 import 'package:neostation/widgets/confirm_action_dialog.dart';
 import 'package:neostation/widgets/custom_notification.dart';
@@ -98,6 +102,13 @@ class ScreenScraperSettingsContentState
   List<String> _regions = [];
   List<Map<String, dynamic>> _systems = [];
   Map<String, bool> _enabledSystems = {};
+  bool _steamGridDbConnected = false;
+  bool _theGamesDbConnected = false;
+  bool _neoAssetsConnected = false;
+  MetadataScraperProvider _metadataProvider =
+      MetadataScraperProvider.screenScraper;
+  ArtworkScraperPriority _artworkPriority =
+      ArtworkScraperPriority.primaryScraperFirst;
 
   /// Gamepad cursor over [getItemCount] slots (see the index getters below).
   int _cursor = 0;
@@ -105,15 +116,19 @@ class ScreenScraperSettingsContentState
   /// Whether the focused region has been picked up for reordering.
   bool _movingRegion = false;
 
-  // Slot layout when signed in, in page order: account, the scraping rows,
-  // enable-all, the systems grid, then the media and region rows. Signed out
-  // there is a single slot: the sign-in row.
-  static const int _accountSlot = 0;
-  static const int _scrapeSlot = 1;
-  static const int _scrapeModeSlot = 2;
-  static const int _languageSlot = 3;
-  static const int _toggleAllSlot = 4;
-  static const int _gridStart = 5;
+  // Provider choices remain available even without a ScreenScraper account.
+  // ScreenScraper's own account and scraping controls follow them.
+  static const int _metadataProviderSlot = 0;
+  static const int _artworkPrioritySlot = 1;
+  static const int _theGamesDbSlot = 2;
+  static const int _steamGridDbSlot = 3;
+  static const int _neoAssetsSlot = 4;
+  static const int _accountSlot = 5;
+  static const int _scrapeSlot = 6;
+  static const int _scrapeModeSlot = 7;
+  static const int _languageSlot = 8;
+  static const int _toggleAllSlot = 9;
+  static const int _gridStart = 10;
   int get _gridEnd => _gridStart + _systems.length;
   int get _mediaStart => _gridEnd;
   int get _regionStart => _mediaStart + _mediaTypes.length;
@@ -147,10 +162,24 @@ class ScreenScraperSettingsContentState
   }
 
   Future<void> _load() async {
+    final providerResults = await Future.wait<Object>([
+      TheGamesDbService.hasApiKey(),
+      SteamGridDbService.hasApiKey(),
+      NeoAssetsScraperService.hasCredentials(),
+      ScraperProviderPreferences.getMetadataProvider(),
+      ScraperProviderPreferences.getArtworkPriority(),
+    ]);
+    if (!mounted) return;
+
     final signedIn = await ScreenScraperService.hasSavedCredentials();
     if (!signedIn) {
       if (mounted) {
         setState(() {
+          _theGamesDbConnected = providerResults[0] as bool;
+          _steamGridDbConnected = providerResults[1] as bool;
+          _neoAssetsConnected = providerResults[2] as bool;
+          _metadataProvider = providerResults[3] as MetadataScraperProvider;
+          _artworkPriority = providerResults[4] as ArtworkScraperPriority;
           _signedIn = false;
           _userInfo = null;
           _isLoading = false;
@@ -172,6 +201,11 @@ class ScreenScraperSettingsContentState
       final credentials = results[0] as Map<String, String>?;
       final config = results[1] as Map<String, dynamic>;
       setState(() {
+        _theGamesDbConnected = providerResults[0] as bool;
+        _steamGridDbConnected = providerResults[1] as bool;
+        _neoAssetsConnected = providerResults[2] as bool;
+        _metadataProvider = providerResults[3] as MetadataScraperProvider;
+        _artworkPriority = providerResults[4] as ArtworkScraperPriority;
         _signedIn = true;
         _userInfo = credentials;
         _language = credentials?['preferred_language'] ?? 'en';
@@ -201,7 +235,7 @@ class ScreenScraperSettingsContentState
 
   int getItemCount() {
     if (_isLoading) return 0;
-    if (!_signedIn) return 1;
+    if (!_signedIn) return _accountSlot + 1;
     return _regionStart + _regions.length;
   }
 
@@ -276,11 +310,31 @@ class ScreenScraperSettingsContentState
 
   void selectItem() {
     if (_isLoading) return;
-    if (!_signedIn) {
-      _signIn();
+    final slot = _cursor;
+    if (slot == _metadataProviderSlot) {
+      _chooseMetadataProvider();
       return;
     }
-    final slot = _cursor;
+    if (slot == _artworkPrioritySlot) {
+      _chooseArtworkPriority();
+      return;
+    }
+    if (slot == _theGamesDbSlot) {
+      _configureTheGamesDb();
+      return;
+    }
+    if (slot == _steamGridDbSlot) {
+      _configureSteamGridDb();
+      return;
+    }
+    if (slot == _neoAssetsSlot) {
+      _configureNeoAssets();
+      return;
+    }
+    if (!_signedIn) {
+      if (slot == _accountSlot) _signIn();
+      return;
+    }
     if (slot == _accountSlot) {
       _logout();
     } else if (slot == _scrapeSlot) {
@@ -342,6 +396,289 @@ class ScreenScraperSettingsContentState
   // ==========================================
   // ACTIONS
   // ==========================================
+
+  Future<void> _loadProviderPreferences() async {
+    final metadata = await ScraperProviderPreferences.getMetadataProvider();
+    final artwork = await ScraperProviderPreferences.getArtworkPriority();
+    if (!mounted) return;
+    setState(() {
+      _metadataProvider = metadata;
+      _artworkPriority = artwork;
+    });
+  }
+
+  String get _metadataProviderLabel => switch (_metadataProvider) {
+    MetadataScraperProvider.screenScraper => 'ScreenScraper',
+    MetadataScraperProvider.theGamesDb => 'TheGamesDB',
+    MetadataScraperProvider.neoAssets => 'NeoAssets',
+  };
+
+  String get _artworkPriorityLabel => switch (_artworkPriority) {
+    ArtworkScraperPriority.primaryScraperFirst => 'Primary scraper first',
+    ArtworkScraperPriority.steamGridDbFirst => 'SteamGridDB first',
+    ArtworkScraperPriority.fillMissingOnly =>
+      'Keep existing artwork; fill missing',
+  };
+
+  Future<void> _chooseMetadataProvider() async {
+    final selected = await showDialog<MetadataScraperProvider>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Primary metadata scraper'),
+        children: [
+          for (final option in MetadataScraperProvider.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, option),
+              child: Text(switch (option) {
+                MetadataScraperProvider.screenScraper => 'ScreenScraper',
+                MetadataScraperProvider.theGamesDb => 'TheGamesDB',
+                MetadataScraperProvider.neoAssets => 'NeoAssets',
+              }),
+            ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    await ScraperProviderPreferences.setMetadataProvider(selected);
+    await _loadProviderPreferences();
+  }
+
+  Future<void> _chooseArtworkPriority() async {
+    final selected = await showDialog<ArtworkScraperPriority>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Artwork scraper priority'),
+        children: [
+          for (final option in ArtworkScraperPriority.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, option),
+              child: Text(switch (option) {
+                ArtworkScraperPriority.primaryScraperFirst =>
+                  'Primary scraper first',
+                ArtworkScraperPriority.steamGridDbFirst => 'SteamGridDB first',
+                ArtworkScraperPriority.fillMissingOnly =>
+                  'Keep existing artwork; fill missing',
+              }),
+            ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    await ScraperProviderPreferences.setArtworkPriority(selected);
+    await _loadProviderPreferences();
+  }
+
+  Future<void> _configureTheGamesDb() async {
+    final controller = TextEditingController();
+    final key = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('TheGamesDB API key'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'API key',
+            hintText: 'Paste your TheGamesDB API key',
+          ),
+        ),
+        actions: [
+          if (_theGamesDbConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (key == null || !mounted) return;
+    if (key == '__disconnect__') {
+      await TheGamesDbService.clearApiKey();
+      final connected = await TheGamesDbService.hasApiKey();
+      if (mounted) setState(() => _theGamesDbConnected = connected);
+      return;
+    }
+    if (key.trim().isEmpty) return;
+    final saved = await TheGamesDbService.saveApiKey(key);
+    if (!mounted) return;
+    setState(() => _theGamesDbConnected = saved);
+    AppNotification.showNotification(
+      context,
+      saved
+          ? 'TheGamesDB connected successfully.'
+          : 'TheGamesDB rejected that API key.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+  }
+
+  Future<void> _configureSteamGridDb() async {
+    final controller = TextEditingController();
+    final key = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('SteamGridDB API key'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'API key',
+            hintText: 'Paste your SteamGridDB API key',
+          ),
+        ),
+        actions: [
+          if (_steamGridDbConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (key == null || !mounted) return;
+    if (key == '__disconnect__') {
+      await SteamGridDbService.clearApiKey();
+      final connected = await SteamGridDbService.hasApiKey();
+      if (mounted) setState(() => _steamGridDbConnected = connected);
+      return;
+    }
+    if (key.trim().isEmpty) return;
+    final saved = await SteamGridDbService.saveApiKey(key);
+    if (!mounted) return;
+    setState(() => _steamGridDbConnected = saved);
+    AppNotification.showNotification(
+      context,
+      saved
+          ? 'SteamGridDB connected successfully.'
+          : 'SteamGridDB rejected that API key.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+  }
+
+  Future<void> _configureNeoAssets() async {
+    final existing = await NeoAssetsScraperService.getCredentials();
+    if (!mounted) return;
+    final clientIdController = TextEditingController(
+      text: existing?['clientId'] ?? '',
+    );
+    final clientSecretController = TextEditingController();
+    final apiKeyController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('NeoAssets API'),
+        content: SizedBox(
+          width: 420.w,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: clientIdController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Client ID'),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: clientSecretController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Client Secret',
+                  hintText: existing == null
+                      ? 'Required'
+                      : 'Enter again to reconnect',
+                ),
+              ),
+              SizedBox(height: 8.h),
+              TextField(
+                controller: apiKeyController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Personal API Key (optional)',
+                  helperText: 'Adds your NeoAssets user quota when supplied.',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          if (_neoAssetsConnected)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, '__disconnect__'),
+              child: const Text('Disconnect'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, '__connect__'),
+            child: const Text('Test & Connect'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    final clientId = clientIdController.text;
+    final clientSecret = clientSecretController.text;
+    final apiKey = apiKeyController.text;
+    clientIdController.dispose();
+    clientSecretController.dispose();
+    apiKeyController.dispose();
+    if (result == null) return;
+    if (result == '__disconnect__') {
+      await NeoAssetsScraperService.clearCredentials();
+      final connected = await NeoAssetsScraperService.hasCredentials();
+      if (mounted) setState(() => _neoAssetsConnected = connected);
+      return;
+    }
+    final connection = await NeoAssetsScraperService.testCredentials(
+      clientId: clientId,
+      clientSecret: clientSecret,
+      apiKey: apiKey,
+    );
+    if (!mounted) return;
+    if (!connection.success) {
+      AppNotification.showNotification(
+        context,
+        connection.message,
+        type: NotificationType.error,
+      );
+      return;
+    }
+    final saved = await NeoAssetsScraperService.saveCredentials(
+      clientId: clientId,
+      clientSecret: clientSecret,
+      apiKey: apiKey,
+    );
+    if (!mounted) return;
+    setState(() => _neoAssetsConnected = saved);
+    AppNotification.showNotification(
+      context,
+      saved
+          ? connection.message
+          : 'NeoAssets connected, but the credentials could not be saved.',
+      type: saved ? NotificationType.success : NotificationType.error,
+    );
+  }
 
   Future<void> _signIn() async {
     final signedIn = await ScreenScraperLoginDialog.show(context);
@@ -555,12 +892,17 @@ class ScreenScraperSettingsContentState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        ..._buildProviderSettings(context),
+        SizedBox(height: 16.r),
+        SettingsSectionHeader(
+          label: AppLocale.screenScraperTitle.getString(context),
+        ),
         SettingRow(
-          key: _keyFor(0),
+          key: _keyFor(_accountSlot),
           title: AppLocale.screenScraperLogin.getString(context),
           subtitle: AppLocale.requiresFreeAccount.getString(context),
-          focused: _focused(0),
-          onTap: _signIn,
+          focused: _focused(_accountSlot),
+          onTap: () => _activateSlot(_accountSlot, _signIn),
           trailing: Icon(
             Symbols.login_rounded,
             size: 20.r,
@@ -584,6 +926,8 @@ class ScreenScraperSettingsContentState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        ..._buildProviderSettings(context),
+        SizedBox(height: 16.r),
         SettingsSectionHeader(
           label: AppLocale.screenScraperTitle.getString(context),
         ),
@@ -663,6 +1007,70 @@ class ScreenScraperSettingsContentState
         _buildRegionList(context),
       ],
     );
+  }
+
+  void _activateSlot(int slot, VoidCallback action) {
+    setState(() => _cursor = slot);
+    action();
+  }
+
+  List<Widget> _buildProviderSettings(BuildContext context) {
+    final gap = SizedBox(height: 6.r);
+    return [
+      const SettingsSectionHeader(label: 'Scraper providers'),
+      SettingRow(
+        key: _keyFor(_metadataProviderSlot),
+        title: 'Primary metadata scraper',
+        subtitle: 'Choose which service supplies game metadata',
+        focused: _focused(_metadataProviderSlot),
+        onTap: () =>
+            _activateSlot(_metadataProviderSlot, _chooseMetadataProvider),
+        trailing: SettingValueChip(text: _metadataProviderLabel),
+      ),
+      gap,
+      SettingRow(
+        key: _keyFor(_artworkPrioritySlot),
+        title: 'Artwork scraper priority',
+        subtitle: 'Choose when SteamGridDB supplements artwork',
+        focused: _focused(_artworkPrioritySlot),
+        onTap: () =>
+            _activateSlot(_artworkPrioritySlot, _chooseArtworkPriority),
+        trailing: SettingValueChip(text: _artworkPriorityLabel),
+      ),
+      gap,
+      SettingRow(
+        key: _keyFor(_theGamesDbSlot),
+        title: 'TheGamesDB API key',
+        subtitle: 'Configure the optional metadata provider',
+        focused: _focused(_theGamesDbSlot),
+        onTap: () => _activateSlot(_theGamesDbSlot, _configureTheGamesDb),
+        trailing: SettingValueChip(
+          text: _theGamesDbConnected ? 'Connected' : 'Not connected',
+        ),
+      ),
+      gap,
+      SettingRow(
+        key: _keyFor(_steamGridDbSlot),
+        title: 'SteamGridDB API key',
+        subtitle: 'Configure supplemental game artwork',
+        focused: _focused(_steamGridDbSlot),
+        onTap: () => _activateSlot(_steamGridDbSlot, _configureSteamGridDb),
+        trailing: SettingValueChip(
+          text: _steamGridDbConnected ? 'Connected' : 'Not connected',
+        ),
+      ),
+      gap,
+      SettingRow(
+        key: _keyFor(_neoAssetsSlot),
+        title: 'NeoAssets API',
+        subtitle: 'Configure metadata and artwork credentials',
+        focused: _focused(_neoAssetsSlot),
+        onTap: () => _activateSlot(_neoAssetsSlot, _configureNeoAssets),
+        trailing: SettingValueChip(
+          text: _neoAssetsConnected ? 'Connected' : 'Not connected',
+        ),
+      ),
+    ];
   }
 
   Widget _buildHint(BuildContext context, String text) {

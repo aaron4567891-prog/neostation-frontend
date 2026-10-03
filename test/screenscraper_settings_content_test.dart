@@ -30,7 +30,9 @@ void main() {
     await dbHelper.tearDown();
   });
 
-  testWidgets('signed out, the page is a single sign-in row', (tester) async {
+  testWidgets('signed out, Metadata still exposes every scraper provider', (
+    tester,
+  ) async {
     final key = GlobalKey<ScreenScraperSettingsContentState>();
     await tester.pumpWidget(
       MediaQuery(
@@ -55,7 +57,7 @@ void main() {
     await tester.pump();
 
     // The credential lookup hits the real test database; let it settle.
-    for (var i = 0; i < 20 && key.currentState!.getItemCount() == 0; i++) {
+    for (var i = 0; i < 150 && key.currentState!.getItemCount() == 0; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
       );
@@ -64,10 +66,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('Metadata'), findsOneWidget);
+    expect(find.text('Primary metadata scraper'), findsOneWidget);
+    expect(find.text('Artwork scraper priority'), findsOneWidget);
+    expect(find.text('TheGamesDB API key'), findsOneWidget);
+    expect(find.text('SteamGridDB API key'), findsOneWidget);
+    expect(find.text('NeoAssets API'), findsOneWidget);
     expect(find.text('ScreenScraper Login'), findsOneWidget);
-    expect(key.currentState!.getItemCount(), 1);
-    // Nothing to move to or drop, so the cursor stays put and B falls through.
-    expect(key.currentState!.navigateDown(), isFalse);
+    expect(key.currentState!.getItemCount(), 6);
+    expect(key.currentState!.navigateDown(), isTrue);
     expect(key.currentState!.navigateBack(), isFalse);
   });
 }
