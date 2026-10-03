@@ -9,6 +9,8 @@ import 'core_footer.dart';
 class AndroidAppsFooter extends CoreFooter {
   final String appName;
   final VoidCallback onLaunch;
+  final VoidCallback? onUninstall;
+  final bool uninstalling;
   final VoidCallback? onBack;
   final bool showBack;
 
@@ -16,6 +18,8 @@ class AndroidAppsFooter extends CoreFooter {
     super.key,
     required this.appName,
     required this.onLaunch,
+    this.onUninstall,
+    this.uninstalling = false,
     this.onBack,
     this.showBack = true,
   });
@@ -55,6 +59,15 @@ class AndroidAppsFooter extends CoreFooter {
         ),
         SizedBox(width: 8.r),
       ],
+      GamepadControl(
+        iconPath: 'assets/images/gamepad/Xbox_Y_button.png',
+        label: AppLocale.delete.getString(context),
+        onTap: onUninstall,
+        busy: uninstalling,
+        textColor: theme.colorScheme.onError,
+        backgroundColor: theme.colorScheme.error,
+      ),
+      SizedBox(width: 8.r),
       GamepadControl(
         iconPath: 'assets/images/gamepad/Xbox_A_button.png',
         label: AppLocale.launch.getString(context),

@@ -51,6 +51,22 @@ class AndroidService {
     }
   }
 
+  /// Opens Android's trusted uninstall confirmation for [packageName].
+  ///
+  /// NeoStation never removes a package silently; Android owns the final
+  /// confirmation and may decline protected/system packages.
+  static Future<bool> requestPackageUninstall(String packageName) async {
+    try {
+      final bool result = await _channel.invokeMethod('uninstallPackage', {
+        'packageName': packageName,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      _log.e("Failed to request package uninstall: '${e.message}'.");
+      return false;
+    }
+  }
+
   /// Extracts the launcher icon of an application as a [Uint8List] (PNG format).
   ///
   /// Returns null if the icon cannot be retrieved or the package is missing.

@@ -15,12 +15,14 @@ class AndroidAppCard extends StatefulWidget {
   final GameModel app;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const AndroidAppCard({
     super.key,
     required this.app,
     required this.isSelected,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -82,6 +84,7 @@ class _AndroidAppCardState extends State<AndroidAppCard> {
       child: InkWell(
         focusNode: _focusNode,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         child: Center(child: _buildIconStack()),
@@ -120,8 +123,9 @@ class _AndroidAppCardState extends State<AndroidAppCard> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.secondary
-                      .withValues(alpha: 0.3),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withValues(alpha: 0.3),
                   blurRadius: 15.r,
                   spreadRadius: 2.r,
                 ),

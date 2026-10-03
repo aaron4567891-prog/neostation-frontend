@@ -9,11 +9,13 @@ import 'package:provider/provider.dart';
 
 import '../../../models/system_model.dart';
 import '../../../models/game_model.dart';
+import '../../../data/datasources/sqlite_database_service.dart';
 import '../../../services/game_service.dart';
 import '../../../utils/gamepad_nav.dart';
 import '../../../utils/navigation_motion.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../widgets/android_apps_footer.dart';
+import '../../../widgets/confirm_action_dialog.dart';
 import 'android_app_card.dart';
 
 /// A specialized grid view for browsing and launching native Android applications.
@@ -44,7 +46,8 @@ class AndroidAppsGrid extends StatefulWidget {
   State<AndroidAppsGrid> createState() => _AndroidAppsGridState();
 }
 
-class _AndroidAppsGridState extends State<AndroidAppsGrid> {
+class _AndroidAppsGridState extends State<AndroidAppsGrid>
+    with WidgetsBindingObserver {
   static final _log = LoggerService.instance;
 
   /// Identifier this screen registers with [GamepadNavigationManager].
@@ -76,18 +79,22 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
   /// Guards against a second launch being dispatched for the same press, or a
   /// bounced press landing while the previous handoff is still in flight.
   bool _isLaunching = false;
+  bool _isUninstalling = false;
+  String? _pendingUninstallPackage;
   DateTime? _lastLaunchTime;
   static const Duration _launchCooldown = Duration(milliseconds: 1500);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadApps();
     _initializeGamepad();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     GamepadNavigationManager.popLayer(_navLayerId);
     _gamepadNav.dispose();
     _scrollController.dispose();
@@ -104,6 +111,7 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
       onNavigateLeft: _navigateLeft,
       onNavigateRight: _navigateRight,
       onSelectItem: _launchSelectedApp,
+      onFavorite: _confirmUninstallSelectedApp,
       // The embedded Apps tab still needs to own Back while its search field
       // is focused. Without a handler the global touch back-swipe can dismiss
       // Android's keyboard while the FocusNode remains active, leaving this
@@ -136,6 +144,14 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
         onDeactivate: () => _gamepadNav.deactivate(),
       );
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _pendingUninstallPackage != null) {
+      _refreshAfterUninstall();
+    }
   }
 
   /// Populates the grid by loading detected Android packages from the database.
@@ -280,6 +296,56 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
     }
   }
 
+  /// Confirms the selected package before handing the final decision to
+  /// Android's system uninstall screen.
+  Future<void> _confirmUninstallSelectedApp() async {
+    if (_apps.isEmpty || _isUninstalling) return;
+    final app = _apps[_selectedIndex];
+    final packageName = app.romPath;
+    if (packageName == null || packageName.isEmpty) return;
+
+    final confirmed = await ConfirmActionDialog.show(
+      context,
+      title: 'Uninstall ${app.name}?',
+      body:
+          'Android will ask you to confirm removing this app and its local data.',
+      confirmLabel: 'Uninstall',
+      icon: Symbols.delete_forever_rounded,
+    );
+    if (!confirmed || !mounted) return;
+
+    _pendingUninstallPackage = packageName;
+    setState(() => _isUninstalling = true);
+    final opened = await AndroidService.requestPackageUninstall(packageName);
+    if (!mounted) return;
+    if (!opened) {
+      _pendingUninstallPackage = null;
+      setState(() => _isUninstalling = false);
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Could not open Android uninstall.')),
+      );
+    }
+  }
+
+  /// Reconciles the Android catalogue after the system uninstall activity
+  /// returns, whether the user confirmed or cancelled it.
+  Future<void> _refreshAfterUninstall() async {
+    final packageName = _pendingUninstallPackage;
+    if (packageName == null) return;
+    _pendingUninstallPackage = null;
+
+    // Give PackageManager a moment to publish the removal before rescanning.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+    try {
+      await SqliteDatabaseService.scanSystemRoms(widget.system, const []);
+      if (!mounted) return;
+      await _loadApps();
+    } finally {
+      if (mounted) setState(() => _isUninstalling = false);
+    }
+  }
+
   /// Dismisses search first, then leaves a pushed Apps route on the next Back.
   ///
   /// Embedded Apps is a root tab rather than a route, so Back has nowhere to
@@ -363,6 +429,10 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
                 AndroidAppsFooter(
                   appName: _apps.isNotEmpty ? _apps[_selectedIndex].name : '',
                   onLaunch: _launchSelectedApp,
+                  onUninstall: _apps.isEmpty
+                      ? null
+                      : _confirmUninstallSelectedApp,
+                  uninstalling: _isUninstalling,
                   onBack: widget.embedded ? null : _handleBack,
                   showBack: !widget.embedded,
                 ),
@@ -487,6 +557,12 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
                           _selectedIndex = index;
                           _ensureSelectedItemVisible();
                         });
+                      },
+                      onLongPress: () {
+                        if (index != _selectedIndex) {
+                          setState(() => _selectedIndex = index);
+                        }
+                        _confirmUninstallSelectedApp();
                       },
                     ),
                   );

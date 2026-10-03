@@ -366,6 +366,14 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
                         result.error("INVALID_ARGUMENTS", "Package name is required", null)
                     }
                 }
+                "uninstallPackage" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName != null) {
+                        requestPackageUninstall(packageName, result)
+                    } else {
+                        result.error("INVALID_ARGUMENTS", "Package name is required", null)
+                    }
+                }
                 "getAppIcon" -> {
                     val packageName = call.argument<String>("packageName")
                     if (packageName != null) {
@@ -1217,6 +1225,39 @@ class MainActivity: MultiDisplayFlutterActivity(), GamepadsCompatibleActivity {
             }
         } catch (e: Exception) {
             result.error("LAUNCH_FAILED", e.message, null)
+        }
+    }
+
+    /** Opens Android's own uninstall UI; the OS keeps the final authority. */
+    private fun requestPackageUninstall(packageName: String, result: MethodChannel.Result) {
+        if (packageName == this.packageName) {
+            result.error("SELF_UNINSTALL", "NeoStation cannot uninstall itself", null)
+            return
+        }
+
+        try {
+            // Fail early for stale database entries instead of opening an
+            // uninstall activity that has no package to resolve.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getApplicationInfo(
+                    packageName,
+                    android.content.pm.PackageManager.ApplicationInfoFlags.of(0)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getApplicationInfo(packageName, 0)
+            }
+
+            val intent = Intent(Intent.ACTION_DELETE).apply {
+                data = Uri.parse("package:$packageName")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+            result.success(true)
+        } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+            result.error("NOT_INSTALLED", "Package is not installed", null)
+        } catch (e: Exception) {
+            result.error("UNINSTALL_FAILED", e.message, null)
         }
     }
 
