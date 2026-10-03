@@ -360,24 +360,24 @@ class _MySystemsCarouselState extends State<MySystemsCarousel> {
   }
 
   /// Logic for smooth previous item navigation.
-  void _navigatePrevious() {
+  void _navigatePrevious(bool repeat) {
     if (widget.movingSystemFolder != null) {
       final target = (_currentIndex - 1).clamp(0, _getSystemsList().length - 1);
       widget.onCardTapped?.call(target);
       return;
     }
     SfxService().playNavSound();
-    _carouselKey.currentState?.previousPage();
+    _carouselKey.currentState?.previousPage(repeat: repeat);
   }
 
-  void _navigateNext() {
+  void _navigateNext(bool repeat) {
     if (widget.movingSystemFolder != null) {
       final target = (_currentIndex + 1).clamp(0, _getSystemsList().length - 1);
       widget.onCardTapped?.call(target);
       return;
     }
     SfxService().playNavSound();
-    _carouselKey.currentState?.nextPage();
+    _carouselKey.currentState?.nextPage(repeat: repeat);
   }
 
   /// Aggregates all logical systems (including virtuals like 'Recent') for display.

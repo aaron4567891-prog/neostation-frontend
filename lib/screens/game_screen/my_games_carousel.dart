@@ -402,13 +402,13 @@ class _GamesCarouselState extends State<GamesCarousel> {
 
   void _initializeGamepad() {
     _gamepadNav = GamepadNavigation(
-      onNavigateLeft: () {
+      onNavigateLeft: (bool repeat) {
         SfxService().playNavSound();
-        _carouselKey.currentState?.previousPage();
+        _carouselKey.currentState?.previousPage(repeat: repeat);
       },
-      onNavigateRight: () {
+      onNavigateRight: (bool repeat) {
         SfxService().playNavSound();
-        _carouselKey.currentState?.nextPage();
+        _carouselKey.currentState?.nextPage(repeat: repeat);
       },
       onSelectItem: () {
         if (_currentIndex >= 0 && _currentIndex < widget.games.length) {

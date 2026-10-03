@@ -15,6 +15,7 @@ import 'package:neostation/providers/sqlite_config_provider.dart';
 import 'package:neostation/services/sfx_service.dart';
 import 'package:neostation/utils/gamepad_nav.dart';
 import 'package:neostation/utils/letter_jump.dart';
+import 'package:neostation/utils/navigation_motion.dart';
 import 'package:neostation/widgets/hotkey_game_search.dart';
 import 'package:neostation/utils/game_utils.dart';
 import 'package:neostation/providers/collections_provider.dart';
@@ -1071,19 +1072,12 @@ class _GamesGridState extends State<GamesGrid> {
     final rect = _cardRects[_selectedIndex.clamp(0, _cardRects.length - 1)];
     final pos = _scrollController.position;
     final target = _centerTargetFor(rect, pos.viewportDimension);
-    // During a fast-nav burst, jump instantly rather than firing a fresh
-    // animateTo per keypress. Overlapping animations let the viewport trail the
-    // selection by many rows; a synchronous jump keeps the selected card centred
-    // every frame. The trailing (settled) move still animates smoothly.
-    // Exact model offsets (SliverVariedExtentList) make both land correctly.
-    if (_isNavigatingFast) {
-      _scrollController.jumpTo(target);
-      return;
-    }
     _scrollController.animateTo(
       target,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOutQuart,
+      duration: _isNavigatingFast
+          ? repeatNavigationScrollDuration
+          : navigationScrollDuration,
+      curve: navigationScrollCurve,
     );
   }
 

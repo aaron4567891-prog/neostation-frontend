@@ -235,9 +235,9 @@ extension _GamepadGridNav on _SystemCardGridViewState {
     _scrollController.animateTo(
       targetOffset,
       duration: _isNavigatingFast
-          ? const Duration(milliseconds: 180)
-          : const Duration(milliseconds: 360),
-      curve: Curves.easeOutQuart,
+          ? repeatNavigationScrollDuration
+          : navigationScrollDuration,
+      curve: navigationScrollCurve,
     );
   }
 }

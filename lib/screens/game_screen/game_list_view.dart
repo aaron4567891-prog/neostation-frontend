@@ -9,6 +9,7 @@ import 'package:neostation/services/sfx_service.dart';
 import '../../services/game_service.dart';
 import '../../themes/corner_radii.dart';
 import '../../utils/centered_scroll_controller.dart';
+import '../../utils/navigation_motion.dart';
 import '../../utils/game_utils.dart';
 import '../../providers/sqlite_config_provider.dart';
 import '../../providers/file_provider.dart';
@@ -207,10 +208,10 @@ class GameListViewState extends State<GameListView>
       // now, the shorter of the two while isNavigatingFast; if the feel needs
       // changing, change it for both.
       final moveDuration = widget.isNavigatingFast
-          ? const Duration(milliseconds: 180)
-          : const Duration(milliseconds: 360);
+          ? repeatNavigationScrollDuration
+          : navigationScrollDuration;
 
-      const curve = Curves.easeOutQuart;
+      const curve = navigationScrollCurve;
 
       final double begin = _selectionAnimation.value;
       final double end = widget.selectedIndex.toDouble();

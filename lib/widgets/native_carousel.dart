@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../utils/navigation_motion.dart';
+
 enum CarouselPageChangeReason { manual, controller }
 
 /// How off-centre pages shrink and fade with distance from the centred card.
@@ -255,17 +257,17 @@ class NativeCarouselState extends State<NativeCarousel> {
     }
   }
 
-  void nextPage() {
+  void nextPage({bool repeat = false}) {
     if (_currentIndex < widget.itemCount - 1) {
-      _animateToPage(_currentIndex + 1);
+      _animateToPage(_currentIndex + 1, repeat: repeat);
     } else if (_canWrap) {
       _wrapToPage(0);
     }
   }
 
-  void previousPage() {
+  void previousPage({bool repeat = false}) {
     if (_currentIndex > 0) {
-      _animateToPage(_currentIndex - 1);
+      _animateToPage(_currentIndex - 1, repeat: repeat);
     } else if (_canWrap) {
       _wrapToPage(widget.itemCount - 1);
     }
@@ -296,7 +298,12 @@ class NativeCarouselState extends State<NativeCarousel> {
     }
   }
 
-  void _animateToPage(int index, {bool gateInput = true, bool notify = true}) {
+  void _animateToPage(
+    int index, {
+    bool gateInput = true,
+    bool notify = true,
+    bool repeat = false,
+  }) {
     _openMove(index, notify: notify);
     final token = ++_moveToken;
     // Never gate while a finger is on the glass: the user is mid-gesture and
@@ -305,8 +312,10 @@ class NativeCarouselState extends State<NativeCarousel> {
     _pageController
         ?.animateToPage(
           index,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutQuart,
+          duration: repeat
+              ? repeatNavigationScrollDuration
+              : navigationScrollDuration,
+          curve: navigationScrollCurve,
         )
         // Completing or being interrupted both end the move, so this is where
         // the input gate lifts — unless a newer step has already taken over,

@@ -7,6 +7,7 @@ import '../../../models/game_model.dart';
 import '../../../services/music_player_service.dart';
 import '../../../utils/game_utils.dart';
 import '../../../utils/centered_scroll_controller.dart';
+import '../../../utils/navigation_motion.dart';
 import '../../../widgets/marquee_text.dart';
 import '../../../models/system_model.dart';
 import '../../../widgets/system_logo_fallback.dart';
@@ -92,20 +93,16 @@ class _MusicListState extends State<MusicList> with TickerProviderStateMixin {
 
     // Handle index updates with dynamic animation duration arbitration.
     if (oldWidget.selectedIndex != widget.selectedIndex) {
-      final animationDuration = widget.isNavigatingFast
-          ? const Duration(milliseconds: 120)
-          : const Duration(milliseconds: 250);
+      final moveDuration = widget.isNavigatingFast
+          ? repeatNavigationScrollDuration
+          : navigationScrollDuration;
 
-      final scrollDuration = widget.isNavigatingFast
-          ? const Duration(milliseconds: 180)
-          : const Duration(milliseconds: 360);
-
-      const curve = Curves.easeOutQuart;
+      const curve = navigationScrollCurve;
 
       final double begin = _selectionAnimation.value;
       final double end = widget.selectedIndex.toDouble();
 
-      _selectionController.duration = animationDuration;
+      _selectionController.duration = moveDuration;
       _selectionAnimation = Tween<double>(
         begin: begin,
         end: end,
@@ -115,7 +112,7 @@ class _MusicListState extends State<MusicList> with TickerProviderStateMixin {
       _centeredScrollController.updateSelectedIndex(widget.selectedIndex);
       _centeredScrollController.scrollToIndex(
         widget.selectedIndex,
-        duration: scrollDuration,
+        duration: moveDuration,
         curve: curve,
       );
 

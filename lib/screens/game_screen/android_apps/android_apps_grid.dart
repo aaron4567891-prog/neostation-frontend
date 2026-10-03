@@ -11,6 +11,7 @@ import '../../../models/system_model.dart';
 import '../../../models/game_model.dart';
 import '../../../services/game_service.dart';
 import '../../../utils/gamepad_nav.dart';
+import '../../../utils/navigation_motion.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../widgets/android_apps_footer.dart';
 import 'android_app_card.dart';
@@ -241,9 +242,9 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
     _scrollController.animateTo(
       targetOffset,
       duration: _isNavigatingFast
-          ? const Duration(milliseconds: 180)
-          : const Duration(milliseconds: 360),
-      curve: Curves.easeOutQuart,
+          ? repeatNavigationScrollDuration
+          : navigationScrollDuration,
+      curve: navigationScrollCurve,
     );
   }
 
@@ -484,9 +485,9 @@ class _AndroidAppsGridState extends State<AndroidAppsGrid> {
                 // Layer 2: Selector Highlight Overlay (Animated)
                 AnimatedPositioned(
                   duration: Duration(
-                    milliseconds: _isNavigatingFast ? 120 : 300,
+                    milliseconds: _isNavigatingFast ? 70 : 240,
                   ),
-                  curve: Curves.easeOutQuart,
+                  curve: navigationScrollCurve,
                   left: highlightLeft - (horizontalPadding / 2) - 1.r,
                   top: highlightTop - 1.r,
                   width: itemWidth + 2.r,
