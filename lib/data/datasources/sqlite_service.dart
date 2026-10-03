@@ -459,7 +459,7 @@ class SqliteService {
   SqliteService._internal();
 
   // Database configuration
-  static const int _databaseVersion = 160;
+  static const int _databaseVersion = 162;
   static const String _databaseName = 'data.sqlite';
 
   DatabaseAdapter? _database;
@@ -1935,6 +1935,7 @@ class SqliteService {
         hide_tab_romm INTEGER DEFAULT 0,
         hide_tab_search INTEGER DEFAULT 0,
         hide_search_card INTEGER DEFAULT 1,
+        android_apps_as_tab INTEGER DEFAULT 0,
         active_sync_provider TEXT DEFAULT 'neosync',
         systems_version TEXT DEFAULT '',
         -- Generation stamp of the bundled RA seed asset that is currently
@@ -1946,6 +1947,7 @@ class SqliteService {
         auto_update_systems INTEGER DEFAULT 1,
         system_grid_columns TEXT DEFAULT 'M',
         game_grid_columns TEXT DEFAULT 'M',
+        game_list_size TEXT DEFAULT 'S',
         game_carousel_card_style TEXT DEFAULT 'fanart',
         use_12_hour_clock INTEGER DEFAULT 0,
         dock_apps TEXT,
@@ -2783,6 +2785,7 @@ class SqliteService {
     int? hideTabScraper,
     int? hideTabRomm,
     int? hideSearchCard,
+    int? androidAppsAsTab,
     String? activeSyncProvider,
     String? systemsVersion,
     String? raSeedStamp,
@@ -2791,6 +2794,7 @@ class SqliteService {
     int? autoUpdateSystems,
     String? systemGridColumns,
     String? gameGridColumns,
+    String? gameListSize,
     String? gameCarouselCardStyle,
     String? dockApps,
     int? dockEnabled,
@@ -2896,6 +2900,9 @@ class SqliteService {
     if (hideSearchCard != null) {
       updates['hide_search_card'] = hideSearchCard;
     }
+    if (androidAppsAsTab != null) {
+      updates['android_apps_as_tab'] = androidAppsAsTab;
+    }
     if (activeSyncProvider != null) {
       updates['active_sync_provider'] = activeSyncProvider;
     }
@@ -2919,6 +2926,9 @@ class SqliteService {
     }
     if (gameGridColumns != null) {
       updates['game_grid_columns'] = gameGridColumns;
+    }
+    if (gameListSize != null) {
+      updates['game_list_size'] = gameListSize;
     }
     if (gameCarouselCardStyle != null) {
       updates['game_carousel_card_style'] = gameCarouselCardStyle;
