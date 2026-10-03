@@ -117,21 +117,23 @@ class ScreenScraperSettingsContentState
   bool _movingRegion = false;
 
   // Provider choices remain available even without a ScreenScraper account.
-  // ScreenScraper's own account and scraping controls follow them.
+  // ScreenScraper's own controls follow them, with API credentials last.
   static const int _metadataProviderSlot = 0;
   static const int _artworkPrioritySlot = 1;
-  static const int _theGamesDbSlot = 2;
-  static const int _steamGridDbSlot = 3;
-  static const int _neoAssetsSlot = 4;
-  static const int _accountSlot = 5;
-  static const int _scrapeSlot = 6;
-  static const int _scrapeModeSlot = 7;
-  static const int _languageSlot = 8;
-  static const int _toggleAllSlot = 9;
-  static const int _gridStart = 10;
+  static const int _accountSlot = 2;
+  static const int _scrapeSlot = 3;
+  static const int _scrapeModeSlot = 4;
+  static const int _languageSlot = 5;
+  static const int _toggleAllSlot = 6;
+  static const int _gridStart = 7;
   int get _gridEnd => _gridStart + _systems.length;
   int get _mediaStart => _gridEnd;
   int get _regionStart => _mediaStart + _mediaTypes.length;
+  int get _apiKeyStart =>
+      _signedIn ? _regionStart + _regions.length : _accountSlot + 1;
+  int get _theGamesDbSlot => _apiKeyStart;
+  int get _steamGridDbSlot => _apiKeyStart + 1;
+  int get _neoAssetsSlot => _apiKeyStart + 2;
 
   bool _isRegionSlot(int slot) =>
       slot >= _regionStart && slot < _regionStart + _regions.length;
@@ -235,8 +237,7 @@ class ScreenScraperSettingsContentState
 
   int getItemCount() {
     if (_isLoading) return 0;
-    if (!_signedIn) return _accountSlot + 1;
-    return _regionStart + _regions.length;
+    return _apiKeyStart + 3;
   }
 
   /// Returns whether the cursor moved (drives the nav sound).
@@ -892,7 +893,7 @@ class ScreenScraperSettingsContentState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ..._buildProviderSettings(context),
+        ..._buildProviderChoices(context),
         SizedBox(height: 16.r),
         SettingsSectionHeader(
           label: AppLocale.screenScraperTitle.getString(context),
@@ -917,6 +918,8 @@ class ScreenScraperSettingsContentState
             color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
+        SizedBox(height: 16.r),
+        ..._buildApiKeySettings(context),
       ],
     );
   }
@@ -926,7 +929,7 @@ class ScreenScraperSettingsContentState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ..._buildProviderSettings(context),
+        ..._buildProviderChoices(context),
         SizedBox(height: 16.r),
         SettingsSectionHeader(
           label: AppLocale.screenScraperTitle.getString(context),
@@ -1005,6 +1008,8 @@ class ScreenScraperSettingsContentState
         ),
         _buildHint(context, AppLocale.regionPrioritySub.getString(context)),
         _buildRegionList(context),
+        SizedBox(height: 16.r),
+        ..._buildApiKeySettings(context),
       ],
     );
   }
@@ -1014,7 +1019,7 @@ class ScreenScraperSettingsContentState
     action();
   }
 
-  List<Widget> _buildProviderSettings(BuildContext context) {
+  List<Widget> _buildProviderChoices(BuildContext context) {
     final gap = SizedBox(height: 6.r);
     return [
       const SettingsSectionHeader(label: 'Scraper providers'),
@@ -1037,7 +1042,13 @@ class ScreenScraperSettingsContentState
             _activateSlot(_artworkPrioritySlot, _chooseArtworkPriority),
         trailing: SettingValueChip(text: _artworkPriorityLabel),
       ),
-      gap,
+    ];
+  }
+
+  List<Widget> _buildApiKeySettings(BuildContext context) {
+    final gap = SizedBox(height: 6.r);
+    return [
+      const SettingsSectionHeader(label: 'API keys'),
       SettingRow(
         key: _keyFor(_theGamesDbSlot),
         title: 'TheGamesDB API key',

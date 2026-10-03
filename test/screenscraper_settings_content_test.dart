@@ -72,6 +72,10 @@ void main() {
     expect(find.text('SteamGridDB API key'), findsOneWidget);
     expect(find.text('NeoAssets API'), findsOneWidget);
     expect(find.text('ScreenScraper Login'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('TheGamesDB API key')).dy,
+      greaterThan(tester.getTopLeft(find.text('ScreenScraper Login')).dy),
+    );
     expect(key.currentState!.getItemCount(), 6);
     expect(key.currentState!.navigateDown(), isTrue);
     expect(key.currentState!.navigateBack(), isFalse);
