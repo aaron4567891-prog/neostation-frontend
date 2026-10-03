@@ -10,4 +10,5 @@ enum DetailTab {
   screenshotVideo,
   gameInfo,
   achievements,
+  leaderboards,
 }

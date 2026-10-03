@@ -142,9 +142,10 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
         _passwordController.text,
       );
 
-      if (result != null) {
+      if (result.isSuccess) {
         // Valid credentials - save to DB with user information
-        final userInfo = result['response']['ssuser'] as Map<String, dynamic>;
+        final userInfo =
+            result.data!['response']['ssuser'] as Map<String, dynamic>;
 
         final saved = await ScreenScraperService.saveCredentials(
           _usernameController.text.trim(),
@@ -217,9 +218,11 @@ class _ScraperLoginScreenState extends State<ScraperLoginScreen>
         type: NotificationType.error,
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

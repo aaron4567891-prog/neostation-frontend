@@ -624,6 +624,12 @@ class SqliteMigrations {
       case 163:
         await _migrateToVersion163(db);
         break;
+      case 164:
+        await _migrateToVersion164(db);
+        break;
+      case 165:
+        await _migrateToVersion165(db);
+        break;
       default:
         _log.w('No migration defined for version $version');
     }
@@ -7119,5 +7125,41 @@ class SqliteMigrations {
     await _migrateToVersion159(db);
     await _migrateToVersion161(db);
     await _migrateToVersion162(db);
+  }
+
+  /// Migration v164: adds the independent List view size preference.
+  ///
+  /// Upstream used v161, which is occupied by the personal branch's
+  /// hide-system-logos migration. Keep both histories and add the column in a
+  /// new idempotent slot.
+  static Future<void> _migrateToVersion164(Database db) async {
+    final columns = db
+        .select('PRAGMA table_info(user_config)')
+        .map((row) => row['name'] as String)
+        .toSet();
+    if (!columns.contains('game_list_size')) {
+      db.execute(
+        "ALTER TABLE user_config ADD COLUMN game_list_size TEXT DEFAULT 'S'",
+      );
+    }
+  }
+
+  /// Migration v165: stores whether Android apps appear as a top-level tab.
+  ///
+  /// Upstream used v162, which is occupied by the personal branch's
+  /// hide-search-card migration. Backfill the list-size column as well for
+  /// devices that previously reached either branch's version numbers.
+  static Future<void> _migrateToVersion165(Database db) async {
+    await _migrateToVersion164(db);
+    final columns = db
+        .select('PRAGMA table_info(user_config)')
+        .map((row) => row['name'].toString())
+        .toSet();
+    if (!columns.contains('android_apps_as_tab')) {
+      db.execute(
+        'ALTER TABLE user_config ADD COLUMN android_apps_as_tab '
+        'INTEGER DEFAULT 0',
+      );
+    }
   }
 }

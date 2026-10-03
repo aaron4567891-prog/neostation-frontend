@@ -33,6 +33,11 @@ class GamepadNavigationManager {
   /// non-modal route cannot appear underneath the modal input layer.
   static bool get isModalActive => _stack.isNotEmpty && _stack.last.modal;
 
+  /// Number of registered layers. Exposed for tests and diagnostics: screens
+  /// that fold several focus zones into one layer (the RetroAchievements
+  /// sub-tab shell) assert that moving between zones never grows the stack.
+  static int get stackDepth => _stack.length;
+
   /// Pushes a new navigation layer to the top of the stack and activates it.
   ///
   /// Automatically deactivates the previously active layer.

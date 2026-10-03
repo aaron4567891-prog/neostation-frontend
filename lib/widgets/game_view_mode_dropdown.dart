@@ -22,6 +22,8 @@ class GameViewModeDropdown extends StatefulWidget {
 class GameViewModeDropdownState extends State<GameViewModeDropdown> {
   final GlobalKey _buttonKey = GlobalKey();
   GlobalKey get buttonKey => _buttonKey;
+  bool _isOpen = false;
+  bool get isOpen => _isOpen;
 
   void showDropdown() {
     _showDropdown(context, _buttonKey);
@@ -32,27 +34,34 @@ class GameViewModeDropdownState extends State<GameViewModeDropdown> {
   }
 
   void _showDropdown(BuildContext context, GlobalKey anchorKey) async {
+    if (_isOpen) return;
+    _isOpen = true;
     final RenderBox? renderBox =
         anchorKey.currentContext?.findRenderObject() as RenderBox?;
     final Offset offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
     final Size size = renderBox?.size ?? Size.zero;
     final configProvider = context.read<SqliteConfigProvider>();
 
-    final result = await showGeneralDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: "Game View Mode Dropdown",
-      barrierColor: Colors.transparent,
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return FadeTransition(
-          opacity: animation,
-          child: GameViewModeOverlay(
-            offset: offset + Offset(0, size.height + 6.r),
-            width: 170.r,
-          ),
-        );
-      },
-    );
+    String? result;
+    try {
+      result = await showGeneralDialog<String>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: "Game View Mode Dropdown",
+        barrierColor: Colors.transparent,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return FadeTransition(
+            opacity: animation,
+            child: GameViewModeOverlay(
+              offset: offset + Offset(0, size.height + 6.r),
+              width: 170.r,
+            ),
+          );
+        },
+      );
+    } finally {
+      _isOpen = false;
+    }
 
     if (result != null) {
       SfxService().playNavSound();
@@ -102,6 +111,7 @@ class _DropdownOption {
   final bool isLogoSize;
   final bool isWheelSize;
   final bool isListBackground;
+  final bool isListSize;
 
   _DropdownOption(
     this.value,
@@ -113,6 +123,7 @@ class _DropdownOption {
     this.isLogoSize = false,
     this.isWheelSize = false,
     this.isListBackground = false,
+    this.isListSize = false,
   });
 }
 
@@ -140,6 +151,7 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
   int _logoSizeIndex = 1;
   int _wheelSizeIndex = 1;
   int _listBackgroundIndex = 0;
+  int _listSizeIndex = 0;
 
   @override
   void initState() {
@@ -152,6 +164,8 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     final cardStyles = ['fanart', 'box'];
     final styleIdx = cardStyles.indexOf(config.gameCarouselCardStyle);
     _cardStyleIndex = styleIdx >= 0 ? styleIdx : 0;
+    final listSizeIdx = sizes.indexOf(config.gameListSize);
+    _listSizeIndex = listSizeIdx >= 0 ? listSizeIdx : 0;
 
     _logoSizeIndex = switch (config.gameViewMode) {
       'logoListSmall' => 0,
@@ -220,6 +234,7 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       _gamepadNav.initialize();
       GamepadNavigationManager.pushLayer(
         'game_view_mode_overlay',
+        modal: true,
         onActivate: () => _gamepadNav.activate(),
         onDeactivate: () => _gamepadNav.deactivate(),
       );
@@ -243,7 +258,8 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
             (options[i].isCardSize ||
                 options[i].isLogoSize ||
                 options[i].isWheelSize ||
-                options[i].isListBackground)
+                options[i].isListBackground ||
+                options[i].isListSize)
             ? 32.r
             : 28.r;
       }
@@ -294,6 +310,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyCardStyle();
+    } else if (opt.isListSize) {
+      setState(() => _listSizeIndex = (_listSizeIndex - 1 + 4) % 4);
+      SfxService().playNavSound();
+      _applyListSize();
     }
   }
 
@@ -331,6 +351,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       });
       SfxService().playNavSound();
       _applyCardStyle();
+    } else if (opt.isListSize) {
+      setState(() => _listSizeIndex = (_listSizeIndex + 1) % 4);
+      SfxService().playNavSound();
+      _applyListSize();
     }
   }
 
@@ -380,6 +404,12 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     );
   }
 
+  void _applyListSize() {
+    context.read<SqliteConfigProvider>().updateGameListSize(
+      const ['S', 'M', 'L', 'XL'][_listSizeIndex],
+    );
+  }
+
   void _handleSelection() {
     final List<_DropdownOption> options = _getOptions(context);
     final opt = options[_selectedIndex];
@@ -411,6 +441,14 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
     }
     if (opt.isListBackground) {
       _applyListBackground();
+      return;
+    }
+    if (opt.isListSize) {
+      _applyListSize();
+      Navigator.pop(
+        context,
+        'list_size_${const ['S', 'M', 'L', 'XL'][_listSizeIndex]}',
+      );
       return;
     }
     Navigator.pop(context, opt.value);
@@ -533,6 +571,18 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
       );
     }
 
+    if (config.gameViewMode == 'list') {
+      options.add(
+        _DropdownOption(
+          'list_size',
+          '',
+          Symbols.text_fields_rounded,
+          group: AppLocale.listSizeGroup.getString(context),
+          isListSize: true,
+        ),
+      );
+    }
+
     return options;
   }
 
@@ -634,8 +684,10 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
           opt.isCardStyle ||
           opt.isLogoSize ||
           opt.isWheelSize ||
-          opt.isListBackground) {
-        final isSize = opt.isCardSize;
+          opt.isListBackground ||
+          opt.isListSize) {
+        final isSize = opt.isCardSize || opt.isListSize;
+        final isListSize = opt.isListSize;
         final isLogoSize = opt.isLogoSize;
         final isWheelSize = opt.isWheelSize;
         final isListBackground = opt.isListBackground;
@@ -658,7 +710,9 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
           AppLocale.boxCard.getString(context),
         ];
         final configInfo = context.read<SqliteConfigProvider>().config;
-        final currentSizeIndex = sizes.indexOf(configInfo.gameGridColumns);
+        final currentSizeIndex = sizes.indexOf(
+          isListSize ? configInfo.gameListSize : configInfo.gameGridColumns,
+        );
         final currentStyleIndex = styles.indexOf(
           configInfo.gameCarouselCardStyle,
         );
@@ -693,6 +747,8 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
             ? _wheelSizeIndex
             : isLogoSize
             ? _logoSizeIndex
+            : isListSize
+            ? _listSizeIndex
             : (isSize ? _cardSizeIndex : _cardStyleIndex);
         final isFocused = i == _selectedIndex;
 
@@ -756,7 +812,11 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
                               } else if (isWheelSize) {
                                 _wheelSizeIndex = idx;
                               } else if (isSize) {
-                                _cardSizeIndex = idx;
+                                if (isListSize) {
+                                  _listSizeIndex = idx;
+                                } else {
+                                  _cardSizeIndex = idx;
+                                }
                               } else {
                                 _cardStyleIndex = idx;
                               }
@@ -769,7 +829,11 @@ class _GameViewModeOverlayState extends State<GameViewModeOverlay> {
                             } else if (isWheelSize) {
                               _applyWheelSize();
                             } else if (isSize) {
-                              _applyCardSize();
+                              if (isListSize) {
+                                _applyListSize();
+                              } else {
+                                _applyCardSize();
+                              }
                             } else {
                               _applyCardStyle();
                             }
