@@ -1,12 +1,15 @@
 package com.neogamelab.neostation
 
 import android.os.Bundle
+import android.os.Build
 import android.util.Log
 import android.view.Display
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.WindowManager
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import com.hcoderlee.subscreen.sub_screen.FlutterPresentation
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -39,11 +42,15 @@ class SecondaryAppsPresentation(
     private var controllerInputEnabled = activity.isBottomControllerInputEnabled()
     private var lastHatX = 0
     private var lastHatY = 0
+    // Kept as Any so loading this Presentation on pre-API 33 does not have to
+    // resolve the newer callback class during verification.
+    private var backInvokedCallback: Any? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         hardenAgainstDismissal()
         registerAppsChannel()
+        registerPredictiveBackHandler()
     }
 
     /**
@@ -224,7 +231,7 @@ class SecondaryAppsPresentation(
             if (event.keyCode == KeyEvent.KEYCODE_BACK ||
                 event.keyCode == KeyEvent.KEYCODE_BUTTON_B
             ) {
-                appsChannel?.invokeMethod("onSecondaryBack", null)
+                notifySecondaryBack()
             } else {
                 forwardControllerKey(event)
             }
@@ -234,7 +241,7 @@ class SecondaryAppsPresentation(
             (event.keyCode == KeyEvent.KEYCODE_BACK ||
                 event.keyCode == KeyEvent.KEYCODE_BUTTON_B)
         ) {
-            appsChannel?.invokeMethod("onSecondaryBack", null)
+            notifySecondaryBack()
             return true
         }
         return super.dispatchKeyEvent(event)
@@ -244,7 +251,22 @@ class SecondaryAppsPresentation(
     // override must stay for the platforms that do.
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        // Deliberately empty: BACK must never dismiss the bottom screen.
+        notifySecondaryBack()
+    }
+
+    /** Routes Android 13+ gesture Back through the secondary Flutter UI. */
+    private fun registerPredictiveBackHandler() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val callback = OnBackInvokedCallback { notifySecondaryBack() }
+        backInvokedCallback = callback
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(
+            OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+            callback
+        )
+    }
+
+    private fun notifySecondaryBack() {
+        appsChannel?.invokeMethod("onSecondaryBack", null)
     }
 
     private fun registerAppsChannel() {
@@ -350,6 +372,12 @@ class SecondaryAppsPresentation(
     }
 
     override fun dismiss() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            (backInvokedCallback as? OnBackInvokedCallback)?.let {
+                onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it)
+            }
+        }
+        backInvokedCallback = null
         appsChannel?.setMethodCallHandler(null)
         appsChannel = null
         super.dismiss()

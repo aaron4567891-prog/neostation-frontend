@@ -46,7 +46,8 @@ class SecondaryScreen extends StatefulWidget {
   State<SecondaryScreen> createState() => _SecondaryScreenState();
 }
 
-class _SecondaryScreenState extends State<SecondaryScreen> {
+class _SecondaryScreenState extends State<SecondaryScreen>
+    with WidgetsBindingObserver {
   SecondaryDisplayState? _secondaryDisplayState;
   VideoPlayerController? _videoController;
 
@@ -158,6 +159,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   final TextEditingController _appSearchController = TextEditingController();
   final FocusNode _appSearchFocusNode = FocusNode();
   String _appSearchQuery = '';
+  bool _dockKeyboardVisible = false;
 
   /// Guards the one-shot background warm of the installed-app list + dock icons.
   /// Deliberately deferred until *after* the dock has revealed (`appReady`), so
@@ -169,6 +171,7 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   void initState() {
     super.initState();
     if (Platform.isAndroid) {
+      WidgetsBinding.instance.addObserver(this);
       _secondaryDisplayState = SecondaryDisplayState.instance;
       _secondaryDisplayState!.addListener(_onStateChanged);
       // Direct, ordered screen on/off edges from the native presentation. See
@@ -197,6 +200,21 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
     }
   }
 
+  /// Clears the dock search's logical focus when Android gesture-back hides
+  /// the IME itself. In that path the IME consumes Back before the
+  /// Presentation receives it, so [_onSecondaryBack] is never called.
+  @override
+  void didChangeMetrics() {
+    final viewContext = _l10nContext;
+    if (viewContext == null) return;
+    final keyboardVisible = View.of(viewContext).viewInsets.bottom > 0;
+    final keyboardJustClosed = _dockKeyboardVisible && !keyboardVisible;
+    _dockKeyboardVisible = keyboardVisible;
+    if (keyboardJustClosed && _appSearchFocusNode.hasFocus) {
+      _appSearchFocusNode.unfocus();
+    }
+  }
+
   /// Seeds controller traversal when a touch gives the bottom display focus.
   void _onInputFocusChanged() {
     if (!SecondaryAppsService.inputFocused.value) {
@@ -215,7 +233,14 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
   /// leaving controller focus on the bottom display.
   void _onSecondaryBack() {
     if (!mounted || !SecondaryAppsService.inputFocused.value) return;
-    if (_appLaunchMenuOpen) {
+    // Android can hide the IME for a gesture-back without clearing Flutter's
+    // FocusNode. Release it explicitly before unwinding the picker; otherwise
+    // the dock search remains in text-entry mode and appears frozen after the
+    // keyboard has gone away. A second Back closes the picker as usual.
+    if (_appSearchFocusNode.hasFocus) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      _appSearchFocusNode.unfocus();
+    } else if (_appLaunchMenuOpen) {
       final menuContext = _l10nContext;
       if (menuContext != null) Navigator.of(menuContext).pop();
     } else if (_accessDialogVisible) {
@@ -814,6 +839,9 @@ class _SecondaryScreenState extends State<SecondaryScreen> {
 
   @override
   void dispose() {
+    if (Platform.isAndroid) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
     // Shared singleton — detach our listener, never dispose the instance.
     _secondaryDisplayState?.removeListener(_onStateChanged);
     SecondaryAppsService.deviceScreenOn.removeListener(_onScreenPowerChanged);
