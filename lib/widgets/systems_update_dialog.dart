@@ -37,6 +37,7 @@ class SystemsUpdateDialog extends StatefulWidget {
 
 class _SystemsUpdateDialogState extends State<SystemsUpdateDialog> {
   bool _isDownloading = false;
+  bool _isClosing = false;
   bool _cancelRequested = false;
   // The DB sync that follows a completed download is past the point of no
   // return, so the cancel affordance is withdrawn for it.
@@ -52,7 +53,7 @@ class _SystemsUpdateDialogState extends State<SystemsUpdateDialog> {
     super.initState();
     _gamepadNav = GamepadNavigation(
       onSelectItem: () {
-        if (!_isDownloading) _startUpdate();
+        if (!_isDownloading && !_isClosing) _startUpdate();
       },
       onBack: _closeDialog,
     );
@@ -84,12 +85,23 @@ class _SystemsUpdateDialogState extends State<SystemsUpdateDialog> {
   /// B during a download requests cancellation rather than doing nothing; the
   /// in-flight batch tears itself down and `_startUpdate` pops the dialog.
   void _closeDialog() {
+    if (_isClosing) return;
     if (_isDownloading) {
       _requestCancel();
       return;
     }
-    _cleanupGamepad();
-    Navigator.of(context).pop(false);
+    _dismissDialog(false);
+  }
+
+  void _dismissDialog(bool updated) {
+    if (_isClosing) return;
+    _isClosing = true;
+    // Keep the modal layer until dispose: the systems carousel refuses focus
+    // while its route is still covered, so popping this layer before the
+    // dialog closes leaves the controller inactive. Stop input during the
+    // exit transition without activating the covered screen too early.
+    _gamepadNav.deactivate();
+    Navigator.of(context).pop(updated);
   }
 
   void _requestCancel() {
@@ -278,7 +290,7 @@ class _SystemsUpdateDialogState extends State<SystemsUpdateDialog> {
                                 iconPath:
                                     'assets/images/gamepad/Xbox_B_button.png',
                                 label: AppLocale.updateLater.getString(context),
-                                onTap: () => Navigator.of(context).pop(false),
+                                onTap: _closeDialog,
                                 backgroundColor: theme.colorScheme.tertiary,
                                 textColor: theme.colorScheme.onSurface,
                               ),
@@ -310,6 +322,7 @@ class _SystemsUpdateDialogState extends State<SystemsUpdateDialog> {
   }
 
   Future<void> _startUpdate() async {
+    if (_isDownloading || _isClosing) return;
     setState(() {
       _isDownloading = true;
       _cancelRequested = false;
@@ -343,8 +356,7 @@ class _SystemsUpdateDialogState extends State<SystemsUpdateDialog> {
 
     // A cancel is a deliberate user action, not a failure — close quietly.
     if (_cancelRequested) {
-      _cleanupGamepad();
-      Navigator.of(context).pop(false);
+      _dismissDialog(false);
       return;
     }
 
@@ -355,7 +367,7 @@ class _SystemsUpdateDialogState extends State<SystemsUpdateDialog> {
       });
       await SqliteService.loadAndSyncSystems();
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      _dismissDialog(true);
       AppNotification.showNotification(
         context,
         AppLocale.systemsUpdateComplete.getString(context),

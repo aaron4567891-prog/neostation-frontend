@@ -7,6 +7,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neostation/l10n/app_locale.dart';
 import 'package:neostation/services/systems_update_service.dart';
+import 'package:neostation/services/gamepad/gamepad_navigation_manager.dart';
+import 'package:neostation/services/sfx_service.dart';
+import 'package:neostation/utils/gamepad_nav.dart';
 import 'package:neostation/widgets/systems_update_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +18,7 @@ void main() {
 
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
+    SfxService().setEnabled(false);
 
     // Stub the gamepads plugin so GamepadNavigation.initialize() finds no
     // devices instead of relying on a real platform channel.
@@ -175,4 +179,125 @@ void main() {
     expect(find.text('Cancelling...'), findsOneWidget);
     expect(find.text('Downloading systems (110/121)...'), findsNothing);
   });
+
+  Future<BuildContext> pumpControllerHost(
+    WidgetTester tester,
+    VoidCallback onNavigate,
+  ) async {
+    late BuildContext hostContext;
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: appDesignSize,
+        builder: (context, child) => MaterialApp(
+          localizationsDelegates:
+              FlutterLocalization.instance.localizationsDelegates,
+          supportedLocales: FlutterLocalization.instance.supportedLocales,
+          home: Builder(
+            builder: (context) {
+              hostContext = context;
+              return _ControllerHost(onNavigate: onNavigate);
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return hostContext;
+  }
+
+  Future<void> settleInput(WidgetTester tester) => tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 600)),
+  );
+
+  for (final dismissal in ['B', 'touch', 'download cancellation']) {
+    testWidgets('controller works after updater closes through $dismissal', (
+      tester,
+    ) async {
+      var moves = 0;
+      final context = await pumpControllerHost(tester, () => moves++);
+      final depth = GamepadNavigationManager.stackDepth;
+      final download = Completer<SystemsUpdateResult?>();
+      final closed = showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => SystemsUpdateDialog(
+          updateInfo: updateInfo,
+          runner: ({knownUpdate, onProgress, shouldCancel}) => download.future,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleInput(tester);
+
+      // The modal keeps navigation off the underlying systems view.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      expect(moves, 0);
+      await settleInput(tester);
+
+      if (dismissal == 'touch') {
+        await tester.tap(find.text('LATER'));
+      } else {
+        if (dismissal == 'download cancellation') {
+          await tester.tap(find.text('UPDATE NOW'));
+          await tester.pump();
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+        if (dismissal == 'download cancellation') {
+          await tester.pump();
+          expect(find.text('Cancelling...'), findsOneWidget);
+          download.complete(null);
+        }
+      }
+      await tester.pumpAndSettle();
+      expect(find.byType(SystemsUpdateDialog), findsNothing);
+      expect(await closed, isFalse);
+      expect(GamepadNavigationManager.stackDepth, depth);
+
+      // No touch on a top tab is needed to restore the controller.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      expect(moves, 1);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+}
+
+class _ControllerHost extends StatefulWidget {
+  const _ControllerHost({required this.onNavigate});
+
+  final VoidCallback onNavigate;
+
+  @override
+  State<_ControllerHost> createState() => _ControllerHostState();
+}
+
+class _ControllerHostState extends State<_ControllerHost> {
+  late final GamepadNavigation _nav;
+
+  @override
+  void initState() {
+    super.initState();
+    _nav = GamepadNavigation(onNavigateRight: widget.onNavigate);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _nav.initialize();
+      GamepadNavigationManager.pushLayer(
+        'systems_update_test_host',
+        onActivate: () {
+          // The real systems carousel also declines focus on a covered route.
+          if (ModalRoute.of(context)?.isCurrent == true) _nav.activate();
+        },
+        onDeactivate: _nav.deactivate,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    GamepadNavigationManager.popLayer('systems_update_test_host');
+    _nav.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(body: SizedBox.shrink());
 }
