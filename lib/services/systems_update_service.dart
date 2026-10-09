@@ -11,11 +11,11 @@ import '../data/datasources/sqlite_service.dart';
 import '../utils/bounded_concurrency.dart';
 
 const _manifestUrl =
-    'https://raw.githubusercontent.com/misobadev/neostation-frontend/main/assets/manifest.json';
+    'https://raw.githubusercontent.com/aaron4567891-prog/neostation-frontend/logo-list-personal/assets/manifest.json';
 const _baseRawUrl =
-    'https://raw.githubusercontent.com/misobadev/neostation-frontend/main/assets/systems';
+    'https://raw.githubusercontent.com/aaron4567891-prog/neostation-frontend/logo-list-personal/assets/systems';
 const _githubApiUrl =
-    'https://api.github.com/repos/misobadev/neostation-frontend/contents/assets/systems';
+    'https://api.github.com/repos/aaron4567891-prog/neostation-frontend/contents/assets/systems?ref=logo-list-personal';
 
 final _log = LoggerService.instance;
 
@@ -47,7 +47,7 @@ class SystemsUpdateInfo {
 }
 
 /// Service that keeps the bundled system JSON configs up-to-date from the
-/// main NeoStation frontend repository.
+/// personal NeoStation frontend branch.
 ///
 /// On startup, it compares the remote manifest version against the locally
 /// stored version. If a newer version is available, it downloads all system
