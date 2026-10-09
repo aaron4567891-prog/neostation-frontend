@@ -109,6 +109,7 @@ class GamepadNavigation {
   /// in the active UI layer. When provided, it takes precedence over the global
   /// focus search, preventing off-stage text fields from blocking navigation.
   final bool Function()? isTextFieldFocused;
+  final bool Function()? canHandleInput;
 
   static final _log = LoggerService.instance;
 
@@ -332,6 +333,9 @@ class GamepadNavigation {
 
   bool _keyboardInitialized = false;
 
+  /// Set by [dispose]; a disposed navigator never starts listening again.
+  bool _disposed = false;
+
   bool get isAndroid => Platform.isAndroid;
   bool get isWindows => Platform.isWindows;
   bool get isLinux => Platform.isLinux;
@@ -364,6 +368,7 @@ class GamepadNavigation {
     this.accelerateRepeats = false,
     this.allowRepeat = true,
     this.isTextFieldFocused,
+    this.canHandleInput,
   });
 
   /// Starts listening for gamepad and keyboard events.
@@ -371,6 +376,11 @@ class GamepadNavigation {
     _subscription?.cancel();
 
     await _initializeGamepadInfo();
+
+    // The owner may have been disposed while the gamepad list was loading — a
+    // screen opened and closed straight away. Subscribing now would attach a
+    // handler that nothing will ever remove.
+    if (_disposed) return;
 
     _subscription = Gamepads.events.listen(
       (event) {
@@ -636,6 +646,8 @@ class GamepadNavigation {
 
   /// Releases resources held by the navigator.
   void dispose() {
+    _disposed = true;
+    _isActive = false;
     _subscription?.cancel();
     _subscription = null;
     _resetSelectModifier();
@@ -645,7 +657,10 @@ class GamepadNavigation {
       _stopShoulderHold();
     }
 
-    if (_keyboardInitialized && isDesktop) {
+    // Removed wherever it was added — every platform, Android included.
+    // Leaving it attached kept every closed screen's navigator (and the State
+    // its callbacks capture) running on each key event for the whole session.
+    if (_keyboardInitialized) {
       ServicesBinding.instance.keyboard.removeHandler(_handleKeyEvent);
       _keyboardInitialized = false;
     }
@@ -675,7 +690,7 @@ class GamepadNavigation {
     // leave the tabs cycling until the safety cap.
     _checkShoulderHoldRelease(event);
 
-    if (!_isActive) return;
+    if (!_isActive || !(canHandleInput?.call() ?? true)) return;
 
     // NOTE: the reactivation grace period is applied AFTER translation (see
     // below) so the translator still observes every edge while the grace is
@@ -693,8 +708,9 @@ class GamepadNavigation {
       }
 
       if (_debugLogging) {
+        // `input`, not `key`: the log redactor treats `key=` as a credential.
         _log.i(
-          '[GamepadRaw] gamepad="${event.gamepadId}" key="${event.key}" '
+          '[GamepadRaw] gamepad="${event.gamepadId}" input="${event.key}" '
           'type=${event.type.name} value=${event.value.toStringAsFixed(4)}',
         );
       }
@@ -1092,7 +1108,9 @@ class GamepadNavigation {
 
   /// Orchestrates the processing of a raw [KeyEvent] from the keyboard.
   bool _handleKeyEvent(KeyEvent event) {
-    if (!_isActive || (event is! KeyDownEvent && event is! KeyUpEvent)) {
+    if (!_isActive ||
+        !(canHandleInput?.call() ?? true) ||
+        (event is! KeyDownEvent && event is! KeyUpEvent)) {
       return false;
     }
 
@@ -1112,8 +1130,9 @@ class GamepadNavigation {
     }
 
     if (_debugLogging) {
+      // `input`, not `key`: the log redactor treats `key=` as a credential.
       _log.i(
-        '[KeyboardRaw] key="${event.logicalKey.keyLabel}" '
+        '[KeyboardRaw] input="${event.logicalKey.keyLabel}" '
         'physical="${event.physicalKey.usbHidUsage.toRadixString(16)}" '
         '${isKeyDown ? "DOWN" : "UP"}',
       );

@@ -1,6 +1,24 @@
 part of 'app_locale.dart';
 
 const Map<String, dynamic> appLocaleEn = {
+  AppLocale.ignoreArticlesInGameSort: "Ignore articles when sorting games",
+  AppLocale.ignoreArticlesInGameSortSubtitle:
+      "Sort by title without leading The, A, or An. For example, The Legend of Zelda sorts under L.",
+  AppLocale.raEvents: 'Events',
+  AppLocale.raAotwYearTitle: 'Achievement of the Week ({year})',
+  AppLocale.raAotw: 'AOTW',
+  AppLocale.raAwards: 'Awards',
+  AppLocale.raSetOrder: 'Set order',
+  AppLocale.raPointsSort: 'Points: high to low',
+  AppLocale.raRaritySort: 'Rarest first',
+  AppLocale.raProgression: 'Progression',
+  AppLocale.raWinCondition: 'Win condition',
+  AppLocale.raWeek: 'Week {week}',
+  AppLocale.raMissed: 'Missed',
+  AppLocale.raUpcoming: 'Upcoming',
+  AppLocale.raCurrent: 'Current',
+  AppLocale.raEventUnavailable: 'Event credit unavailable',
+  AppLocale.raEarned: 'Earned',
   AppLocale.navigate: 'Navigate',
   AppLocale.select: 'Select',
   AppLocale.back: 'Back',
@@ -149,6 +167,12 @@ const Map<String, dynamic> appLocaleEn = {
       'Error configuring RetroArch path: {error}',
   AppLocale.androidSystemSettings: 'System Settings',
   AppLocale.androidSystemSettingsSubtitle: 'Open android system settings',
+  AppLocale.androidApps: 'Android Apps',
+  AppLocale.androidAppLayout: 'Android App Layout',
+  AppLocale.androidAppLayoutSubtitle:
+      'Choose where installed Android apps appear',
+  AppLocale.androidAppLayoutSystem: 'System',
+  AppLocale.androidAppLayoutTab: 'Tab',
   AppLocale.scanOnStartup: 'Scan folders on Startup',
   AppLocale.nowPlayingDimAfter: 'Dim Now Playing after',
   AppLocale.nowPlayingDimAfterSubtitle:
@@ -162,7 +186,7 @@ const Map<String, dynamic> appLocaleEn = {
       'Show the app dock on the secondary screen',
   AppLocale.nowPlayingDockSlots: 'Dock slots',
   AppLocale.nowPlayingDockSlotsSubtitle:
-      'How many app slots the dock shows (1-5)',
+      'How many app slots the dock shows (0-5)',
   AppLocale.nowPlayingFanartDim: 'Dim fanart',
   AppLocale.nowPlayingFanartDimSubtitle:
       'Darken the background art behind the logo so a busy fanart does not clash with it',
@@ -286,6 +310,19 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.cleanOrphanedMetadataFailed:
       'Failed to clean orphaned metadata: {error}',
   AppLocale.rematchAchievements: 'Match RetroAchievements Games',
+  AppLocale.rommLinkLibrary: 'Link library to RomM',
+  AppLocale.rommLinkLibrarySubtitle:
+      'Match local ROMs against your RomM server and link them',
+  AppLocale.rommLinkLibraryWarning:
+      'This walks every platform on your RomM server and links local ROMs it recognises.\n\nLinked games become eligible for save sync, so their saves will begin uploading to RomM. On a large library this can take several minutes.',
+  AppLocale.rommLinkLibraryPreparing: 'Preparing…',
+  AppLocale.rommLinkLibraryProgress: '{done} of {total} — {system}',
+  AppLocale.rommLinkLibraryDone: 'Linked {count} games',
+  AppLocale.rommLinkLibraryNothingToDo: 'Nothing new to link',
+  AppLocale.rommLinkLibraryFailed: 'Linking failed',
+  AppLocale.rommLinkLibraryUnavailable: 'Not available right now',
+  AppLocale.rommLinkLibraryStoppedEarly:
+      'Stopped early — linked {count} games so far',
   AppLocale.rematchAchievementsSubtitle:
       'Check your whole library for achievement sets, instead of one game at a time',
   AppLocale.rematchAchievementsWarning:
@@ -303,6 +340,7 @@ const Map<String, dynamic> appLocaleEn = {
       'Paused: {matched} game(s) matched so far. Run it again to carry on.',
   AppLocale.rematchAchievementsFailed:
       'Failed to match RetroAchievements games: {error}',
+  AppLocale.raOpenPage: 'Open page',
   AppLocale.raFixMatch: 'Fix match',
   AppLocale.raFixMatchTitle: 'Choose the right game',
   AppLocale.raFixMatchSearchHint: 'Search RetroAchievements titles',
@@ -331,7 +369,6 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.exportLogsFailed: 'Couldn\'t export the logs',
   AppLocale.specialThanks: 'Special Thanks',
   AppLocale.forInvaluableContributions: 'For invaluable contributions',
-  AppLocale.supportOnKofi: 'Support us on Ko-fi',
   AppLocale.supportOnPatreon: 'Support us on Patreon',
   AppLocale.openSourceLicense: 'Open Source Project',
   AppLocale.openSourceLicenseDesc: 'Licensed under GPLv3',
@@ -570,6 +607,9 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.stoppingScraping: 'Stopping scraping process...',
   AppLocale.syncError: 'Error synchronizing system IDs',
   AppLocale.metadataError: 'Error during metadata scraping',
+  AppLocale.identifyGame: 'Identify…',
+  AppLocale.identifySearchHint: 'Search ScreenScraper by name',
+  AppLocale.identifySearchFailed: 'The search failed. Please try again later.',
   AppLocale.scrapeQuotaExceeded: 'ScreenScraper daily scraping quota exceeded',
   AppLocale.start: 'Start',
   AppLocale.systemsSub: 'Select which systems to scrape',
@@ -659,6 +699,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.descending: 'Descending',
   AppLocale.viewModeGroup: 'VIEW MODE',
   AppLocale.cardSizeGroup: 'CARD SIZE',
+  AppLocale.listSizeGroup: 'LIST SIZE',
   AppLocale.cardStyleGroup: 'CARD STYLE',
   AppLocale.fanartCard: 'Fanart',
   AppLocale.boxCard: 'Box',
@@ -718,8 +759,8 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.raDescription:
       'RetroAchievements is a community effort to provide achievements for classic games using emulators.',
   AppLocale.raEarnPoints: 'Earn hardcore points and showcase them',
-  AppLocale.raGlobalLeaderboards: 'Global leaderboards and rankings',
-  AppLocale.raGameplayHistory: 'Detailed gameplay history and progress',
+  AppLocale.raGlobalLeaderboards: 'Per-game leaderboards and personal standing',
+  AppLocale.raGameplayHistory: 'Recent games and achievement progress',
   AppLocale.raCreateAccountAt: 'Create an account at ',
   AppLocale.raToStartEarning: ' to start earning.',
   AppLocale.userProfile: 'USER PROFILE',
@@ -751,6 +792,18 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.errorSavingCredentials: 'Error saving credentials',
   AppLocale.invalidCredentials: 'Invalid credentials provided',
   AppLocale.loginError: 'Login error: {error}',
+  AppLocale.screenScraperUsernameHint:
+      'Use your ScreenScraper username, not your email address.',
+  AppLocale.screenScraperUseUsernameNotEmail:
+      'Enter your ScreenScraper username, not your email address. The API does not accept email.',
+  AppLocale.screenScraperApiClosed:
+      "ScreenScraper's API is temporarily unavailable. Please try again later.",
+  AppLocale.screenScraperAppOutdated:
+      'This app version is no longer accepted by ScreenScraper. Please update NeoStation.',
+  AppLocale.screenScraperQuotaReached:
+      'ScreenScraper daily quota reached. Please try again tomorrow.',
+  AppLocale.screenScraperConnectionError:
+      'Could not reach ScreenScraper. Check your internet connection and try again.',
   AppLocale.whatIsScreenScraper: 'What is ScreenScraper?',
   AppLocale.screenScraperDescription:
       'ScreenScraper is a collaborative database that provides high-quality metadata, covers, and videos for your games.',
@@ -1080,6 +1133,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.rommSearchClear: 'Clear search',
   AppLocale.rommDownloading: 'Downloading...',
   AppLocale.rommDownloaded: 'Downloaded',
+  AppLocale.rommLinked: 'Linked to RomM',
   AppLocale.rommDownloadComplete: 'Download complete',
   AppLocale.rommDownloadFailed: 'Download failed',
   AppLocale.rommDownloadCancelled: 'Download cancelled',
@@ -1096,6 +1150,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.rommSyncConfirmPlan:
       'Downloads {count} games ({size}). This can take a long time.',
   AppLocale.rommSyncConfirmSkipped: '{count} already on this device.',
+  AppLocale.rommSyncConfirmLinked: '{count} will be linked to RomM.',
   AppLocale.rommSyncConfirmFree: '{free} free.',
   AppLocale.rommSyncConfirmNoSpace:
       'Not enough space: needs {size}, only {free} free.',
@@ -1109,6 +1164,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.rommSyncComplete: 'Synced {count} games',
   AppLocale.rommSyncCancelled: 'Sync cancelled',
   AppLocale.rommSyncNothingToDo: 'Everything is already downloaded',
+  AppLocale.rommSyncLinkedCount: 'Linked {count} games to RomM',
   AppLocale.rommSyncFailedCount: '{count} failed',
   AppLocale.searchTitle: 'Search',
   AppLocale.searchNameHint: 'Search...',
@@ -1147,6 +1203,37 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.deleteGameConfirmBody:
       'This will permanently delete the game ROM, its scraped data, and media files. This action cannot be undone.',
   AppLocale.deleteGameSubtitle: 'Permanently removes the ROM file from disk',
+  AppLocale.raSubtabDashboard: 'Profile',
+  AppLocale.raSubtabUnlocks: 'Unlocks',
+  AppLocale.raSubtabGames: 'Games',
+  AppLocale.raSubtabLeaderboards: 'Leaderboards',
+  AppLocale.raStanding: 'My standing',
+  AppLocale.raStandingPill: 'Rank #{rank} · Top {percent}',
+  AppLocale.raUnranked: 'Unranked',
+  AppLocale.raYourRank: 'Rank: {rank}',
+  AppLocale.raYourPoints: 'Points: {points}',
+  AppLocale.raUserType: '{type}',
+  AppLocale.raCasual: 'Casual',
+  AppLocale.raYourGamesLeaderboards: "Your games' leaderboards",
+  AppLocale.raNoLeaderboardGames: 'No games with leaderboard activity yet',
+  AppLocale.raLeaderboardSignIn: 'Sign in to view leaderboards for this game.',
+  AppLocale.raLeaderboardNoLeaderboards: 'No leaderboards for this game',
+  AppLocale.raLeaderboardNoEntries: 'No entries yet',
+  AppLocale.raLeaderboardEntries: 'Entries',
+  AppLocale.raLeaderboardTopEntry: 'Top: {user} · {score}',
+  AppLocale.raLeaderboardYourEntry: 'Your entry',
+  AppLocale.raLeaderboardFormat: 'Format: {format}',
+  AppLocale.raLeaderboardRankAscending: 'Lower scores rank higher',
+  AppLocale.raLeaderboardRankDescending: 'Higher scores rank higher',
+  AppLocale.raGamesHeaderHint: 'Played + tracked games',
+  AppLocale.raFilterMastered: 'Mastered',
+  AppLocale.raFilterBeaten: 'Beaten',
+  AppLocale.raGamesEndOfList: "That's every game in your history",
+  AppLocale.raGamesEmpty: 'No game activity yet',
+  AppLocale.raErrorLoadGames: 'Error loading games: {error}',
+  AppLocale.raHardcore: 'Hardcore',
+  AppLocale.raUnlocksEndOfList: "That's every unlock from the last 30 days",
+  AppLocale.raUnlockGameNotOwned: "This game isn't in your library or RomM",
   AppLocale.raCompletionsLabel: 'Completions',
   AppLocale.raMasteriesLabel: 'Masteries',
   AppLocale.raPointsAbbrev: 'pts',
@@ -1154,6 +1241,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.raRecentCompletions: 'Recent Completions',
   AppLocale.raRecentMasteries: 'Recent Masteries',
   AppLocale.raNoCompletionsYet: 'No completions yet',
+  AppLocale.raNoBeatenYet: 'No beaten games yet',
   AppLocale.raNoMasteriesYet: 'No masteries yet',
   AppLocale.raTrackedGames: 'tracked games',
   AppLocale.raCompletionLabel: 'Completion',
@@ -1163,6 +1251,7 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.raMissable: 'MISSABLE',
   AppLocale.raFilterLocked: 'Locked',
   AppLocale.raFilterMissables: 'Missables',
+  AppLocale.raGuide: 'Guide',
   AppLocale.raNoAchievementsForFilter: 'No achievements match this filter.',
   AppLocale.raComments: 'COMMENTS',
   AppLocale.raCommentsCouldNotLoad: 'Comments could not be loaded.',
@@ -1195,6 +1284,29 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.raGamesBeaten: '{count} games beaten',
   AppLocale.raAchievementProgress: '{earned}/{total} achievements',
   AppLocale.raRecent30Days: '30 days',
+  AppLocale.raErrorApiKeyRequired:
+      'A RetroAchievements web API key is required for this dashboard data.',
+  AppLocale.raErrorEnterUsername: 'Please enter a username',
+  AppLocale.raErrorEnterApiKey:
+      'Please enter your RetroAchievements web API key',
+  AppLocale.raErrorUserNotFound: 'User not found on RetroAchievements',
+  AppLocale.raErrorConnect: 'Error connecting to RetroAchievements: {error}',
+  AppLocale.raErrorUserNotConnected: 'User not connected',
+  AppLocale.raErrorSummaryUnavailable: 'User summary could not be loaded',
+  AppLocale.raErrorAwardsUnavailable: 'User awards could not be loaded',
+  AppLocale.raErrorGameInfoUnavailable: 'Game information could not be loaded',
+  AppLocale.raErrorLoadGameInfo: 'Error loading game information: {error}',
+  AppLocale.raErrorLoadSummary: 'Error loading user summary: {error}',
+  AppLocale.raErrorLoadAotw: 'Error loading Achievement of the Week: {error}',
+  AppLocale.raErrorLoadAwards: 'Error loading user awards: {error}',
+  AppLocale.raErrorLoadCompletionProgress:
+      'Error loading completion progress: {error}',
+  AppLocale.raErrorLoadRecentlyPlayed:
+      'Error loading recently played games: {error}',
+  AppLocale.raErrorLoadRecentUnlocks: 'Error loading recent unlocks: {error}',
+  AppLocale.raErrorLoadLeaderboards: 'Error loading leaderboards: {error}',
+  AppLocale.raErrorLoadLeaderboardEntries:
+      'Error loading leaderboard entries: {error}',
 
   // Custom save folders (NeoSync v2)
   AppLocale.customSaveFoldersTitle: 'Standalone save folders',
@@ -1277,4 +1389,31 @@ const Map<String, dynamic> appLocaleEn = {
   AppLocale.noHiddenGames: 'No hidden games',
   AppLocale.noHiddenGamesSubtitle:
       'Hide a game from its own settings and it appears here.',
+  AppLocale.rommLinkRow: 'Link to RomM',
+  AppLocale.rommLinkRowSubtitle:
+      'Search the RomM library and pick the ROM this game is',
+  AppLocale.rommLinkAction: 'Link',
+  AppLocale.rommUnlinkRow: 'Unlink from RomM',
+  AppLocale.rommUnlinkRowSubtitle:
+      'Remove the link; a later connect may link it again by filename',
+  AppLocale.rommUnlinkAction: 'Unlink',
+  AppLocale.rommUnlinkConfirmTitle: 'Unlink from RomM?',
+  AppLocale.rommUnlinkConfirmBody:
+      'Saves for this game stop syncing with {name}.',
+  AppLocale.rommLinkStateNotLinked: 'Not linked to RomM',
+  AppLocale.rommLinkStateAuto: 'Linked automatically to {name}',
+  AppLocale.rommLinkStateManual: 'Linked manually to {name}',
+  AppLocale.rommLinkPickerTitle: 'Link to a RomM ROM',
+  AppLocale.rommLinkPickerSearchHint: 'Search the RomM library',
+  AppLocale.rommLinkPickerLoading: 'Searching…',
+  AppLocale.rommLinkPickerNoResults: 'No matching ROMs found.',
+  AppLocale.rommLinkPickerError: 'Search failed. Select to retry.',
+  AppLocale.rommLinkPickerUnscoped:
+      'No RomM platform matches this system, so there is nothing here to link to.',
+  AppLocale.rommLinkSaved: 'Linked to {name}',
+  AppLocale.rommLinkFailed: 'Linking to RomM failed',
+  AppLocale.rommUnlinked: 'Unlinked from RomM',
+  AppLocale.rommUnlinkFailed: 'Could not unlink from RomM',
+  // Link action on search results
+  AppLocale.searchLinkToRomm: 'Link to RomM',
 };

@@ -37,6 +37,7 @@ import 'tabs/game_details_box2d_tab.dart';
 import 'tabs/game_details_screenshot_video_tab.dart';
 import 'tabs/game_details_game_info_tab.dart';
 import 'tabs/game_details_achievements_tab.dart';
+import 'package:neostation/screens/retro_achievements_screen/ra_game_achievements_page.dart';
 
 /// A comprehensive details view for a selected game, providing access to metadata,
 /// achievements, system settings, and cloud synchronization status.
@@ -54,6 +55,9 @@ class GameDetailsCardList extends StatefulWidget {
   final RetroAchievementsProvider retroAchievementsProvider;
   final ISyncProvider syncProvider;
   final String? localizedDescription;
+
+  /// Optional tab to open when a feature deep-links into this game.
+  final DetailTab? initialDetailTab;
 
   /// Bumped by the games list whenever this game's artwork files change on
   /// disk — a scrape, or a media file replaced from the settings dialog. The
@@ -136,6 +140,8 @@ class GameDetailsCardList extends StatefulWidget {
   final bool isSecondaryScreenActive;
   final bool isNavigatingFast;
   final VoidCallback? onBack;
+  final TextScaler? footerTextScaler;
+  final TextScaler? playTextScaler;
 
   const GameDetailsCardList({
     super.key,
@@ -149,6 +155,7 @@ class GameDetailsCardList extends StatefulWidget {
     required this.retroAchievementsProvider,
     required this.syncProvider,
     this.localizedDescription,
+    this.initialDetailTab,
     this.artworkVersion = 0,
     this.isExternallyScraping = false,
     this.externalScrapeProgress,
@@ -179,6 +186,8 @@ class GameDetailsCardList extends StatefulWidget {
     this.isSecondaryScreenActive = false,
     this.isNavigatingFast = false,
     this.onBack,
+    this.footerTextScaler,
+    this.playTextScaler,
   });
 
   @override
@@ -352,7 +361,10 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
     // Restore the last tab the user picked with L1/R1. Deferred to the first
     // frame so _setTab can run its side effects (game info overlay, video
     // delay) exactly as it would for a live tab change.
-    final restoredTab = _persistedTab();
+    final requestedTab = widget.initialDetailTab;
+    final restoredTab = requestedTab != null && _isTabAvailable(requestedTab)
+        ? requestedTab
+        : _persistedTab();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (restoredTab == DetailTab.wheel) {
@@ -658,6 +670,24 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
     });
   }
 
+  bool _achievementsPageInFlight = false;
+
+  Future<void> _openAchievementsPage() async {
+    final gameId = _currentGameInfo?.id;
+    if (_achievementsPageInFlight || gameId == null || gameId <= 0) return;
+    _achievementsPageInFlight = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              RaGameAchievementsPage(gameId: gameId, fallbackTitle: _game.name),
+        ),
+      );
+    } finally {
+      _achievementsPageInFlight = false;
+    }
+  }
+
   /// Opens the manual match picker and reloads the tab when the user picked a
   /// different game, so the achievement list reflects the new set immediately.
   ///
@@ -880,6 +910,8 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
             hasRetroAchievements: _hasRetroAchievements,
             isLoadingAchievements: _showsAchievementsLoading,
             currentGameInfo: _currentGameInfo,
+            textScaler: widget.footerTextScaler,
+            playTextScaler: widget.playTextScaler,
             onPlayGame: widget.onPlayGame,
             onShowRandomGame: widget.onShowRandomGame,
             onToggleFavorite: widget.onToggleFavorite,
@@ -980,6 +1012,7 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
                             : null,
                         onRefresh: refreshAchievements,
                         onFixMatch: _openMatchPicker,
+                        onOpenPage: _openAchievementsPage,
                         raHash: _game.raHash,
                       ),
                     ),
@@ -1227,7 +1260,9 @@ class _GameDetailsCardListState extends State<GameDetailsCardList>
   /// Whether [tab] can be shown for the current game and display setup.
   bool _isTabAvailable(DetailTab tab) {
     if (tab == DetailTab.screenshotVideo && _isGameInfoHidden) return false;
-    if (tab == DetailTab.achievements && !_hasRetroAchievements) return false;
+    if (tab == DetailTab.achievements && !_hasRetroAchievements) {
+      return false;
+    }
     return true;
   }
 

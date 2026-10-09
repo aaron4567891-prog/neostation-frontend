@@ -48,7 +48,7 @@ class GameDetailsTabsHeader extends StatelessWidget {
       ..._baseTabs.where(
         (t) => t != DetailTab.screenshotVideo || !isScreenshotVideoHidden,
       ),
-      if (hasRetroAchievements) DetailTab.achievements,
+      if (hasRetroAchievements) ...[DetailTab.achievements],
     ];
 
     final int numTabs = visibleTabs.length;

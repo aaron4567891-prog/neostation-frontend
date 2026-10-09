@@ -67,6 +67,8 @@ extension _GamepadNav on _SystemGamesListState {
   /// Registers gamepad and keyboard input mappings for the screen.
   void _initializeGamepad() {
     _gamepadNav = GamepadNavigation(
+      canHandleInput: () =>
+          !(GameViewModeDropdown.globalKey.currentState?.isOpen ?? false),
       onNavigateUp: _navigateUp,
       onNavigateDown: _navigateDown,
       onNavigateLeft: _navigateLeft, // Previous details tab.
@@ -142,7 +144,10 @@ extension _GamepadNav on _SystemGamesListState {
       // name's initial as its own alphabet boundary.
       letterAt: (index) => index < _folderCount
           ? _SystemGamesListState._folderJumpGroup
-          : LetterJump.letterFor(_games[index]),
+          : LetterJump.letterFor(
+              _games[index],
+              ignoreArticles: _ignoreArticles,
+            ),
     );
     if (target == null) return false;
 

@@ -76,7 +76,7 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
 
     // Pre-allocate keys for maximum theoretical setting items (the fixed rows
     // plus one per navigation tab that can be toggled).
-    for (int i = 0; i < 17 + NavTab.values.length; i++) {
+    for (int i = 0; i < 18 + NavTab.values.length; i++) {
       _itemKeys.add(GlobalKey());
     }
   }
@@ -205,10 +205,14 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
     count++; // SFX Sounds
     count++; // SFX volume (dimmed, but still navigable, while SFX are off)
     count++; // 12-Hour Clock
+    count++; // Ignore leading articles in game sorting
     count++; // Show subfolders (every system)
     count++; // Cloud-save mark in the game views
     count++; // Achievement badges on game tiles
     count++; // Match RetroAchievements on startup
+    if (Platform.isAndroid) {
+      count++; // Android Apps layout
+    }
     count += hidableNavTabs().length; // Navigation tab visibility
     count++; // Language
     if (!kIsWeb &&
@@ -367,6 +371,14 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
     }
     currentItemIndex++;
 
+    if (index == currentItemIndex) {
+      configProvider.updateIgnoreArticlesInGameSort(
+        !configProvider.config.ignoreArticlesInGameSort,
+      );
+      return;
+    }
+    currentItemIndex++;
+
     // Protocol: Show subfolders, applied to every system.
     if (index == currentItemIndex) {
       _setSubfolderViewAll(!configProvider.config.subfolderViewAll);
@@ -398,6 +410,17 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
       return;
     }
     currentItemIndex++;
+
+    // Protocol: Android apps appear as either a System card or a root tab.
+    if (Platform.isAndroid) {
+      if (index == currentItemIndex) {
+        configProvider.updateAndroidAppsAsTab(
+          !configProvider.config.androidAppsAsTab,
+        );
+        return;
+      }
+      currentItemIndex++;
+    }
 
     // Protocol: Navigation Tab Visibility (one entry per hidable tab, in the
     // same order the rows are built below).
@@ -725,9 +748,31 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
                   );
                 }(),
 
-                // Setting: Show subfolders, applied to every system. The
-                // per-system toggle in a system's settings dialog stays
-                // available; this stamps them all at once.
+                // Setting: Ignore leading articles in game sorting.
+                SizedBox(height: 12.r),
+                () {
+                  final index = currentItemIdx++;
+                  return SettingRow(
+                    key: _itemKeys[index],
+                    onTap: () => selectItem(index),
+                    focused:
+                        widget.isContentFocused &&
+                        widget.selectedContentIndex == index,
+                    title: AppLocale.ignoreArticlesInGameSort.getString(
+                      context,
+                    ),
+                    subtitle: AppLocale.ignoreArticlesInGameSortSubtitle
+                        .getString(context),
+                    trailing: CustomToggleSwitch(
+                      value: config.ignoreArticlesInGameSort,
+                      onChanged: (value) => context
+                          .read<SqliteConfigProvider>()
+                          .updateIgnoreArticlesInGameSort(value),
+                      activeColor: theme.colorScheme.primary,
+                    ),
+                  );
+                }(),
+
                 SizedBox(height: 12.r),
                 () {
                   final index = currentItemIdx++;
@@ -822,6 +867,34 @@ class GeneralSettingsContentState extends State<GeneralSettingsContent>
                     ),
                   );
                 }(),
+
+                // Setting: Android Apps location. This moves the existing
+                // virtual system into a top-level tab without changing the
+                // default Systems experience.
+                if (Platform.isAndroid) ...[
+                  SizedBox(height: 12.r),
+                  () {
+                    final index = currentItemIdx++;
+                    return SettingRow(
+                      key: _itemKeys[index],
+                      onTap: () => selectItem(index),
+                      focused:
+                          widget.isContentFocused &&
+                          widget.selectedContentIndex == index,
+                      title: AppLocale.androidAppLayout.getString(context),
+                      subtitle: AppLocale.androidAppLayoutSubtitle.getString(
+                        context,
+                      ),
+                      trailing: SettingValueChip(
+                        text:
+                            (config.androidAppsAsTab
+                                    ? AppLocale.androidAppLayoutTab
+                                    : AppLocale.androidAppLayoutSystem)
+                                .getString(context),
+                      ),
+                    );
+                  }(),
+                ],
 
                 // Setting: Navigation Tab Visibility — one row per hidable tab,
                 // so a future tab gets its toggle from its NavTabSpec alone.

@@ -2,10 +2,18 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neostation/providers/file_provider.dart';
+import 'package:path/path.dart' as p;
 
 import 'database_test_helper.dart';
 
 void main() {
+  void expectPaths(Iterable<String> actual, List<String> expected) {
+    expect(
+      actual.map(p.normalize).toList(),
+      expected.map(p.normalize).toList(),
+    );
+  }
+
   group('FileProvider.stripRomExtension', () {
     test('strips known common ROM extensions', () {
       expect(FileProvider.stripRomExtension('game.zip'), 'game');
@@ -65,7 +73,7 @@ void main() {
         'box2d',
         'sonic.smc',
       );
-      expect(candidates, [
+      expectPaths(candidates, [
         '/esde/downloaded_media/snes/covers/sonic.png',
         '/esde/downloaded_media/snes/covers/sonic.jpg',
         '/esde/downloaded_media/snes/covers/sonic.webp',
@@ -88,7 +96,7 @@ void main() {
           'wheels',
           'sonic.smc',
         );
-        expect(candidates, [
+        expectPaths(candidates, [
           '/esde/downloaded_media/snes/marquees/Hacks/sonic.png',
           '/esde/downloaded_media/snes/marquees/Hacks/sonic.jpg',
           '/esde/downloaded_media/snes/marquees/Hacks/sonic.webp',
@@ -115,11 +123,14 @@ void main() {
       await db.update('user_config', {'esde_folder_path': esdeRoot.path});
       await provider.refreshEsde();
 
-      expect(provider.getEsdeMediaCandidates('snes', 'fanarts', 'sonic.smc'), [
-        '${mediaDir.path}/snes/fanart/sonic.png',
-        '${mediaDir.path}/snes/fanart/sonic.jpg',
-        '${mediaDir.path}/snes/fanart/sonic.webp',
-      ]);
+      expectPaths(
+        provider.getEsdeMediaCandidates('snes', 'fanarts', 'sonic.smc'),
+        [
+          '${mediaDir.path}/snes/fanart/sonic.png',
+          '${mediaDir.path}/snes/fanart/sonic.jpg',
+          '${mediaDir.path}/snes/fanart/sonic.webp',
+        ],
+      );
     });
 
     test('returns nothing for a system with no recorded ES-DE media dir', () {
@@ -149,7 +160,7 @@ void main() {
     });
 
     test('screenshots fall back to titlescreens only', () {
-      expect(
+      expectPaths(
         provider.getEsdeMediaCandidates('snes', 'screenshots', 'sonic.smc'),
         [
           '/esde/downloaded_media/snes/screenshots/sonic.png',
@@ -163,11 +174,14 @@ void main() {
     });
 
     test('fanarts resolve from the fanart category alone', () {
-      expect(provider.getEsdeMediaCandidates('snes', 'fanarts', 'sonic.smc'), [
-        '/esde/downloaded_media/snes/fanart/sonic.png',
-        '/esde/downloaded_media/snes/fanart/sonic.jpg',
-        '/esde/downloaded_media/snes/fanart/sonic.webp',
-      ]);
+      expectPaths(
+        provider.getEsdeMediaCandidates('snes', 'fanarts', 'sonic.smc'),
+        [
+          '/esde/downloaded_media/snes/fanart/sonic.png',
+          '/esde/downloaded_media/snes/fanart/sonic.jpg',
+          '/esde/downloaded_media/snes/fanart/sonic.webp',
+        ],
+      );
     });
   });
   group('FileProvider.getEsdeVideoCandidates', () {
@@ -195,7 +209,7 @@ void main() {
     });
 
     test('covers every video extension ES-DE writes, mp4 first', () {
-      expect(provider.getEsdeVideoCandidates('snes', 'sonic.smc'), [
+      expectPaths(provider.getEsdeVideoCandidates('snes', 'sonic.smc'), [
         '/esde/downloaded_media/snes/videos/sonic.mp4',
         '/esde/downloaded_media/snes/videos/sonic.webm',
         '/esde/downloaded_media/snes/videos/sonic.mkv',
@@ -217,7 +231,7 @@ void main() {
         );
         await provider.refreshEsde();
 
-        expect(provider.getEsdeVideoCandidates('snes', 'sonic.smc'), [
+        expectPaths(provider.getEsdeVideoCandidates('snes', 'sonic.smc'), [
           '/esde/downloaded_media/snes/videos/Hacks/sonic.mp4',
           '/esde/downloaded_media/snes/videos/Hacks/sonic.webm',
           '/esde/downloaded_media/snes/videos/Hacks/sonic.mkv',

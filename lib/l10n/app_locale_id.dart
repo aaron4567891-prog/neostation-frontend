@@ -1,6 +1,24 @@
 part of 'app_locale.dart';
 
 const Map<String, dynamic> appLocaleId = {
+  AppLocale.ignoreArticlesInGameSort: "Abaikan artikel saat mengurutkan game",
+  AppLocale.ignoreArticlesInGameSortSubtitle:
+      "Abaikan The, A, atau An di awal judul. Misalnya, The Legend of Zelda diurutkan di huruf L.",
+  AppLocale.raEvents: 'Acara',
+  AppLocale.raAotwYearTitle: 'Pencapaian Minggu Ini ({year})',
+  AppLocale.raAotw: 'AOTW',
+  AppLocale.raAwards: 'Penghargaan',
+  AppLocale.raSetOrder: 'Urutan set',
+  AppLocale.raPointsSort: 'Poin tertinggi',
+  AppLocale.raRaritySort: 'Paling langka dahulu',
+  AppLocale.raProgression: 'Progres',
+  AppLocale.raWinCondition: 'Syarat menang',
+  AppLocale.raWeek: 'Minggu {week}',
+  AppLocale.raMissed: 'Terlewat',
+  AppLocale.raUpcoming: 'Mendatang',
+  AppLocale.raCurrent: 'Saat ini',
+  AppLocale.raEventUnavailable: 'Kredit acara tidak tersedia',
+  AppLocale.raEarned: 'Diraih',
   AppLocale.navigate: 'Navigasi',
   AppLocale.select: 'Pilih',
   AppLocale.back: 'Kembali',
@@ -152,6 +170,12 @@ const Map<String, dynamic> appLocaleId = {
       'Kesalahan saat mengonfigurasi jalur RetroArch: {error}',
   AppLocale.androidSystemSettings: 'Pengaturan Sistem',
   AppLocale.androidSystemSettingsSubtitle: 'Buka pengaturan sistem Android',
+  AppLocale.androidApps: 'Aplikasi Android',
+  AppLocale.androidAppLayout: 'Tata letak aplikasi Android',
+  AppLocale.androidAppLayoutSubtitle:
+      'Pilih lokasi tampil aplikasi Android yang terpasang',
+  AppLocale.androidAppLayoutSystem: 'Sistem',
+  AppLocale.androidAppLayoutTab: 'Tab',
   AppLocale.scanOnStartup: 'Pindai folder saat mulai',
   AppLocale.nowPlayingDimAfter: 'Redupkan Now Playing setelah',
   AppLocale.nowPlayingDimAfterSubtitle:
@@ -164,7 +188,7 @@ const Map<String, dynamic> appLocaleId = {
       'Tampilkan dock aplikasi di layar sekunder',
   AppLocale.nowPlayingDockSlots: 'Slot dock',
   AppLocale.nowPlayingDockSlotsSubtitle:
-      'Berapa banyak slot aplikasi yang ditampilkan dock (1-5)',
+      'Berapa banyak slot aplikasi yang ditampilkan dock (0-5)',
   AppLocale.nowPlayingFanartDim: 'Redupkan fanart',
   AppLocale.nowPlayingFanartDimSubtitle:
       'Gelapkan seni latar belakang di belakang logo agar fanart yang ramai tidak bertabrakan',
@@ -285,6 +309,19 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.cleanOrphanedMetadataFailed:
       'Gagal membersihkan metadata yatim: {error}',
   AppLocale.rematchAchievements: 'Cocokkan Game RetroAchievements',
+  AppLocale.rommLinkLibrary: 'Tautkan pustaka ke RomM',
+  AppLocale.rommLinkLibrarySubtitle:
+      'Cocokkan ROM lokal dengan server RomM Anda lalu tautkan',
+  AppLocale.rommLinkLibraryWarning:
+      'Ini menelusuri setiap platform di server RomM Anda dan menautkan ROM lokal yang dikenali.\n\nGim yang tertaut menjadi memenuhi syarat untuk sinkronisasi simpanan, sehingga data simpanannya akan diunggah ke RomM. Pada pustaka besar ini bisa memakan waktu beberapa menit.',
+  AppLocale.rommLinkLibraryPreparing: 'Menyiapkan…',
+  AppLocale.rommLinkLibraryProgress: '{done} dari {total} — {system}',
+  AppLocale.rommLinkLibraryDone: '{count} gim tertaut',
+  AppLocale.rommLinkLibraryNothingToDo: 'Tidak ada yang baru untuk ditautkan',
+  AppLocale.rommLinkLibraryFailed: 'Gagal menautkan',
+  AppLocale.rommLinkLibraryUnavailable: 'Tidak tersedia saat ini',
+  AppLocale.rommLinkLibraryStoppedEarly:
+      'Berhenti lebih awal — {count} gim tertaut sejauh ini',
   AppLocale.rematchAchievementsSubtitle:
       'Memeriksa seluruh pustaka untuk set prestasi, bukan satu game per satu',
   AppLocale.rematchAchievementsWarning:
@@ -302,6 +339,7 @@ const Map<String, dynamic> appLocaleId = {
       'Dijeda: {matched} gim cocok sejauh ini. Jalankan lagi untuk melanjutkan.',
   AppLocale.rematchAchievementsFailed:
       'Gagal mencocokkan game RetroAchievements: {error}',
+  AppLocale.raOpenPage: 'Buka halaman',
   AppLocale.raFixMatch: 'Perbaiki kecocokan',
   AppLocale.raFixMatchTitle: 'Pilih game yang benar',
   AppLocale.raFixMatchSearchHint: 'Cari judul RetroAchievements',
@@ -331,7 +369,6 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.exportLogsFailed: 'Gagal mengekspor log',
   AppLocale.specialThanks: 'Terima Kasih Khusus',
   AppLocale.forInvaluableContributions: 'atas kontribusi yang sangat berharga',
-  AppLocale.supportOnKofi: 'Dukung kami di Ko-fi',
   AppLocale.supportOnPatreon: 'Dukung kami di Patreon',
   AppLocale.openSourceLicense: 'Proyek Sumber Terbuka',
   AppLocale.openSourceLicenseDesc: 'Dilisensikan di bawah GPLv3',
@@ -570,6 +607,9 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.stoppingScraping: 'Menghentikan proses scraping...',
   AppLocale.syncError: 'Kesalahan saat menyinkronkan ID sistem',
   AppLocale.metadataError: 'Kesalahan selama proses scraping',
+  AppLocale.identifyGame: 'Identifikasi…',
+  AppLocale.identifySearchHint: 'Cari di ScreenScraper berdasarkan nama',
+  AppLocale.identifySearchFailed: 'Pencarian gagal. Silakan coba lagi nanti.',
   AppLocale.scrapeQuotaExceeded:
       'Kuota harian scraping ScreenScraper terlampaui',
   AppLocale.start: 'Mulai',
@@ -661,6 +701,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.descending: 'Menurun',
   AppLocale.viewModeGroup: 'Mode Tampilan',
   AppLocale.cardSizeGroup: 'Ukuran Kartu',
+  AppLocale.listSizeGroup: 'UKURAN DAFTAR',
   AppLocale.cardStyleGroup: 'Gaya Kartu',
   AppLocale.fanartCard: 'Fanart',
   AppLocale.boxCard: 'Kotak',
@@ -721,8 +762,9 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.raDescription:
       'RetroAchievements adalah komunitas yang menawarkan pencapaian untuk game klasik melalui emulasi.',
   AppLocale.raEarnPoints: 'Dapatkan poin Hardcore dan tampilkan',
-  AppLocale.raGlobalLeaderboards: 'Papan peringkat global',
-  AppLocale.raGameplayHistory: 'Riwayat permainan dan kemajuan mendetail',
+  AppLocale.raGlobalLeaderboards:
+      'Papan peringkat per game dan peringkat pribadi',
+  AppLocale.raGameplayHistory: 'Game terbaru dan kemajuan pencapaian',
   AppLocale.raCreateAccountAt: 'Buat akun di',
   AppLocale.raToStartEarning: ' untuk mulai mendapatkan poin.',
   AppLocale.userProfile: 'Profil Pengguna',
@@ -754,6 +796,18 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.errorSavingCredentials: 'Kesalahan saat menyimpan kredensial',
   AppLocale.invalidCredentials: 'Kredensial yang diberikan tidak valid',
   AppLocale.loginError: 'Kesalahan masuk: {error}',
+  AppLocale.screenScraperUsernameHint:
+      'Gunakan nama pengguna ScreenScraper Anda, bukan alamat email.',
+  AppLocale.screenScraperUseUsernameNotEmail:
+      'Masukkan nama pengguna ScreenScraper Anda, bukan alamat email. API tidak menerima email.',
+  AppLocale.screenScraperApiClosed:
+      'API ScreenScraper sementara tidak tersedia. Coba lagi nanti.',
+  AppLocale.screenScraperAppOutdated:
+      'ScreenScraper tidak lagi menerima versi aplikasi ini. Perbarui NeoStation.',
+  AppLocale.screenScraperQuotaReached:
+      'Kuota harian ScreenScraper tercapai. Coba lagi besok.',
+  AppLocale.screenScraperConnectionError:
+      'Tidak dapat menjangkau ScreenScraper. Periksa koneksi internet Anda dan coba lagi.',
   AppLocale.whatIsScreenScraper: 'Apa itu ScreenScraper?',
   AppLocale.screenScraperDescription:
       'ScreenScraper adalah database kolaboratif yang menyediakan metadata, sampul, dan video berkualitas tinggi untuk game Anda.',
@@ -1086,6 +1140,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.rommSearchClear: 'Hapus pencarian',
   AppLocale.rommDownloading: 'Mengunduh...',
   AppLocale.rommDownloaded: 'Terunduh',
+  AppLocale.rommLinked: 'Tertaut ke RomM',
   AppLocale.rommDownloadComplete: 'Unduhan selesai',
   AppLocale.rommDownloadFailed: 'Unduhan gagal',
   AppLocale.rommDownloadCancelled: 'Unduhan dibatalkan',
@@ -1104,6 +1159,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.rommSyncConfirmPlan:
       'Mengunduh {count} gim ({size}). Ini bisa memakan waktu lama.',
   AppLocale.rommSyncConfirmSkipped: '{count} sudah ada di perangkat ini.',
+  AppLocale.rommSyncConfirmLinked: '{count} akan ditautkan ke RomM.',
   AppLocale.rommSyncConfirmFree: '{free} tersedia.',
   AppLocale.rommSyncConfirmNoSpace:
       'Penyimpanan tidak cukup: perlu {size}, hanya {free} tersedia.',
@@ -1118,6 +1174,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.rommSyncComplete: '{count} gim disinkronkan',
   AppLocale.rommSyncCancelled: 'Sinkronisasi dibatalkan',
   AppLocale.rommSyncNothingToDo: 'Semuanya sudah diunduh',
+  AppLocale.rommSyncLinkedCount: '{count} gim tertaut ke RomM',
   AppLocale.rommSyncFailedCount: '{count} gagal',
   AppLocale.searchTitle: 'Cari',
   AppLocale.searchNameHint: 'Cari...',
@@ -1158,6 +1215,43 @@ const Map<String, dynamic> appLocaleId = {
       'Ini akan menghapus permanen ROM game, data scraping, dan file media. Tindakan ini tidak dapat dibatalkan.',
   AppLocale.deleteGameSubtitle: 'Menghapus permanen file ROM dari disk',
 
+  AppLocale.raSubtabDashboard: 'Profil',
+  AppLocale.raSubtabUnlocks: 'Pencapaian',
+  AppLocale.raSubtabGames: 'Game',
+  AppLocale.raSubtabLeaderboards: 'Papan peringkat',
+  AppLocale.raStanding: 'Peringkat saya',
+  AppLocale.raStandingPill: 'Peringkat #{rank} · Top {percent}',
+  AppLocale.raUnranked: 'Belum berperingkat',
+  AppLocale.raYourRank: 'Peringkat: {rank}',
+  AppLocale.raYourPoints: 'Poin: {points}',
+  AppLocale.raUserType: '{type}',
+  AppLocale.raCasual: 'Kasual',
+  AppLocale.raYourGamesLeaderboards: 'Papan peringkat game Anda',
+  AppLocale.raNoLeaderboardGames:
+      'Belum ada game dengan aktivitas papan peringkat',
+  AppLocale.raLeaderboardSignIn:
+      'Masuk untuk melihat papan peringkat game ini.',
+  AppLocale.raLeaderboardNoLeaderboards:
+      'Tidak ada papan peringkat untuk game ini',
+  AppLocale.raLeaderboardNoEntries: 'Belum ada entri',
+  AppLocale.raLeaderboardEntries: 'Entri',
+  AppLocale.raLeaderboardTopEntry: 'Teratas: {user} · {score}',
+  AppLocale.raLeaderboardYourEntry: 'Entri Anda',
+  AppLocale.raLeaderboardFormat: 'Format: {format}',
+  AppLocale.raLeaderboardRankAscending:
+      'Skor lebih rendah mendapat peringkat lebih tinggi',
+  AppLocale.raLeaderboardRankDescending:
+      'Skor lebih tinggi mendapat peringkat lebih tinggi',
+  AppLocale.raGamesHeaderHint: 'Dimainkan + game terlacak',
+  AppLocale.raFilterMastered: 'Dikuasai',
+  AppLocale.raFilterBeaten: 'Ditamatkan',
+  AppLocale.raGamesEndOfList: 'Itu semua game dalam riwayatmu',
+  AppLocale.raGamesEmpty: 'Belum ada aktivitas game',
+  AppLocale.raErrorLoadGames: 'Gagal memuat game: {error}',
+  AppLocale.raHardcore: 'Hardcore',
+  AppLocale.raUnlocksEndOfList: 'Itu semua pencapaian dari 30 hari terakhir',
+  AppLocale.raUnlockGameNotOwned:
+      'Game ini tidak ada di pustaka atau RomM Anda',
   AppLocale.raCompletionsLabel: 'Penyelesaian',
   AppLocale.raMasteriesLabel: 'Penguasaan',
   AppLocale.raPointsAbbrev: 'poin',
@@ -1165,6 +1259,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.raRecentCompletions: 'Penyelesaian Terbaru',
   AppLocale.raRecentMasteries: 'Penguasaan Terbaru',
   AppLocale.raNoCompletionsYet: 'Belum ada penyelesaian',
+  AppLocale.raNoBeatenYet: 'Belum ada game yang ditamatkan',
   AppLocale.raNoMasteriesYet: 'Belum ada penguasaan',
   AppLocale.raTrackedGames: 'game terlacak',
   AppLocale.raCompletionLabel: 'Penyelesaian',
@@ -1174,6 +1269,7 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.raMissable: 'BISA TERLEWAT',
   AppLocale.raFilterLocked: 'Terkunci',
   AppLocale.raFilterMissables: 'Bisa Terlewat',
+  AppLocale.raGuide: 'Panduan',
   AppLocale.raNoAchievementsForFilter:
       'Tidak ada pencapaian yang sesuai dengan filter ini.',
   AppLocale.raComments: 'KOMENTAR',
@@ -1208,7 +1304,34 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.raGamesBeaten: '{count} game ditamatkan',
   AppLocale.raAchievementProgress: '{earned}/{total} pencapaian',
   AppLocale.raRecent30Days: '30 hari',
+  AppLocale.raErrorApiKeyRequired:
+      'Kunci API Web RetroAchievements diperlukan untuk data dasbor ini.',
+  AppLocale.raErrorEnterUsername: 'Masukkan nama pengguna',
+  AppLocale.raErrorEnterApiKey: 'Masukkan kunci API Web RetroAchievements Anda',
+  AppLocale.raErrorUserNotFound:
+      'Pengguna tidak ditemukan di RetroAchievements',
+  AppLocale.raErrorConnect: 'Gagal terhubung ke RetroAchievements: {error}',
+  AppLocale.raErrorUserNotConnected: 'Pengguna tidak terhubung',
+  AppLocale.raErrorSummaryUnavailable: 'Ringkasan pengguna tidak dapat dimuat',
+  AppLocale.raErrorAwardsUnavailable: 'Hadiah pengguna tidak dapat dimuat',
+  AppLocale.raErrorGameInfoUnavailable: 'Informasi game tidak dapat dimuat',
+  AppLocale.raErrorLoadGameInfo:
+      'Kesalahan saat memuat informasi game: {error}',
+  AppLocale.raErrorLoadSummary:
+      'Kesalahan saat memuat ringkasan pengguna: {error}',
+  AppLocale.raErrorLoadAotw:
+      'Kesalahan saat memuat Pencapaian Minggu Ini: {error}',
+  AppLocale.raErrorLoadAwards: 'Kesalahan saat memuat hadiah pengguna: {error}',
+  AppLocale.raErrorLoadCompletionProgress:
+      'Kesalahan saat memuat progres penyelesaian: {error}',
+  AppLocale.raErrorLoadRecentlyPlayed:
+      'Kesalahan saat memuat game yang baru dimainkan: {error}',
+  AppLocale.raErrorLoadRecentUnlocks:
+      'Kesalahan saat memuat pencapaian yang baru dibuka: {error}',
 
+  AppLocale.raErrorLoadLeaderboards: 'Gagal memuat papan peringkat: {error}',
+  AppLocale.raErrorLoadLeaderboardEntries:
+      'Gagal memuat entri papan peringkat: {error}',
   // Custom save folders (NeoSync v2)
   AppLocale.customSaveFoldersTitle: 'Folder penyimpanan standalone',
   AppLocale.customSaveFolderPickSystem: 'Pilih sistem',
@@ -1292,4 +1415,31 @@ const Map<String, dynamic> appLocaleId = {
   AppLocale.noHiddenGames: 'Tidak ada game tersembunyi',
   AppLocale.noHiddenGamesSubtitle:
       'Sembunyikan game dari pengaturannya dan game itu akan muncul di sini.',
+  AppLocale.rommLinkRow: 'Tautkan ke RomM',
+  AppLocale.rommLinkRowSubtitle:
+      'Cari di pustaka RomM dan pilih ROM yang sesuai dengan game ini',
+  AppLocale.rommLinkAction: 'Tautkan',
+  AppLocale.rommUnlinkRow: 'Lepas tautan dari RomM',
+  AppLocale.rommUnlinkRowSubtitle:
+      'Hapus tautan; koneksi berikutnya dapat menautkannya lagi berdasarkan nama file',
+  AppLocale.rommUnlinkAction: 'Lepas',
+  AppLocale.rommUnlinkConfirmTitle: 'Lepas tautan dari RomM?',
+  AppLocale.rommUnlinkConfirmBody:
+      'Save game ini berhenti disinkronkan dengan {name}.',
+  AppLocale.rommLinkStateNotLinked: 'Tidak tertaut ke RomM',
+  AppLocale.rommLinkStateAuto: 'Tertaut otomatis ke {name}',
+  AppLocale.rommLinkStateManual: 'Tertaut manual ke {name}',
+  AppLocale.rommLinkPickerTitle: 'Tautkan ke ROM RomM',
+  AppLocale.rommLinkPickerSearchHint: 'Cari di pustaka RomM',
+  AppLocale.rommLinkPickerLoading: 'Mencari…',
+  AppLocale.rommLinkPickerNoResults: 'Tidak ada ROM yang cocok.',
+  AppLocale.rommLinkPickerError: 'Pencarian gagal. Pilih untuk mencoba lagi.',
+  AppLocale.rommLinkPickerUnscoped:
+      'Tidak ada platform RomM yang cocok dengan sistem ini, jadi tidak ada yang bisa ditautkan.',
+  AppLocale.rommLinkSaved: 'Tertaut ke {name}',
+  AppLocale.rommLinkFailed: 'Gagal menautkan ke RomM',
+  AppLocale.rommUnlinked: 'Tautan ke RomM dilepas',
+  AppLocale.rommUnlinkFailed: 'Tidak dapat memutus tautan dari RomM',
+  // Link action on search results
+  AppLocale.searchLinkToRomm: 'Tautkan ke RomM',
 };

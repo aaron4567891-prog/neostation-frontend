@@ -127,6 +127,7 @@ void main() {
 
     expect(find.byIcon(Symbols.image_rounded), findsNothing);
     expect(find.byIcon(Symbols.emoji_events_rounded), findsNothing);
+    expect(find.byIcon(Symbols.leaderboard_rounded), findsNothing);
     // The three that are always there stay.
     expect(find.byIcon(Symbols.branding_watermark_rounded), findsOneWidget);
     expect(find.byIcon(Symbols.filter_frames_rounded), findsOneWidget);
@@ -163,6 +164,11 @@ void main() {
     await tester.pump();
 
     expect(reported, DetailTab.achievements);
+  });
+
+  testWidgets('leaderboards are absent from the game list', (tester) async {
+    await pumpHeader(tester);
+    expect(find.byIcon(Symbols.leaderboard_rounded), findsNothing);
   });
 
   testWidgets('the cursor follows the visible order, not the enum', (

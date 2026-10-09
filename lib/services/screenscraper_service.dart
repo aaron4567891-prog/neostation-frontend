@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:neostation/services/logger_service.dart';
 import '../models/rom_fingerprint.dart';
+import '../models/screenscraper_game_candidate.dart';
+import '../repositories/game_repository.dart';
 import '../repositories/scraper_repository.dart';
 import 'retroachievements_hash_service.dart';
 import 'rom_fingerprint_service.dart';
@@ -18,6 +20,52 @@ import '../providers/scraping_provider.dart';
 import '../l10n/app_locale.dart';
 import '../widgets/scraping_summary_dialog.dart';
 
+/// Why ScreenScraper refused a login attempt.
+///
+/// Kept distinct from the raw HTTP status so the UI can explain the failure:
+/// an overloaded API or a blacklisted app version is not a wrong password, and
+/// telling the user to re-check their credentials sends them the wrong way.
+enum ScreenScraperAuthFailure {
+  invalidCredentials,
+  apiClosed,
+  appOutdated,
+  quotaExceeded,
+  networkError,
+  unknown,
+}
+
+/// Outcome of [ScreenScraperService.verifyCredentials].
+class ScreenScraperAuthResult {
+  final Map<String, dynamic>? data;
+  final ScreenScraperAuthFailure? failure;
+
+  const ScreenScraperAuthResult.success(this.data) : failure = null;
+
+  const ScreenScraperAuthResult.failure(this.failure) : data = null;
+
+  bool get isSuccess => data != null;
+}
+
+/// Why an Identify… search returned no list.
+enum ScreenScraperSearchFailure {
+  noCredentials,
+  systemNotMapped,
+  quotaExceeded,
+  failed,
+}
+
+/// Outcome of [ScreenScraperService.searchGames]: the games found, in
+/// ScreenScraper's order (most likely first), or why there are none to show.
+/// A search that simply matched nothing is a success with no games.
+class ScreenScraperSearchResult {
+  final List<ScreenScraperGameCandidate> games;
+  final ScreenScraperSearchFailure? failure;
+
+  const ScreenScraperSearchResult.success(this.games) : failure = null;
+
+  const ScreenScraperSearchResult.failure(this.failure) : games = const [];
+}
+
 /// Service responsible for scraping game metadata and media from the
 /// ScreenScraper.fr API.
 ///
@@ -28,7 +76,12 @@ import '../widgets/scraping_summary_dialog.dart';
 /// - Automatic system mapping between NeoStation and ScreenScraper IDs.
 /// - Daily request quota management and credentials verification.
 class ScreenScraperService {
-  static const String _baseUrl = 'https://api.screenscraper.fr/api2';
+  static const String defaultBaseUrl = 'https://api.screenscraper.fr/api2';
+
+  /// API root every request is built on. Only tests point it elsewhere, at a
+  /// local stand-in for the API.
+  @visibleForTesting
+  static String baseUrl = defaultBaseUrl;
   static final _log = LoggerService.instance;
 
   // Developer credentials — provided at build time via --dart-define
@@ -46,25 +99,35 @@ class ScreenScraperService {
   }
 
   static Map<String, dynamic>? _cachedCredentials;
+
+  /// Supplies the credentials requests are signed with, so tests need no
+  /// stored account. Null clears them.
+  @visibleForTesting
+  static void setCredentialsForTesting(Map<String, String>? credentials) {
+    _cachedCredentials = credentials;
+  }
+
   static bool _isMetadataScrapingRunning = false;
 
   /// Authenticates user credentials against the ScreenScraper API.
-  static Future<Map<String, dynamic>?> verifyCredentials(
+  ///
+  /// [username] must be the ScreenScraper account username, not the email the
+  /// website also accepts: `ssid` only matches the username, so an email is
+  /// answered with the same 403 as a wrong password.
+  static Future<ScreenScraperAuthResult> verifyCredentials(
     String username,
     String password,
   ) async {
     try {
       final softname = await ScreenscraperClient.getSoftname();
-      final url = Uri.parse('$_baseUrl/ssuserInfos.php').replace(
-        queryParameters: {
-          'devid': _devId,
-          'devpassword': _devPassword,
-          'softname': softname,
-          'output': 'json',
-          'ssid': username,
-          'sspassword': password,
-        },
-      );
+      final url = buildApiUrl('ssuserInfos.php', {
+        'devid': _devId,
+        'devpassword': _devPassword,
+        'softname': softname,
+        'output': 'json',
+        'ssid': username,
+        'sspassword': password,
+      });
 
       final response = await ScreenscraperClient.httpGetWithRetry(
         url,
@@ -72,24 +135,95 @@ class ScreenScraperService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = json.decode(response.body) as Map<String, dynamic>;
         if (data['header']['success'] == 'true') {
-          return data;
-        } else {
-          _log.e('Invalid credentials: ${data['header']['error']}');
-          return null;
+          return ScreenScraperAuthResult.success(data);
         }
-      } else if (response.statusCode == 403) {
-        _log.e('Error 403: Invalid credentials');
-        return null;
-      } else {
-        _log.e('HTTP Error ${response.statusCode}: ${response.body}');
-        return null;
+        _log.e(
+          'ScreenScraper rejected the login: ${_summarizeBody(response.body)}',
+        );
+        return const ScreenScraperAuthResult.failure(
+          ScreenScraperAuthFailure.invalidCredentials,
+        );
       }
+
+      return _failureFromResponse(
+        response.statusCode,
+        response.body,
+        endpoint: 'ssuserInfos.php',
+      );
     } catch (e) {
       _log.e('Error verifying credentials: $e');
-      return null;
+      return const ScreenScraperAuthResult.failure(
+        ScreenScraperAuthFailure.networkError,
+      );
     }
+  }
+
+  /// Builds an API URL with every query value percent-encoded.
+  ///
+  /// [Uri.replace] encodes spaces as `+`, but ScreenScraper documents and
+  /// expects `%20` (see its own request examples), and a server-side decoder
+  /// that reads `+` literally would corrupt a password containing a space.
+  /// Encoding each component keeps special characters in usernames and
+  /// passwords intact.
+  @visibleForTesting
+  static Uri buildApiUrl(String endpoint, Map<String, String> params) {
+    final query = params.entries
+        .map(
+          (e) =>
+              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
+        )
+        .join('&');
+    return Uri.parse('$baseUrl/$endpoint?$query');
+  }
+
+  /// Maps a ScreenScraper HTTP status to a failure the UI can act on.
+  @visibleForTesting
+  static ScreenScraperAuthFailure failureForStatus(int statusCode) {
+    switch (statusCode) {
+      case 403:
+        return ScreenScraperAuthFailure.invalidCredentials;
+      case 401:
+      case 423:
+        // 401: API closed to non-members / overloaded (CPU > 60%).
+        // 423: API closed entirely.
+        return ScreenScraperAuthFailure.apiClosed;
+      case 426:
+        return ScreenScraperAuthFailure.appOutdated;
+      case 429:
+      case 430:
+      case 431:
+        return ScreenScraperAuthFailure.quotaExceeded;
+      default:
+        return ScreenScraperAuthFailure.unknown;
+    }
+  }
+
+  /// Maps a ScreenScraper HTTP error to a failure the UI can act on.
+  ///
+  /// ScreenScraper sends the real reason in the body even on a 403, but it uses
+  /// the same "check the user credentials" wording whether the user or the
+  /// developer credentials are wrong, so the endpoint is what attributes the
+  /// refusal: only `ssuserInfos.php` checks the account password. The body is
+  /// logged so a bug report carries the provider's exact words; the central
+  /// logger redacts any credential that appears in it.
+  static ScreenScraperAuthResult _failureFromResponse(
+    int statusCode,
+    String body, {
+    required String endpoint,
+  }) {
+    final detail = _summarizeBody(body);
+    _log.e(
+      'ScreenScraper $endpoint failed: HTTP $statusCode'
+      '${detail.isEmpty ? '' : ' - $detail'}',
+    );
+    return ScreenScraperAuthResult.failure(failureForStatus(statusCode));
+  }
+
+  /// Collapses a response body to a single log-safe line.
+  static String _summarizeBody(String body) {
+    return body.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 
   /// Persists encrypted ScreenScraper credentials and user tier information
@@ -122,12 +256,12 @@ class ScreenScraperService {
       final username = credentials['username']!;
       final password = credentials['password']!;
 
-      final userInfo = await verifyCredentials(username, password);
-      if (userInfo != null) {
+      final result = await verifyCredentials(username, password);
+      if (result.isSuccess) {
         return await saveCredentials(
           username,
           password,
-          userInfo['response']['ssuser'] as Map<String, dynamic>?,
+          result.data!['response']['ssuser'] as Map<String, dynamic>?,
           credentials['preferred_language'],
         );
       }
@@ -209,16 +343,14 @@ class ScreenScraperService {
       }
 
       final softname = await ScreenscraperClient.getSoftname();
-      final url = Uri.parse('$_baseUrl/systemesListe.php').replace(
-        queryParameters: {
-          'devid': _devId,
-          'devpassword': _devPassword,
-          'softname': softname,
-          'output': 'json',
-          'ssid': credentials['username'],
-          'sspassword': credentials['password'],
-        },
-      );
+      final url = buildApiUrl('systemesListe.php', {
+        'devid': _devId,
+        'devpassword': _devPassword,
+        'softname': softname,
+        'output': 'json',
+        'ssid': credentials['username']!,
+        'sspassword': credentials['password']!,
+      });
 
       final response = await ScreenscraperClient.httpGetWithRetry(
         url,
@@ -389,6 +521,10 @@ class ScreenScraperService {
 
   /// Fetches game information from the API using name or hash.
   ///
+  /// [manualGameId] is a game the user identified by hand: it is asked for by
+  /// id, and the dump identity is left out so it cannot pull the match back
+  /// to the game the hash or filename points at.
+  ///
   /// Returns a map containing both `gameInfo` and updated `userInfo` (quota).
   static Future<Map<String, dynamic>?> fetchGameInfo(
     String systemId,
@@ -399,6 +535,7 @@ class ScreenScraperService {
     int? romSize,
     int? maxDailyRequests,
     String? gameName,
+    int? manualGameId,
   }) async {
     try {
       final credentials = _cachedCredentials ?? await getSavedCredentials();
@@ -424,13 +561,13 @@ class ScreenScraperService {
         targetAppSystemId,
       );
 
-      final queryParameters = {
+      final queryParameters = <String, String>{
         'devid': _devId,
         'devpassword': _devPassword,
         'softname': softname,
         'output': 'json',
-        'ssid': credentials['username'],
-        'sspassword': credentials['password'],
+        'ssid': credentials['username']!,
+        'sspassword': credentials['password']!,
         'systemeid': systemId,
         'romtype': 'rom',
         'romnom': cleanRomName,
@@ -441,23 +578,26 @@ class ScreenScraperService {
         queryParameters['langue'] = preferredLanguage;
       }
 
-      // Any one of these resolves a lookup on its own and outranks romnom, so
-      // an exact dump match does not depend on the filename being tidy. crc has
-      // the widest coverage — ScreenScraper's DB is seeded from No-Intro and
-      // Redump DATs. Comparison is case-insensitive on their side.
-      if (crc != null && crc.isNotEmpty) {
-        queryParameters['crc'] = crc;
-      }
-      if (md5 != null && md5.isNotEmpty) {
-        queryParameters['md5'] = md5;
-      }
-      if (romSize != null && romSize > 0) {
-        queryParameters['romtaille'] = romSize.toString();
+      if (manualGameId != null) {
+        // `gameid` forces the game outright (ScreenScraper's own wording).
+        queryParameters['gameid'] = manualGameId.toString();
+      } else {
+        // Any one of these resolves a lookup on its own and outranks romnom, so
+        // an exact dump match does not depend on the filename being tidy. crc
+        // has the widest coverage — ScreenScraper's DB is seeded from No-Intro
+        // and Redump DATs. Comparison is case-insensitive on their side.
+        if (crc != null && crc.isNotEmpty) {
+          queryParameters['crc'] = crc;
+        }
+        if (md5 != null && md5.isNotEmpty) {
+          queryParameters['md5'] = md5;
+        }
+        if (romSize != null && romSize > 0) {
+          queryParameters['romtaille'] = romSize.toString();
+        }
       }
 
-      final url = Uri.parse(
-        '$_baseUrl/jeuInfos.php',
-      ).replace(queryParameters: queryParameters);
+      final url = buildApiUrl('jeuInfos.php', queryParameters);
 
       final response = await ScreenscraperClient.httpGetWithRetry(
         url,
@@ -683,22 +823,23 @@ class ScreenScraperService {
         return {'success': false, 'message': AppLocale.scrapeNoCredentials};
       }
 
-      int? screenScraperSystemId =
-          await ScraperRepository.getScreenScraperIdByAppSystemId(appSystemId);
-
-      if (screenScraperSystemId == null) {
-        await syncSystemIds();
-        screenScraperSystemId =
-            await ScraperRepository.getScreenScraperIdByAppSystemId(
-              appSystemId,
-            );
-      }
+      final screenScraperSystemId = await _screenScraperSystemIdFor(
+        appSystemId,
+      );
 
       if (screenScraperSystemId == null) {
         return {'success': false, 'message': AppLocale.scrapeSystemNotMapped};
       }
 
       onProgress?.call(AppLocale.fetchingMetadata, 0.1);
+
+      final manualGameId = await ScraperRepository.getManualScreenScraperGameId(
+        romPath,
+      );
+      _log.i(
+        'Scraping "$romName" '
+        '${manualGameId != null ? '(identified as game $manualGameId)' : '(automatic match)'}',
+      );
 
       Map<String, dynamic>? gameInfoResult;
       int attempts = 0;
@@ -710,6 +851,7 @@ class ScreenScraperService {
           appSystemId: appSystemId,
           maxDailyRequests: 0,
           gameName: (systemFolder == 'android') ? gameName : null,
+          manualGameId: manualGameId,
         );
         if (gameInfoResult != null && gameInfoResult['gameInfo'] != null) break;
         attempts++;
@@ -769,6 +911,203 @@ class ScreenScraperService {
     } catch (e) {
       _log.e('Error scraping single game: $e');
       return {'success': false, 'message': AppLocale.scrapeUnexpectedError};
+    }
+  }
+
+  /// The ScreenScraper platform id for [appSystemId], refreshing the mapping
+  /// from the API once if it is missing.
+  static Future<int?> _screenScraperSystemIdFor(String appSystemId) async {
+    final id = await ScraperRepository.getScreenScraperIdByAppSystemId(
+      appSystemId,
+    );
+    if (id != null) return id;
+    await syncSystemIds();
+    return ScraperRepository.getScreenScraperIdByAppSystemId(appSystemId);
+  }
+
+  /// Searches ScreenScraper for games named like [query] on [appSystemId]'s
+  /// platform, for the user to identify a ROM by hand.
+  ///
+  /// Up to 30 games come back, most likely first. Each search spends one
+  /// request of the user's daily quota, which is why the picker only searches
+  /// when asked rather than as the user types.
+  static Future<ScreenScraperSearchResult> searchGames({
+    required String appSystemId,
+    required String query,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const ScreenScraperSearchResult.success([]);
+
+    try {
+      final credentials = _cachedCredentials ?? await getSavedCredentials();
+      if (credentials == null) {
+        return const ScreenScraperSearchResult.failure(
+          ScreenScraperSearchFailure.noCredentials,
+        );
+      }
+
+      final systemId = await _screenScraperSystemIdFor(appSystemId);
+      if (systemId == null) {
+        return const ScreenScraperSearchResult.failure(
+          ScreenScraperSearchFailure.systemNotMapped,
+        );
+      }
+
+      final url = buildApiUrl('jeuRecherche.php', {
+        'devid': _devId,
+        'devpassword': _devPassword,
+        'softname': await ScreenscraperClient.getSoftname(),
+        'output': 'json',
+        'ssid': credentials['username'].toString(),
+        'sspassword': credentials['password'].toString(),
+        'systemeid': systemId.toString(),
+        'recherche': trimmed,
+      });
+
+      final response = await ScreenscraperClient.httpGetWithRetry(
+        url,
+        headers: {'User-Agent': 'NeoStation/1.0', 'Accept': 'application/json'},
+      );
+
+      // Nothing by that name is an ordinary outcome, not a fault.
+      if (response.statusCode == 404) {
+        return const ScreenScraperSearchResult.success([]);
+      }
+      if (response.statusCode != 200) {
+        _log.e(
+          'ScreenScraper search failed: HTTP ${response.statusCode} - '
+          '${_summarizeBody(response.body)}',
+        );
+        return const ScreenScraperSearchResult.failure(
+          ScreenScraperSearchFailure.failed,
+        );
+      }
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      if (data['header']?['success'] != 'true') {
+        _log.e('ScreenScraper search failed: ${data['header']?['error']}');
+        return const ScreenScraperSearchResult.failure(
+          ScreenScraperSearchFailure.failed,
+        );
+      }
+
+      final regionPriority =
+          await ScreenscraperRegionConfig.getRegionPriority();
+      final entries = data['response']?['jeux'];
+      final games = <ScreenScraperGameCandidate>[
+        if (entries is List)
+          for (final entry in entries)
+            if (entry is Map<String, dynamic>)
+              ?ScreenScraperGameCandidate.fromGameInfo(entry, regionPriority),
+      ];
+      return ScreenScraperSearchResult.success(games);
+    } on ScreenscraperQuotaExceededException {
+      return const ScreenScraperSearchResult.failure(
+        ScreenScraperSearchFailure.quotaExceeded,
+      );
+    } catch (e) {
+      _log.e('Error searching ScreenScraper: $e');
+      return const ScreenScraperSearchResult.failure(
+        ScreenScraperSearchFailure.failed,
+      );
+    }
+  }
+
+  /// The ScreenScraper game the user identified [romPath] as, or null when
+  /// the ROM is matched automatically.
+  static Future<int?> getIdentifiedGameId(String romPath) =>
+      ScraperRepository.getManualScreenScraperGameId(romPath);
+
+  /// Points [romPath] at the ScreenScraper game the user picked, then scrapes
+  /// it — overwriting the metadata and media of the game it was matched to.
+  ///
+  /// The pick is stored first and the scrape fetches it by id, the same lookup
+  /// every later scrape of this ROM makes, so what the user sees now is what a
+  /// rescrape will keep. The pick stays even if this scrape fails (no network,
+  /// quota), so a later scrape still fetches the right game.
+  static Future<Map<String, dynamic>> identifyGame({
+    required String appSystemId,
+    required String romName,
+    required String systemFolder,
+    required String romPath,
+    required int gameId,
+    String? gameName,
+    Function(String status, double progress)? onProgress,
+  }) async {
+    try {
+      // Scraping without the pick stored would fetch the automatic match —
+      // the very game the user is correcting — so stop instead.
+      if (!await ScraperRepository.setManualScreenScraperGameId(
+        romPath,
+        gameId,
+      )) {
+        _log.e('No ROM row for $romPath; the identified game was not saved');
+        return {'success': false, 'message': AppLocale.scrapeUnexpectedError};
+      }
+      _log.i('Identified "$romName" as ScreenScraper game $gameId');
+    } catch (e) {
+      _log.e('Error saving the identified game for $romPath: $e');
+      return {'success': false, 'message': AppLocale.scrapeUnexpectedError};
+    }
+    await _clearScrapedMedia(
+      appSystemId: appSystemId,
+      romName: romName,
+      systemFolder: systemFolder,
+    );
+    return scrapeSingleGame(
+      appSystemId: appSystemId,
+      romName: romName,
+      systemFolder: systemFolder,
+      romPath: romPath,
+      gameName: gameName,
+      onProgress: onProgress,
+      forceOverwrite: true,
+    );
+  }
+
+  /// Deletes the media NeoStation scraped for [romName] before the game it was
+  /// identified as is scraped.
+  ///
+  /// The downloader only writes the media types the new game has, and a type
+  /// it gets in another format leaves the old file beside it (png is looked up
+  /// before jpg), so the wrong game's art kept showing. It is the wrong game's,
+  /// so it goes even if the new scrape then fails.
+  static Future<void> _clearScrapedMedia({
+    required String appSystemId,
+    required String romName,
+    required String systemFolder,
+  }) async {
+    try {
+      final deleted = await GameRepository.deleteNeoStationScrapedMedia(
+        systemFolderName: systemFolder,
+        filename: romName,
+        romBaseName: await ScreenscraperRomHasher.getCleanRomName(
+          romName,
+          appSystemId,
+        ),
+        mediaDirectoryPath:
+            await ScreenscraperMediaResolver.getMediaDirectory(),
+      );
+      if (deleted > 0) {
+        _log.i(
+          'Removed $deleted media file(s) of the previous match for "$romName"',
+        );
+      }
+    } catch (e) {
+      _log.w('Could not remove the previous match\'s media for "$romName": $e');
+    }
+  }
+
+  /// Forgets the game the user identified [romPath] as; the next scrape
+  /// matches it automatically again.
+  static Future<bool> clearIdentifiedGame(String romPath) async {
+    try {
+      await ScraperRepository.clearManualScreenScraperGameId(romPath);
+      _log.i('Cleared the identified game for $romPath');
+      return true;
+    } catch (e) {
+      _log.e('Error clearing the identified game for $romPath: $e');
+      return false;
     }
   }
 
@@ -990,8 +1329,13 @@ class ScreenScraperService {
       // whose filenames are tidy that buys nothing the name would not have
       // found. Those are hashed further down, only once the name has missed.
       //
-      // Android app entries have no ROM file to fingerprint.
-      var fingerprint = systemFolder == 'android'
+      // Android app entries have no ROM file to fingerprint, and a ROM the
+      // user identified by hand is fetched by its game id, so neither needs
+      // one.
+      final manualGameId = await ScraperRepository.getManualScreenScraperGameId(
+        romPath,
+      );
+      var fingerprint = (systemFolder == 'android' || manualGameId != null)
           ? null
           : await _resolveFingerprint(
               romPath,
@@ -1008,6 +1352,7 @@ class ScreenScraperService {
         romSize: fingerprint?.sizeBytes,
         maxDailyRequests: maxDailyRequests,
         gameName: (systemFolder == 'android') ? titleName : null,
+        manualGameId: manualGameId,
       );
       var gameInfo = gameResult?['gameInfo'];
       int requestsMade = 1;
@@ -1019,6 +1364,7 @@ class ScreenScraperService {
       // request failed, so none is sent.
       if (gameInfo == null &&
           systemFolder != 'android' &&
+          manualGameId == null &&
           fingerprint == null) {
         // The name missed and no cheap hash was available, so this is the ROM
         // that earns a full read: hashing is the only thing left to try, and

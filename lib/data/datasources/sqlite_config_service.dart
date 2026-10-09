@@ -175,6 +175,8 @@ class SqliteConfigService {
         systemSortBy:
             userConfig?['system_sort_by']?.toString() ?? 'alphabetical',
         systemSortOrder: userConfig?['system_sort_order']?.toString() ?? 'asc',
+        ignoreArticlesInGameSort:
+            userConfig?['ignore_articles_in_game_sort'] == 1,
         collectionSortBy:
             userConfig?['collection_sort_by']?.toString() ?? 'name',
         collectionSortOrder:
@@ -218,6 +220,12 @@ class SqliteConfigService {
             (int.tryParse(userConfig?['hide_search_card']?.toString() ?? '1') ??
                 1) ==
             1,
+        androidAppsAsTab:
+            (int.tryParse(
+                  userConfig?['android_apps_as_tab']?.toString() ?? '0',
+                ) ??
+                0) ==
+            1,
         activeSyncProvider:
             userConfig?['active_sync_provider']?.toString() ?? 'neosync',
         autoUpdateApp:
@@ -233,6 +241,15 @@ class SqliteConfigService {
         systemGridColumns:
             userConfig?['system_grid_columns']?.toString() ?? 'M',
         gameGridColumns: userConfig?['game_grid_columns']?.toString() ?? 'M',
+        gameListSize:
+            const {
+              'S',
+              'M',
+              'L',
+              'XL',
+            }.contains(userConfig?['game_list_size']?.toString())
+            ? userConfig!['game_list_size'].toString()
+            : 'S',
         gameCarouselCardStyle:
             userConfig?['game_carousel_card_style']?.toString() ?? 'fanart',
         dockApps: ConfigModel.normalizeDock(userConfig?['dock_apps']),
@@ -345,6 +362,7 @@ class SqliteConfigService {
         bartopExitPoweroff: config.bartopExitPoweroff ? 1 : 0,
         scanOnStartup: config.scanOnStartup ? 1 : 0,
         ignoreHiddenFiles: config.ignoreHiddenFiles ? 1 : 0,
+        ignoreArticlesInGameSort: config.ignoreArticlesInGameSort ? 1 : 0,
         setupCompleted: config.setupCompleted ? 1 : 0,
         hideBottomScreen: config.hideBottomScreen ? 1 : 0,
         videoSound: config.videoSound ? 1 : 0,
@@ -364,11 +382,13 @@ class SqliteConfigService {
         hideTabScraper: config.hideTabScraper ? 1 : 0,
         hideTabRomm: config.hideTabRomm ? 1 : 0,
         hideSearchCard: config.hideSearchCard ? 1 : 0,
+        androidAppsAsTab: config.androidAppsAsTab ? 1 : 0,
         activeSyncProvider: config.activeSyncProvider,
         autoUpdateApp: config.autoUpdateApp ? 1 : 0,
         autoUpdateSystems: config.autoUpdateSystems ? 1 : 0,
         systemGridColumns: config.systemGridColumns,
         gameGridColumns: config.gameGridColumns,
+        gameListSize: config.gameListSize,
         gameCarouselCardStyle: config.gameCarouselCardStyle,
         dockApps: jsonEncode(config.dockApps),
         dockEnabled: config.dockEnabled ? 1 : 0,

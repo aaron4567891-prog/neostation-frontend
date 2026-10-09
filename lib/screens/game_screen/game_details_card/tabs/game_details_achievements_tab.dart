@@ -1,3 +1,4 @@
+import 'package:neostation/widgets/ra_earned_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:flutter_localization/flutter_localization.dart';
@@ -47,6 +48,9 @@ class GameDetailsAchievementsTab extends StatefulWidget {
   /// most likely to want it.
   final VoidCallback? onFixMatch;
 
+  /// Opens the full achievements page for the matched game.
+  final VoidCallback? onOpenPage;
+
   /// The ROM's RetroAchievements hash, or `null` when it has not been hashed.
   ///
   /// The one fact that explains every state this panel can be in: a set that
@@ -68,6 +72,7 @@ class GameDetailsAchievementsTab extends StatefulWidget {
     this.rightOffset = 12.0,
     this.headerAction,
     this.onFixMatch,
+    this.onOpenPage,
     this.raHash,
   });
 
@@ -92,7 +97,7 @@ class GameDetailsAchievementsTabState
   /// Which header action holds focus, or -1 while the badge grid does.
   ///
   /// Up from the grid's top row lands here, down goes back to the badges, and
-  /// left/right walk the actions — so REFRESH and FIX MATCH are reachable
+  /// left/right walk the actions — so all header buttons are reachable
   /// without a touchscreen.
   int _headerFocusIndex = -1;
 
@@ -176,6 +181,8 @@ class GameDetailsAchievementsTabState
         _HeaderAction(label: AppLocale.refresh, onTap: widget.onRefresh),
       if (widget.onFixMatch != null)
         _HeaderAction(label: AppLocale.raFixMatch, onTap: widget.onFixMatch!),
+      if (widget.gameInfo != null && widget.onOpenPage != null)
+        _HeaderAction(label: AppLocale.raOpenPage, onTap: widget.onOpenPage!),
     ];
   }
 
@@ -979,9 +986,7 @@ class _AchievementsGrid extends StatelessWidget {
       itemCount: achievements.length,
       itemBuilder: (context, index) {
         final achievement = achievements[index];
-        final isUnlocked =
-            achievement.dateEarned != null &&
-            achievement.dateEarned!.isNotEmpty;
+        final isUnlocked = achievement.isUnlocked;
         final isSelected = index == selectedIndex;
 
         return GestureDetector(
@@ -994,22 +999,24 @@ class _AchievementsGrid extends StatelessWidget {
                     ? Theme.of(context).colorScheme.secondary.withValues(
                         alpha: isFocused ? 1.0 : 0.35,
                       )
-                    : (isUnlocked
-                          ? Colors.orange.withValues(alpha: 0.5)
-                          : Colors.transparent),
+                    : Colors.transparent,
                 width: isSelected ? 2.r : 1.r,
               ),
               borderRadius: radii.radiusInternal,
             ),
-            child: ClipRRect(
-              borderRadius: radii.radiusInternal,
-              child: Image.network(
-                // Use the standard RA Badge CDN protocol for locked vs unlocked icons.
-                isUnlocked
-                    ? 'https://media.retroachievements.org/Badge/${achievement.badgeName}.png'
-                    : 'https://media.retroachievements.org/Badge/${achievement.badgeName}_lock.png',
-                cacheWidth: 64,
-                fit: BoxFit.cover,
+            child: RaEarnedBadge(
+              casual: achievement.isUnlocked,
+              hardcore: (achievement.dateEarnedHardcore ?? '').isNotEmpty,
+              child: ClipRRect(
+                borderRadius: radii.radiusInternal,
+                child: Image.network(
+                  // Use the standard RA Badge CDN protocol for locked vs unlocked icons.
+                  isUnlocked
+                      ? 'https://media.retroachievements.org/Badge/${achievement.badgeName}.png'
+                      : 'https://media.retroachievements.org/Badge/${achievement.badgeName}_lock.png',
+                  cacheWidth: 64,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),

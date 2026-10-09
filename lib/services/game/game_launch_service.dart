@@ -15,6 +15,7 @@ import '../config_service.dart';
 import '../android_service.dart';
 import '../launcher_service.dart';
 import '../linux_emulator_discovery.dart';
+import '../windows_emulator_discovery.dart';
 import '../linux_host_process.dart';
 import '../macos_application_service.dart';
 import 'emulator_launch_diagnostics.dart';
@@ -492,6 +493,27 @@ class GameLaunchService {
           await EmulatorRepository.getUserDetectedEmulators();
       var retroArch = detectedEmulators['RetroArch'];
 
+      // The Windows installer and common package managers place RetroArch in
+      // predictable locations. Probe them when the saved picker value is
+      // missing or stale, just as Linux probes its Flatpak/EmuDeck locations.
+      if (Platform.isWindows &&
+          (retroArch == null || !await File(retroArch.path).exists())) {
+        final discovered = await WindowsEmulatorDiscovery.resolveExecutable(
+          'retroarch.exe',
+        );
+        if (discovered != null) {
+          _log.i('Discovered RetroArch on Windows at $discovered');
+          retroArch =
+              (retroArch ??
+                      const EmulatorModel(
+                        name: 'RetroArch',
+                        path: '',
+                        detected: false,
+                      ))
+                  .copyWith(path: discovered, detected: true);
+        }
+      }
+
       // On Linux a database entry is not required to find RetroArch: it ships
       // as a Flatpak or behind an EmuDeck launcher script, both of which live
       // at well-known paths. Discovery runs when there is no configured path or
@@ -649,13 +671,23 @@ class GameLaunchService {
 
         if (executable.toLowerCase().contains('retroarch')) {
           final ra = detected['RetroArch'];
-          if (ra != null && ra.path.isNotEmpty) {
+          if (ra != null &&
+              ra.path.isNotEmpty &&
+              await File(ra.path).exists()) {
             if (executable != ra.path) {
               _log.i(
                 'Resolving RetroArch executable from "$executable" to user-configured path: ${ra.path}',
               );
             }
             executable = ra.path;
+          } else if (Platform.isWindows) {
+            final discovered = await WindowsEmulatorDiscovery.resolveExecutable(
+              'retroarch.exe',
+            );
+            if (discovered != null) {
+              _log.i('Discovered RetroArch on Windows at $discovered');
+              executable = discovered;
+            }
           }
         } else if (!await File(executable).exists()) {
           String? resolvedPath;
@@ -681,8 +713,16 @@ class GameLaunchService {
             }
           }
 
-          if (resolvedPath != null) {
+          if (resolvedPath != null && await File(resolvedPath).exists()) {
             executable = resolvedPath;
+          } else if (Platform.isWindows) {
+            final discovered = await WindowsEmulatorDiscovery.resolveExecutable(
+              executable,
+            );
+            if (discovered != null) {
+              _log.i('Discovered $executable on Windows at $discovered');
+              executable = discovered;
+            }
           }
         }
 
@@ -736,7 +776,9 @@ class GameLaunchService {
       }
 
       final argsStr = launchCmd['args']?.toString() ?? '';
-      var args = LauncherService.splitArgs(argsStr);
+      var args = launchCmd['argv'] is List
+          ? List<String>.from(launchCmd['argv'] as List)
+          : LauncherService.splitArgs(argsStr);
       var processExecutable = executable;
       var launchedViaOpen = false;
 
@@ -1235,11 +1277,14 @@ class GameLaunchService {
       }
 
       final romPath = game.romPath!;
-      final args = launchArgs
-          .replaceAll('{rom_path}', romPath)
-          .replaceAll('{emulator_path}', emulatorPath);
-
-      final argList = _parseCommandArguments(args);
+      // Split first, then fill: the ROM path stays inside one argument
+      // whatever characters its file name contains.
+      final argList = [
+        for (final token in _parseCommandArguments(launchArgs))
+          token
+              .replaceAll('{rom_path}', romPath)
+              .replaceAll('{emulator_path}', emulatorPath),
+      ];
       final process = await LinuxHostProcess.start(emulatorPath, argList);
 
       final diagnostics = EmulatorLaunchDiagnostics.attach(

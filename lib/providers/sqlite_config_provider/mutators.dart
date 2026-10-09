@@ -56,6 +56,24 @@ extension SqliteConfigMutators on SqliteConfigProvider {
     _notify();
   }
 
+  /// Updates the preferred List view text and row size.
+  Future<void> updateGameListSize(String gameListSize) async {
+    final normalized = const {'S', 'M', 'L', 'XL'}.contains(gameListSize)
+        ? gameListSize
+        : 'S';
+    if (_config.gameListSize == normalized) return;
+
+    _config = _config.copyWith(gameListSize: normalized);
+    // Publish first so the open game screen updates on the same input event;
+    // serialize writes so rapid size changes cannot persist out of order.
+    _notify();
+    final save = _pendingGameListSizeSave.then(
+      (_) => SqliteConfigService.saveConfig(_config),
+    );
+    _pendingGameListSizeSave = save.catchError((_) {});
+    await save;
+  }
+
   /// Updates the preferred card style for the game carousel ('fanart' or 'box').
   Future<void> updateGameCarouselCardStyle(String cardStyle) async {
     _config = _config.copyWith(gameCarouselCardStyle: cardStyle);
@@ -136,6 +154,13 @@ extension SqliteConfigMutators on SqliteConfigProvider {
     _notify();
   }
 
+  /// Chooses whether Android apps are opened from Systems or their own tab.
+  Future<void> updateAndroidAppsAsTab(bool value) async {
+    _config = _config.copyWith(androidAppsAsTab: value);
+    await SqliteConfigService.saveConfig(_config);
+    _notify();
+  }
+
   Future<void> updateActiveSyncProvider(String providerId) async {
     _config = _config.copyWith(activeSyncProvider: providerId);
     await SqliteConfigService.saveConfig(_config);
@@ -194,6 +219,14 @@ extension SqliteConfigMutators on SqliteConfigProvider {
   Future<void> updateHideSystemLogos(bool value) async {
     if (_config.hideSystemLogos == value) return;
     _config = _config.copyWith(hideSystemLogos: value);
+    await SqliteConfigService.saveConfig(_config);
+    _notify();
+  }
+
+  /// Updates article handling for game title sorting.
+  Future<void> updateIgnoreArticlesInGameSort(bool value) async {
+    if (_config.ignoreArticlesInGameSort == value) return;
+    _config = _config.copyWith(ignoreArticlesInGameSort: value);
     await SqliteConfigService.saveConfig(_config);
     _notify();
   }

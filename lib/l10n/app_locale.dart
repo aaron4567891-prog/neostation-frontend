@@ -2,6 +2,8 @@
 /// Usage: AppLocale.play.getString(context)
 library;
 
+import 'package:flutter_localization/flutter_localization.dart';
+
 part 'app_locale_en.dart';
 part 'app_locale_es.dart';
 part 'app_locale_ru.dart';
@@ -16,6 +18,9 @@ part 'app_locale_ja.dart';
 part 'app_locale_ko.dart';
 
 mixin AppLocale {
+  static const String ignoreArticlesInGameSort = 'ignoreArticlesInGameSort';
+  static const String ignoreArticlesInGameSortSubtitle =
+      'ignoreArticlesInGameSortSubtitle';
   // ---------------------------------------------------------------------------
   // Navigation / Controls
   // ---------------------------------------------------------------------------
@@ -166,6 +171,11 @@ mixin AppLocale {
   static const String androidSystemSettings = 'android_system_settings';
   static const String androidSystemSettingsSubtitle =
       'android_system_settings_subtitle';
+  static const String androidApps = 'android_apps';
+  static const String androidAppLayout = 'android_app_layout';
+  static const String androidAppLayoutSubtitle = 'android_app_layout_subtitle';
+  static const String androidAppLayoutSystem = 'android_app_layout_system';
+  static const String androidAppLayoutTab = 'android_app_layout_tab';
   static const String scanOnStartup = 'scan_on_startup';
   static const String scanOnStartupSubtitle = 'scan_on_startup_subtitle';
   static const String nowPlayingDimAfter = 'now_playing_dim_after';
@@ -290,6 +300,29 @@ mixin AppLocale {
       'clean_orphaned_metadata_failed';
 
   static const String rematchAchievements = 'rematch_achievements';
+
+  static const String rommLinkLibrary = 'romm_link_library';
+
+  static const String rommLinkLibrarySubtitle = 'romm_link_library_subtitle';
+
+  static const String rommLinkLibraryWarning = 'romm_link_library_warning';
+
+  static const String rommLinkLibraryPreparing = 'romm_link_library_preparing';
+
+  static const String rommLinkLibraryProgress = 'romm_link_library_progress';
+
+  static const String rommLinkLibraryDone = 'romm_link_library_done';
+
+  static const String rommLinkLibraryNothingToDo =
+      'romm_link_library_nothing_to_do';
+
+  static const String rommLinkLibraryFailed = 'romm_link_library_failed';
+
+  static const String rommLinkLibraryUnavailable =
+      'romm_link_library_unavailable';
+
+  static const String rommLinkLibraryStoppedEarly =
+      'romm_link_library_stopped_early';
   static const String rematchAchievementsSubtitle =
       'rematch_achievements_subtitle';
   static const String rematchAchievementsWarning =
@@ -306,6 +339,7 @@ mixin AppLocale {
   static const String rematchAchievementsPaused = 'rematch_achievements_paused';
   static const String rematchAchievementsFailed = 'rematch_achievements_failed';
 
+  static const String raOpenPage = 'ra_open_page';
   static const String raFixMatch = 'ra_fix_match';
   static const String raFixMatchTitle = 'ra_fix_match_title';
   static const String raFixMatchSearchHint = 'ra_fix_match_search_hint';
@@ -353,7 +387,6 @@ mixin AppLocale {
   static const String specialThanks = 'special_thanks';
   static const String forInvaluableContributions =
       'for_invaluable_contributions';
-  static const String supportOnKofi = 'support_on_kofi';
   static const String supportOnPatreon = 'support_on_patreon';
   static const String openSourceLicense = 'open_source_license';
   static const String openSourceLicenseDesc = 'open_source_license_desc';
@@ -640,6 +673,7 @@ mixin AppLocale {
   static const String sortByGroup = 'sort_by_group';
   static const String orderGroup = 'order_group';
   static const String cardSizeGroup = 'card_size_group';
+  static const String listSizeGroup = 'list_size_group';
   static const String cardStyleGroup = 'card_style_group';
   static const String fanartCard = 'fanart_card';
   static const String boxCard = 'box_card';
@@ -726,6 +760,18 @@ mixin AppLocale {
   static const String errorSavingCredentials = 'error_saving_credentials';
   static const String invalidCredentials = 'invalid_credentials';
   static const String loginError = 'login_error';
+
+  /// ScreenScraper login guidance and per-cause failure messages. The API only
+  /// accepts the account username, so [screenScraperUsernameHint] and
+  /// [screenScraperUseUsernameNotEmail] steer users away from their email.
+  static const String screenScraperUsernameHint = 'screenscraper_username_hint';
+  static const String screenScraperUseUsernameNotEmail =
+      'screenscraper_use_username_not_email';
+  static const String screenScraperApiClosed = 'screenscraper_api_closed';
+  static const String screenScraperAppOutdated = 'screenscraper_app_outdated';
+  static const String screenScraperQuotaReached = 'screenscraper_quota_reached';
+  static const String screenScraperConnectionError =
+      'screenscraper_connection_error';
   static const String whatIsScreenScraper = 'what_is_screen_scraper';
   static const String screenScraperDescription = 'screen_scraper_description';
   static const String automaticMetadataMedia = 'automatic_metadata_media';
@@ -1037,6 +1083,9 @@ mixin AppLocale {
   static const String scrapeSuccessful = 'scrape_successful';
   static const String scrapeErrorGame = 'scrape_error_game';
   static const String scrapeQuotaExceeded = 'scrape_quota_exceeded';
+  static const String identifyGame = 'identify_game';
+  static const String identifySearchHint = 'identify_search_hint';
+  static const String identifySearchFailed = 'identify_search_failed';
 
   // ---------------------------------------------------------------------------
   // User data location
@@ -1182,6 +1231,7 @@ mixin AppLocale {
   static const String rommSearchClear = 'romm_search_clear';
   static const String rommDownloading = 'romm_downloading';
   static const String rommDownloaded = 'romm_downloaded';
+  static const String rommLinked = 'romm_linked';
   static const String rommDownloadComplete = 'romm_download_complete';
   static const String rommDownloadFailed = 'romm_download_failed';
   static const String rommDownloadCancelled = 'romm_download_cancelled';
@@ -1197,6 +1247,7 @@ mixin AppLocale {
   static const String rommSyncConfirmTitle = 'romm_sync_confirm_title';
   static const String rommSyncConfirmPlan = 'romm_sync_confirm_plan';
   static const String rommSyncConfirmSkipped = 'romm_sync_confirm_skipped';
+  static const String rommSyncConfirmLinked = 'romm_sync_confirm_linked';
   static const String rommSyncConfirmFree = 'romm_sync_confirm_free';
   static const String rommSyncConfirmNoSpace = 'romm_sync_confirm_no_space';
   // Per-volume variants of the two above, used when a sync's ROMs land on more
@@ -1212,6 +1263,7 @@ mixin AppLocale {
   static const String rommSyncComplete = 'romm_sync_complete';
   static const String rommSyncCancelled = 'romm_sync_cancelled';
   static const String rommSyncNothingToDo = 'romm_sync_nothing_to_do';
+  static const String rommSyncLinkedCount = 'romm_sync_linked_count';
   static const String rommSyncFailedCount = 'romm_sync_failed_count';
 
   // Library search & filtering.
@@ -1245,6 +1297,55 @@ mixin AppLocale {
   static const String neoSyncLogoutConfirmBody = 'neo_sync_logout_confirm_body';
 
   // RetroAchievements dashboard & achievement comments
+  static const String raSubtabDashboard = 'ra_subtab_dashboard';
+  static const String raSubtabUnlocks = 'ra_subtab_unlocks';
+  static const String raSubtabGames = 'ra_subtab_games';
+  static const String raSubtabLeaderboards = 'ra_subtab_leaderboards';
+  static const String raStanding = 'ra_standing';
+  static const String raStandingPill = 'ra_standing_pill';
+  static const String raUnranked = 'ra_unranked';
+  static const String raYourRank = 'ra_your_rank';
+  static const String raYourPoints = 'ra_your_points';
+  static const String raUserType = 'ra_user_type';
+  static const String raCasual = 'ra_casual';
+  static const String raEvents = 'raEvents';
+  static const String raAotwYearTitle = 'ra_aotw_year_title';
+  static const String raAotw = 'raAotw';
+  static const String raAwards = 'raAwards';
+  static const String raSetOrder = 'raSetOrder';
+  static const String raPointsSort = 'raPointsSort';
+  static const String raRaritySort = 'raRaritySort';
+  static const String raProgression = 'raProgression';
+  static const String raWinCondition = 'raWinCondition';
+  static const String raWeek = 'raWeek';
+  static const String raMissed = 'raMissed';
+  static const String raUpcoming = 'raUpcoming';
+  static const String raCurrent = 'raCurrent';
+  static const String raEventUnavailable = 'raEventUnavailable';
+  static const String raEarned = 'raEarned';
+  static const String raYourGamesLeaderboards = 'ra_your_games_leaderboards';
+  static const String raNoLeaderboardGames = 'ra_no_leaderboard_games';
+  static const String raLeaderboardSignIn = 'ra_leaderboard_sign_in';
+  static const String raLeaderboardNoLeaderboards =
+      'ra_leaderboard_no_leaderboards';
+  static const String raLeaderboardNoEntries = 'ra_leaderboard_no_entries';
+  static const String raLeaderboardEntries = 'ra_leaderboard_entries';
+  static const String raLeaderboardTopEntry = 'ra_leaderboard_top_entry';
+  static const String raLeaderboardYourEntry = 'ra_leaderboard_your_entry';
+  static const String raLeaderboardFormat = 'ra_leaderboard_format';
+  static const String raLeaderboardRankAscending =
+      'ra_leaderboard_rank_ascending';
+  static const String raLeaderboardRankDescending =
+      'ra_leaderboard_rank_descending';
+  static const String raGamesHeaderHint = 'ra_games_header_hint';
+  static const String raFilterMastered = 'ra_filter_mastered';
+  static const String raFilterBeaten = 'ra_filter_beaten';
+  static const String raGamesEndOfList = 'ra_games_end_of_list';
+  static const String raGamesEmpty = 'ra_games_empty';
+  static const String raErrorLoadGames = 'ra_error_load_games';
+  static const String raHardcore = 'ra_hardcore';
+  static const String raUnlocksEndOfList = 'ra_unlocks_end_of_list';
+  static const String raUnlockGameNotOwned = 'ra_unlock_game_not_owned';
   static const String raCompletionsLabel = 'ra_completions_label';
   static const String raMasteriesLabel = 'ra_masteries_label';
   static const String raPointsAbbrev = 'ra_points_abbrev';
@@ -1252,6 +1353,7 @@ mixin AppLocale {
   static const String raRecentCompletions = 'ra_recent_completions';
   static const String raRecentMasteries = 'ra_recent_masteries';
   static const String raNoCompletionsYet = 'ra_no_completions_yet';
+  static const String raNoBeatenYet = 'ra_no_beaten_yet';
   static const String raNoMasteriesYet = 'ra_no_masteries_yet';
   static const String raTrackedGames = 'ra_tracked_games';
   static const String raCompletionLabel = 'ra_completion_label';
@@ -1261,6 +1363,7 @@ mixin AppLocale {
   static const String raMissable = 'ra_missable';
   static const String raFilterLocked = 'ra_filter_locked';
   static const String raFilterMissables = 'ra_filter_missables';
+  static const String raGuide = 'ra_guide';
   static const String raNoAchievementsForFilter =
       'ra_no_achievements_for_filter';
   static const String raComments = 'ra_comments';
@@ -1293,6 +1396,33 @@ mixin AppLocale {
   static const String raAchievementProgress = 'ra_achievement_progress';
   static const String raRecent30Days = 'ra_recent_30_days';
 
+  // RetroAchievements error messages (resolved context-free by the provider
+  // via AppLocaleContextFreeLookup; keys carry an {error} placeholder where
+  // the raw exception is appended for diagnostics).
+  static const String raErrorApiKeyRequired = 'ra_error_api_key_required';
+  static const String raErrorEnterUsername = 'ra_error_enter_username';
+  static const String raErrorEnterApiKey = 'ra_error_enter_api_key';
+  static const String raErrorUserNotFound = 'ra_error_user_not_found';
+  static const String raErrorConnect = 'ra_error_connect';
+  static const String raErrorUserNotConnected = 'ra_error_user_not_connected';
+  static const String raErrorSummaryUnavailable =
+      'ra_error_summary_unavailable';
+  static const String raErrorAwardsUnavailable = 'ra_error_awards_unavailable';
+  static const String raErrorGameInfoUnavailable =
+      'ra_error_game_info_unavailable';
+  static const String raErrorLoadGameInfo = 'ra_error_load_game_info';
+  static const String raErrorLoadSummary = 'ra_error_load_summary';
+  static const String raErrorLoadAotw = 'ra_error_load_aotw';
+  static const String raErrorLoadAwards = 'ra_error_load_awards';
+  static const String raErrorLoadCompletionProgress =
+      'ra_error_load_completion_progress';
+  static const String raErrorLoadRecentlyPlayed =
+      'ra_error_load_recently_played';
+  static const String raErrorLoadRecentUnlocks = 'ra_error_load_recent_unlocks';
+  static const String raErrorLoadLeaderboards = 'ra_error_load_leaderboards';
+  static const String raErrorLoadLeaderboardEntries =
+      'ra_error_load_leaderboard_entries';
+
   // Custom save folders (NeoSync v2)
   static const String customSaveFoldersTitle = 'custom_save_folders_title';
   static const String customSaveFolderPickSystem =
@@ -1315,6 +1445,31 @@ mixin AppLocale {
   static const String customFolderUploadFailed = 'custom_folder_upload_failed';
   static const String customSaveFoldersMigrate = 'custom_save_folders_migrate';
 
+  // RomM manual link picker / Manage tab link rows.
+  static const String rommLinkRow = 'romm_link_row';
+  static const String rommLinkRowSubtitle = 'romm_link_row_subtitle';
+  static const String rommLinkAction = 'romm_link_action';
+  static const String rommUnlinkRow = 'romm_unlink_row';
+  static const String rommUnlinkRowSubtitle = 'romm_unlink_row_subtitle';
+  static const String rommUnlinkAction = 'romm_unlink_action';
+  static const String rommUnlinkConfirmTitle = 'romm_unlink_confirm_title';
+  static const String rommUnlinkConfirmBody = 'romm_unlink_confirm_body';
+  static const String rommLinkStateNotLinked = 'romm_link_state_not_linked';
+  static const String rommLinkStateAuto = 'romm_link_state_auto';
+  static const String rommLinkStateManual = 'romm_link_state_manual';
+  static const String rommLinkPickerTitle = 'romm_link_picker_title';
+  static const String rommLinkPickerSearchHint = 'romm_link_picker_search_hint';
+  static const String rommLinkPickerLoading = 'romm_link_picker_loading';
+  static const String rommLinkPickerNoResults = 'romm_link_picker_no_results';
+  static const String rommLinkPickerError = 'romm_link_picker_error';
+  static const String rommLinkPickerUnscoped = 'romm_link_picker_unscoped';
+  static const String rommLinkSaved = 'romm_link_saved';
+  static const String rommLinkFailed = 'romm_link_failed';
+  static const String rommUnlinked = 'romm_unlinked';
+  static const String rommUnlinkFailed = 'romm_unlink_failed';
+
+  // Link action on search results
+  static const String searchLinkToRomm = 'search_link_to_romm';
   // ==========================================================================
   // Localization Maps
   // ==========================================================================
@@ -1331,6 +1486,29 @@ mixin AppLocale {
   static const Map<String, dynamic> ja = appLocaleJa;
   static const Map<String, dynamic> ko = appLocaleKo;
 
+  /// All locale maps keyed by the language codes the app registers with
+  /// `FlutterLocalization` in `main.dart` (and that settings passes to
+  /// `translate`). Note `zh_Hant` is a raw code in this app, not a Flutter
+  /// script subtag, so a plain string match is enough.
+  ///
+  /// `main.dart` currently duplicates this registry for its two `init`
+  /// calls; deriving those `MapLocale` lists from this map is a known
+  /// follow-up.
+  static const Map<String, Map<String, dynamic>> _mapsByLanguageCode = {
+    'de': de,
+    'en': en,
+    'es': es,
+    'fr': fr,
+    'id': id,
+    'it': it,
+    'ja': ja,
+    'ko': ko,
+    'pt': pt,
+    'ru': ru,
+    'zh': zh,
+    'zh_Hant': zhHant,
+  };
+
   /// Map of supported languages: code -> display name
   static const Map<String, String> supportedLanguages = {
     'en': 'English',
@@ -1346,4 +1524,22 @@ mixin AppLocale {
     'ja': '日本語',
     'ko': '한국어',
   };
+}
+
+/// Context-free [AppLocale] lookup for code that runs outside the widget
+/// tree (providers, services) and so has no [BuildContext] to call
+/// `getString` with. Resolves against whatever language `FlutterLocalization`
+/// currently holds — the platform language during startup, the app's saved
+/// language once `init` runs, and none at all in pure unit tests; widget code
+/// should keep using `AppLocale.<key>.getString(context)`.
+///
+/// Falls back to English when no language is active or the language has no
+/// registered map, and to the key itself when neither map defines it — a
+/// visible, greppy failure rather than a silent blank.
+extension AppLocaleContextFreeLookup on String {
+  String getStringForCurrentLocale() {
+    final language = FlutterLocalization.instance.currentLocale?.languageCode;
+    final map = AppLocale._mapsByLanguageCode[language] ?? AppLocale.en;
+    return (map[this] ?? AppLocale.en[this] ?? this).toString();
+  }
 }

@@ -65,33 +65,6 @@ extension NeoSyncDownload on NeoSyncProvider {
     }
   }
 
-  /// Fase 2: Descargar archivos de la nube
-  Future<void> _performDownloadPhase(String savesPath) async {
-    _syncStatus = 'Phase 2: Downloading cloud files...';
-    _processedItems.add('Phase 2: Downloading files from cloud...');
-    notify();
-
-    final result = await _neoSyncService.getAllFiles();
-    if (!result['success']) {
-      throw Exception('Failed to fetch cloud files: ${result['message']}');
-    }
-
-    final cloudFiles = _dedupeCloudFiles(result['files'] as List<NeoSyncFile>);
-    if (cloudFiles.isEmpty) {
-      _processedItems.add('No cloud files found');
-      return;
-    }
-
-    _processedItems.add('Found ${cloudFiles.length} cloud files to process');
-
-    for (final cloudFile in cloudFiles) {
-      await _processDownloadFileWithConflictDetection(cloudFile, savesPath);
-      _processedFiles++;
-      _syncProgress = _totalFiles > 0 ? _processedFiles / _totalFiles : 0.0;
-      notify();
-    }
-  }
-
   /// Procesa un archivo para auto-descarga (Universal)
   Future<void> _processAutoDownloadFile(
     NeoSyncFile cloudFile,
@@ -311,57 +284,6 @@ extension NeoSyncDownload on NeoSyncProvider {
     }
   }
 
-  /// Procesa descarga con detección de conflictos
-  Future<void> _processDownloadFileWithConflictDetection(
-    NeoSyncFile cloudFile,
-    String savesPath,
-  ) async {
-    if (cloudFile.type == 'shared' || cloudFile.type == 'custom') {
-      await _downloadSharedCloudFile(cloudFile);
-      return;
-    }
-
-    GameModel? game = await _findGameForCloudFile(cloudFile);
-    if (game == null) {
-      NeoSyncProvider._log.w(
-        'Download: conflict phase, no game for ${cloudFile.fileName}; skipping',
-      );
-      return;
-    }
-
-    final localPaths = await resolveCloudFileToLocalPath(game, cloudFile);
-
-    if (localPaths.isEmpty) {
-      NeoSyncProvider._log.w(
-        'Download: conflict phase, no path for ${cloudFile.fileName} '
-        '(${game.name}); skipping',
-      );
-      return;
-    }
-
-    for (final localPath in localPaths) {
-      final localFile = File(localPath);
-      if (localFile.existsSync()) {
-        if (await _shouldDownloadOverLocal(cloudFile, localFile)) {
-          await _downloadCloudFileImpl(cloudFile, localFile);
-          _downloadedFiles++;
-          _processedItems.add('Updated: ${cloudFile.fileName}');
-        } else {
-          NeoSyncProvider._log.i(
-            'Download: keeping local ${cloudFile.fileName} '
-            '(local is newer or changed since last sync)',
-          );
-          _skippedFiles++;
-        }
-      } else {
-        await localFile.parent.create(recursive: true);
-        await _downloadCloudFileImpl(cloudFile, localFile);
-        _downloadedFiles++;
-        _processedItems.add('Downloaded: ${cloudFile.fileName}');
-      }
-    }
-  }
-
   /// Downloads a standalone/shared cloud file (PS2 memcard, Dreamcast VMU, ...)
   /// into its configured custom save folder.
   ///
@@ -407,7 +329,16 @@ extension NeoSyncDownload on NeoSyncProvider {
     final m = RegExp(r'^v2/custom/[^/]+/(.+)$').firstMatch(rel);
     if (m != null) rel = m.group(1)!;
 
-    final localFile = File(path.join(customFolder, rel));
+    // rel is the server's file_path: keep it inside the custom folder.
+    final target = safeJoin(customFolder, rel);
+    if (target == null) {
+      NeoSyncProvider._log.w(
+        'Download: refusing ${cloudFile.filePath}: it would land outside '
+        'the custom folder',
+      );
+      return false;
+    }
+    final localFile = File(target);
     await localFile.parent.create(recursive: true);
     if (!localFile.existsSync() ||
         await _shouldDownloadOverLocal(cloudFile, localFile)) {

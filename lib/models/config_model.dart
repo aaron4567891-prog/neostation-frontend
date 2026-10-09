@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:neostation/constants/recent_card_sizes.dart';
 import 'emulator_model.dart';
 
+String _normalizeGameListSize(String value) =>
+    const {'S', 'M', 'L', 'XL'}.contains(value) ? value : 'S';
+
 /// Represents the global application configuration and user preferences.
 class ConfigModel {
   /// Maximum number of storable slots in the secondary "Now Playing" app dock.
@@ -11,7 +14,7 @@ class ConfigModel {
   static const int dockMaxSlots = 5;
 
   /// Smallest and largest number of dock slots the user may choose to show.
-  static const int dockMinSlotCount = 1;
+  static const int dockMinSlotCount = 0;
   static const int dockMaxSlotCount = dockMaxSlots;
 
   /// Coerces an arbitrary value into a fixed-length [dockMaxSlots] list of
@@ -69,6 +72,9 @@ class ConfigModel {
 
   /// Whether hidden files/folders (dot-prefixed) should be ignored during ROM scan.
   final bool ignoreHiddenFiles;
+
+  /// Ignore leading English articles when ordering game titles.
+  final bool ignoreArticlesInGameSort;
 
   /// Whether the initial onboarding/setup process has been finished.
   final bool setupCompleted;
@@ -143,6 +149,8 @@ class ConfigModel {
   /// migration v158); search stays reachable from every card's Y menu.
   final bool hideSearchCard;
 
+  final bool androidAppsAsTab;
+
   /// Seconds of inactivity before the secondary "Now Playing" panel dims, or `0`
   /// to never dim. Only meaningful when a secondary display is active.
   final int nowPlayingDimDelay;
@@ -181,6 +189,9 @@ class ConfigModel {
 
   /// Preferred grid column density for the games grid ('S', 'M', 'L', 'XL').
   final String gameGridColumns;
+
+  /// Preferred text and row size for the game list ('S', 'M', 'L', 'XL').
+  final String gameListSize;
 
   /// Preferred card style for the game carousel ('fanart' or 'box').
   final String gameCarouselCardStyle;
@@ -258,6 +269,7 @@ class ConfigModel {
     this.bartopExitPoweroff = false,
     this.scanOnStartup = true,
     this.ignoreHiddenFiles = true,
+    this.ignoreArticlesInGameSort = false,
     this.setupCompleted = false,
     this.hideBottomScreen = false,
     this.videoSound = false,
@@ -277,11 +289,13 @@ class ConfigModel {
     this.hideTabScraper = false,
     this.hideTabRomm = false,
     this.hideSearchCard = true,
+    this.androidAppsAsTab = false,
     this.activeSyncProvider = 'neosync',
     this.autoUpdateApp = true,
     this.autoUpdateSystems = true,
     this.systemGridColumns = 'M',
     this.gameGridColumns = 'M',
+    this.gameListSize = 'S',
     this.gameCarouselCardStyle = 'fanart',
     this.nowPlayingDimDelay = 3,
     this.nowPlayingDimLevel = 100,
@@ -386,6 +400,10 @@ class ConfigModel {
       systemSortOrder:
           (json['systemSortOrder'] ?? json['system_sort_order'] ?? 'asc')
               .toString(),
+      ignoreArticlesInGameSort: [true, 1, '1', 'true'].contains(
+        json['ignoreArticlesInGameSort'] ??
+            json['ignore_articles_in_game_sort'],
+      ),
       collectionSortBy:
           (json['collectionSortBy'] ?? json['collection_sort_by'] ?? 'name')
               .toString(),
@@ -435,6 +453,12 @@ class ConfigModel {
                   .toString() ==
               '1' ||
           (json['hideSearchCard'] ?? false).toString().toLowerCase() == 'true',
+      androidAppsAsTab:
+          (json['androidAppsAsTab'] ?? json['android_apps_as_tab'] ?? 0)
+                  .toString() ==
+              '1' ||
+          (json['androidAppsAsTab'] ?? false).toString().toLowerCase() ==
+              'true',
       activeSyncProvider:
           (json['activeSyncProvider'] ??
                   json['active_sync_provider'] ??
@@ -456,6 +480,9 @@ class ConfigModel {
       gameGridColumns:
           (json['gameGridColumns'] ?? json['game_grid_columns'] ?? 'M')
               .toString(),
+      gameListSize: _normalizeGameListSize(
+        (json['gameListSize'] ?? json['game_list_size'] ?? 'S').toString(),
+      ),
       gameCarouselCardStyle:
           (json['gameCarouselCardStyle'] ??
                   json['game_carousel_card_style'] ??
@@ -595,6 +622,7 @@ class ConfigModel {
       'bartopExitPoweroff': bartopExitPoweroff,
       'scanOnStartup': scanOnStartup,
       'ignoreHiddenFiles': ignoreHiddenFiles,
+      'ignoreArticlesInGameSort': ignoreArticlesInGameSort,
       'setupCompleted': setupCompleted,
       'hideBottomScreen': hideBottomScreen,
       'videoSound': videoSound,
@@ -614,11 +642,13 @@ class ConfigModel {
       'hideTabScraper': hideTabScraper,
       'hideTabRomm': hideTabRomm,
       'hideSearchCard': hideSearchCard,
+      'androidAppsAsTab': androidAppsAsTab,
       'activeSyncProvider': activeSyncProvider,
       'autoUpdateApp': autoUpdateApp,
       'autoUpdateSystems': autoUpdateSystems,
       'systemGridColumns': systemGridColumns,
       'gameGridColumns': gameGridColumns,
+      'gameListSize': gameListSize,
       'gameCarouselCardStyle': gameCarouselCardStyle,
       'nowPlayingDimDelay': nowPlayingDimDelay,
       'nowPlayingDimLevel': nowPlayingDimLevel,
@@ -651,6 +681,7 @@ class ConfigModel {
     bool? bartopExitPoweroff,
     bool? scanOnStartup,
     bool? ignoreHiddenFiles,
+    bool? ignoreArticlesInGameSort,
     bool? setupCompleted,
     bool? hideBottomScreen,
     bool? videoSound,
@@ -670,11 +701,13 @@ class ConfigModel {
     bool? hideTabScraper,
     bool? hideTabRomm,
     bool? hideSearchCard,
+    bool? androidAppsAsTab,
     String? activeSyncProvider,
     bool? autoUpdateApp,
     bool? autoUpdateSystems,
     String? systemGridColumns,
     String? gameGridColumns,
+    String? gameListSize,
     String? gameCarouselCardStyle,
     int? nowPlayingDimDelay,
     int? nowPlayingDimLevel,
@@ -704,6 +737,8 @@ class ConfigModel {
       bartopExitPoweroff: bartopExitPoweroff ?? this.bartopExitPoweroff,
       scanOnStartup: scanOnStartup ?? this.scanOnStartup,
       ignoreHiddenFiles: ignoreHiddenFiles ?? this.ignoreHiddenFiles,
+      ignoreArticlesInGameSort:
+          ignoreArticlesInGameSort ?? this.ignoreArticlesInGameSort,
       setupCompleted: setupCompleted ?? this.setupCompleted,
       hideBottomScreen: hideBottomScreen ?? this.hideBottomScreen,
       videoSound: videoSound ?? this.videoSound,
@@ -723,11 +758,13 @@ class ConfigModel {
       hideTabScraper: hideTabScraper ?? this.hideTabScraper,
       hideTabRomm: hideTabRomm ?? this.hideTabRomm,
       hideSearchCard: hideSearchCard ?? this.hideSearchCard,
+      androidAppsAsTab: androidAppsAsTab ?? this.androidAppsAsTab,
       activeSyncProvider: activeSyncProvider ?? this.activeSyncProvider,
       autoUpdateApp: autoUpdateApp ?? this.autoUpdateApp,
       autoUpdateSystems: autoUpdateSystems ?? this.autoUpdateSystems,
       systemGridColumns: systemGridColumns ?? this.systemGridColumns,
       gameGridColumns: gameGridColumns ?? this.gameGridColumns,
+      gameListSize: gameListSize ?? this.gameListSize,
       gameCarouselCardStyle:
           gameCarouselCardStyle ?? this.gameCarouselCardStyle,
       nowPlayingDimDelay: nowPlayingDimDelay ?? this.nowPlayingDimDelay,

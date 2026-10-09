@@ -28,6 +28,7 @@ import 'package:neostation/widgets/back_swipe_zone.dart';
 import 'package:neostation/services/startup_theme_cache.dart';
 import 'package:neostation/widgets/splash_status_layout.dart';
 import 'package:neostation/widgets/permission_check_wrapper.dart';
+import 'package:neostation/utils/app_shortcuts.dart';
 import 'package:neostation/utils/custom_scroll_behavior.dart';
 import 'package:neostation/utils/desktop_window_focus.dart';
 import 'package:neostation/utils/display_metrics_log.dart';
@@ -983,7 +984,16 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider.value(value: widget.neoSyncProvider),
         ChangeNotifierProvider.value(value: SyncManager.instance),
         ChangeNotifierProvider(create: (context) => BillingService()),
-        ChangeNotifierProvider(create: (context) => NotificationService()),
+        ChangeNotifierProvider(
+          // Eager: the socket has to open at startup for a signed-in user, not
+          // when some screen first reads the service.
+          lazy: false,
+          create: (context) => NotificationService(
+            authService: widget.authService,
+            neoSyncProvider: widget.neoSyncProvider,
+            modalContext: () => rootNavigatorKey.currentContext,
+          ),
+        ),
         ChangeNotifierProvider.value(value: widget.themeProvider),
         ChangeNotifierProvider(create: (context) => ScrapingProvider()),
         ChangeNotifierProvider(
@@ -1037,6 +1047,9 @@ class _MyAppState extends State<MyApp> {
                     actions: {ToggleFullscreenIntent: ToggleFullscreenAction()},
                     child: MaterialApp(
                       navigatorKey: rootNavigatorKey,
+                      // Desktop: the arrow keys belong to GamepadNavigation,
+                      // not Flutter's focus traversal (see appShortcuts).
+                      shortcuts: appShortcuts(),
                       debugShowCheckedModeBanner: false,
                       title: 'NeoStation',
                       locale: _locale,
