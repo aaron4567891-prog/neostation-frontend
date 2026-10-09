@@ -19,6 +19,9 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.showScraperTabSubtitle:
       'Отображает вкладку скрапинга на панели навигации',
   AppLocale.showScraperTab: 'Показывать вкладку скрапера',
+  AppLocale.ignoreArticlesInGameSort: "Игнорировать артикли при сортировке игр",
+  AppLocale.ignoreArticlesInGameSortSubtitle:
+      "Пропускать The, A и An в начале названия. Например, The Legend of Zelda сортируется под буквой L.",
   AppLocale.raEvents: 'События',
   AppLocale.raAotwYearTitle: 'Достижение недели ({year})',
   AppLocale.raAotw: 'AOTW',
@@ -341,6 +344,19 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.cleanOrphanedMetadataFailed:
       'Не удалось очистить потерянные метаданные: {error}',
   AppLocale.rematchAchievements: 'Сопоставить игры RetroAchievements',
+  AppLocale.rommLinkLibrary: 'Связать библиотеку с RomM',
+  AppLocale.rommLinkLibrarySubtitle:
+      'Сопоставить локальные ROM с сервером RomM и связать их',
+  AppLocale.rommLinkLibraryWarning:
+      'Действие обходит каждую платформу на вашем сервере RomM и связывает распознанные локальные ROM.\n\nСвязанные игры становятся доступны для синхронизации сохранений, поэтому их сохранения начнут выгружаться в RomM. На большой библиотеке это может занять несколько минут.',
+  AppLocale.rommLinkLibraryPreparing: 'Подготовка…',
+  AppLocale.rommLinkLibraryProgress: '{done} из {total} — {system}',
+  AppLocale.rommLinkLibraryDone: 'Связано игр: {count}',
+  AppLocale.rommLinkLibraryNothingToDo: 'Нечего связывать',
+  AppLocale.rommLinkLibraryFailed: 'Не удалось связать',
+  AppLocale.rommLinkLibraryUnavailable: 'Сейчас недоступно',
+  AppLocale.rommLinkLibraryStoppedEarly:
+      'Остановлено досрочно — связано игр: {count}',
   AppLocale.rematchAchievementsSubtitle:
       'Проверяет всю библиотеку на наличие наборов достижений, а не по одной игре',
   AppLocale.rematchAchievementsWarning:
@@ -358,6 +374,7 @@ const Map<String, dynamic> appLocaleRu = {
       'Приостановлено: сопоставлено игр — {matched}. Запустите ещё раз, чтобы продолжить.',
   AppLocale.rematchAchievementsFailed:
       'Не удалось сопоставить игры RetroAchievements: {error}',
+  AppLocale.raOpenPage: 'Открыть страницу',
   AppLocale.raFixMatch: 'Исправить сопоставление',
   AppLocale.raFixMatchTitle: 'Выберите нужную игру',
   AppLocale.raFixMatchSearchHint: 'Поиск по названиям RetroAchievements',
@@ -387,7 +404,6 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.exportLogsFailed: 'Не удалось экспортировать журналы',
   AppLocale.specialThanks: 'Особая благодарность',
   AppLocale.forInvaluableContributions: 'За неоценимый вклад',
-  AppLocale.supportOnKofi: 'Поддержите нас на Ko-fi',
   AppLocale.supportOnPatreon: 'Поддержите нас на Patreon',
   AppLocale.openSourceLicense: 'Проект с открытым исходным кодом',
   AppLocale.openSourceLicenseDesc: 'Лицензия GPLv3',
@@ -629,6 +645,10 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.stoppingScraping: 'Остановка процесса скрапинга...',
   AppLocale.syncError: 'Ошибка синхронизации ID систем',
   AppLocale.metadataError: 'Ошибка при скрапинге метаданных',
+  AppLocale.identifyGame: 'Определить игру…',
+  AppLocale.identifySearchHint: 'Поиск в ScreenScraper по названию',
+  AppLocale.identifySearchFailed:
+      'Не удалось выполнить поиск. Повторите попытку позже.',
   AppLocale.scrapeQuotaExceeded:
       'Превышена дневная квота скрейпинга ScreenScraper',
   AppLocale.start: 'Старт',
@@ -1148,6 +1168,7 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.rommSearchClear: 'Очистить поиск',
   AppLocale.rommDownloading: 'Загрузка...',
   AppLocale.rommDownloaded: 'Загружено',
+  AppLocale.rommLinked: 'Связано с RomM',
   AppLocale.rommDownloadComplete: 'Загрузка завершена',
   AppLocale.rommDownloadFailed: 'Не удалось загрузить',
   AppLocale.rommDownloadCancelled: 'Загрузка отменена',
@@ -1166,6 +1187,7 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.rommSyncConfirmPlan:
       'Загрузит {count} игр ({size}). Это может занять много времени.',
   AppLocale.rommSyncConfirmSkipped: '{count} уже есть на устройстве.',
+  AppLocale.rommSyncConfirmLinked: 'Будет связано с RomM: {count}.',
   AppLocale.rommSyncConfirmFree: 'Свободно {free}.',
   AppLocale.rommSyncConfirmNoSpace:
       'Недостаточно места: нужно {size}, свободно только {free}.',
@@ -1180,6 +1202,7 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.rommSyncComplete: 'Синхронизировано игр: {count}',
   AppLocale.rommSyncCancelled: 'Синхронизация отменена',
   AppLocale.rommSyncNothingToDo: 'Всё уже загружено',
+  AppLocale.rommSyncLinkedCount: 'Связано с RomM игр: {count}',
   AppLocale.rommSyncFailedCount: 'Не удалось: {count}',
   AppLocale.searchTitle: 'Поиск',
   AppLocale.searchNameHint: 'Поиск...',
@@ -1415,4 +1438,31 @@ const Map<String, dynamic> appLocaleRu = {
   AppLocale.noHiddenGames: 'Нет скрытых игр',
   AppLocale.noHiddenGamesSubtitle:
       'Скройте игру в её настройках, и она появится здесь.',
+  AppLocale.rommLinkRow: 'Связать с RomM',
+  AppLocale.rommLinkRowSubtitle:
+      'Найдите в библиотеке RomM ROM, которому соответствует эта игра',
+  AppLocale.rommLinkAction: 'Связать',
+  AppLocale.rommUnlinkRow: 'Отвязать от RomM',
+  AppLocale.rommUnlinkRowSubtitle:
+      'Удаляет связь; при следующем подключении она может быть восстановлена по имени файла',
+  AppLocale.rommUnlinkAction: 'Отвязать',
+  AppLocale.rommUnlinkConfirmTitle: 'Отвязать от RomM?',
+  AppLocale.rommUnlinkConfirmBody:
+      'Сохранения этой игры перестанут синхронизироваться с {name}.',
+  AppLocale.rommLinkStateNotLinked: 'Не связано с RomM',
+  AppLocale.rommLinkStateAuto: 'Автоматически связано с {name}',
+  AppLocale.rommLinkStateManual: 'Связано вручную с {name}',
+  AppLocale.rommLinkPickerTitle: 'Связать с ROM из RomM',
+  AppLocale.rommLinkPickerSearchHint: 'Поиск в библиотеке RomM',
+  AppLocale.rommLinkPickerLoading: 'Поиск…',
+  AppLocale.rommLinkPickerNoResults: 'Подходящих ROM не найдено.',
+  AppLocale.rommLinkPickerError: 'Поиск не удался. Выберите, чтобы повторить.',
+  AppLocale.rommLinkPickerUnscoped:
+      'Ни одна платформа RomM не соответствует этой системе, поэтому связывать не с чем.',
+  AppLocale.rommLinkSaved: 'Связано с {name}',
+  AppLocale.rommLinkFailed: 'Не удалось связать с RomM',
+  AppLocale.rommUnlinked: 'Связь с RomM удалена',
+  AppLocale.rommUnlinkFailed: 'Не удалось отвязать от RomM',
+  // Link action on search results
+  AppLocale.searchLinkToRomm: 'Связать с RomM',
 };

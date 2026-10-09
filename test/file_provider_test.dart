@@ -19,6 +19,13 @@ void expectPaths(List<String> actual, dynamic expected) {
 }
 
 void main() {
+  void expectPaths(Iterable<String> actual, List<String> expected) {
+    expect(
+      actual.map(p.normalize).toList(),
+      expected.map(p.normalize).toList(),
+    );
+  }
+
   group('FileProvider.stripRomExtension', () {
     test('strips known common ROM extensions', () {
       expect(FileProvider.stripRomExtension('game.zip'), 'game');
@@ -139,7 +146,7 @@ void main() {
     });
 
     test('returns nothing for a system with no recorded ES-DE media dir', () {
-      expectPaths(
+      expect(
         provider.getEsdeMediaCandidates('nes', 'box2d', 'mario.nes'),
         isEmpty,
       );
@@ -258,7 +265,7 @@ void main() {
     test('returns nothing for a system with no recorded ES-DE media dir', () {
       // getVideoPath keys on this to skip the existence checks entirely, so an
       // empty list is the contract, not just an absence of candidates.
-      expectPaths(provider.getEsdeVideoCandidates('nes', 'mario.nes'), isEmpty);
+      expect(provider.getEsdeVideoCandidates('nes', 'mario.nes'), isEmpty);
     });
   });
 }

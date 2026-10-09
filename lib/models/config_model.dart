@@ -77,6 +77,9 @@ class ConfigModel {
   /// Whether hidden files/folders (dot-prefixed) should be ignored during ROM scan.
   final bool ignoreHiddenFiles;
 
+  /// Ignore leading English articles when ordering game titles.
+  final bool ignoreArticlesInGameSort;
+
   /// Whether the initial onboarding/setup process has been finished.
   final bool setupCompleted;
 
@@ -275,6 +278,7 @@ class ConfigModel {
     this.bartopExitPoweroff = false,
     this.scanOnStartup = true,
     this.ignoreHiddenFiles = true,
+    this.ignoreArticlesInGameSort = false,
     this.setupCompleted = false,
     this.hideBottomScreen = false,
     this.videoSound = false,
@@ -408,6 +412,10 @@ class ConfigModel {
       systemSortOrder:
           (json['systemSortOrder'] ?? json['system_sort_order'] ?? 'asc')
               .toString(),
+      ignoreArticlesInGameSort: [true, 1, '1', 'true'].contains(
+        json['ignoreArticlesInGameSort'] ??
+            json['ignore_articles_in_game_sort'],
+      ),
       collectionSortBy:
           (json['collectionSortBy'] ?? json['collection_sort_by'] ?? 'name')
               .toString(),
@@ -632,6 +640,7 @@ class ConfigModel {
       'bartopExitPoweroff': bartopExitPoweroff,
       'scanOnStartup': scanOnStartup,
       'ignoreHiddenFiles': ignoreHiddenFiles,
+      'ignoreArticlesInGameSort': ignoreArticlesInGameSort,
       'setupCompleted': setupCompleted,
       'hideBottomScreen': hideBottomScreen,
       'videoSound': videoSound,
@@ -692,6 +701,7 @@ class ConfigModel {
     bool? bartopExitPoweroff,
     bool? scanOnStartup,
     bool? ignoreHiddenFiles,
+    bool? ignoreArticlesInGameSort,
     bool? setupCompleted,
     bool? hideBottomScreen,
     bool? videoSound,
@@ -750,6 +760,8 @@ class ConfigModel {
       bartopExitPoweroff: bartopExitPoweroff ?? this.bartopExitPoweroff,
       scanOnStartup: scanOnStartup ?? this.scanOnStartup,
       ignoreHiddenFiles: ignoreHiddenFiles ?? this.ignoreHiddenFiles,
+      ignoreArticlesInGameSort:
+          ignoreArticlesInGameSort ?? this.ignoreArticlesInGameSort,
       setupCompleted: setupCompleted ?? this.setupCompleted,
       hideBottomScreen: hideBottomScreen ?? this.hideBottomScreen,
       videoSound: videoSound ?? this.videoSound,

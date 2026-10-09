@@ -272,6 +272,10 @@ class _GamesCarouselState extends State<GamesCarousel> {
     widget.games,
     folderCount: widget.folderCount,
     favoritesLabel: _favoritesLabel,
+    ignoreArticles: context
+        .read<SqliteConfigProvider>()
+        .config
+        .ignoreArticlesInGameSort,
   );
 
   /// The bar's group for the entry at [index].
@@ -283,7 +287,13 @@ class _GamesCarouselState extends State<GamesCarousel> {
     if (index < widget.folderCount + _favoritesRunLength) {
       return _favoritesLabel;
     }
-    return letterGroupOf(widget.games[index]);
+    return letterGroupOf(
+      widget.games[index],
+      ignoreArticles: context
+          .read<SqliteConfigProvider>()
+          .config
+          .ignoreArticlesInGameSort,
+    );
   }
 
   int _getFirstGameIndexForLetter(String letter) {
@@ -297,7 +307,16 @@ class _GamesCarouselState extends State<GamesCarousel> {
       i < widget.games.length;
       i++
     ) {
-      if (letterGroupOf(widget.games[i]) == letter) return i;
+      if (letterGroupOf(
+            widget.games[i],
+            ignoreArticles: context
+                .read<SqliteConfigProvider>()
+                .config
+                .ignoreArticlesInGameSort,
+          ) ==
+          letter) {
+        return i;
+      }
     }
     return 0;
   }

@@ -13,6 +13,7 @@ import '../../models/emulator_model.dart';
 import '../../models/core_emulator_model.dart';
 // import '../models/neo_sync_models.dart'; // Removido si no se usa directamente aquí
 import '../../models/database_game_model.dart';
+import '../../models/romm_link_row.dart';
 import '../../constants/system_folder_names.dart';
 import '../../utils/cloud_path_builder.dart';
 import '../../utils/semaphore.dart';
@@ -459,7 +460,7 @@ class SqliteService {
   SqliteService._internal();
 
   // Database configuration
-  static const int _databaseVersion = 165;
+  static const int _databaseVersion = 170;
   static const String _databaseName = 'data.sqlite';
 
   DatabaseAdapter? _database;
@@ -1919,6 +1920,7 @@ class SqliteService {
         sfx_enabled INTEGER DEFAULT 1,
         sfx_volume REAL DEFAULT 0.75,
         system_sort_by TEXT DEFAULT 'alphabetical',
+        ignore_articles_in_game_sort INTEGER DEFAULT 0,
         collection_sort_by TEXT DEFAULT 'name',
         collection_sort_order TEXT DEFAULT 'asc',
         system_sort_order TEXT DEFAULT 'asc',
@@ -2014,6 +2016,9 @@ class SqliteService {
         rom_crc32 TEXT,
         rom_size INTEGER,
         rom_fingerprint_skipped TEXT,
+        -- ScreenScraper game the user picked by hand (Identify…); NULL means
+        -- match automatically. See migration v165.
+        ss_manual_game_id INTEGER,
         id_ra INTEGER,
         ra_match_source TEXT,
         ra_hash_skipped TEXT,
@@ -2713,22 +2718,35 @@ class SqliteService {
   }
 
   /// Deletes all ROM records associated with a specific directory prefix.
+  ///
+  /// Compares prefixes with `substr` rather than `LIKE`: `%` and `_` in the
+  /// folder (every SAF tree URI is full of `%` escapes) would be wildcards, and
+  /// `LIKE` ignores case, so removing one folder deleted the games of others
+  /// that only looked alike. `substr` counts characters, hence the folder's
+  /// length in runes, not UTF-16 units. Handles both `/` and `\` separators.
   static Future<int> deleteRomsByFolderPath(String folderPath) async {
+    if (folderPath.isEmpty) return 0;
+    final base = folderPath.replaceFirst(RegExp(r'[/\\]+$'), '');
     final db = await instance.database;
-
-    // Remove ROM entries where the path starts with the specified folder.
-    // Handles both SAF URI separators (/) and Windows path separators (\).
+    if (base.isEmpty) {
+      // A folder at the filesystem root ("/"): every path under it.
+      return await db.delete(
+        'user_roms',
+        where: "substr(rom_path, 1, 1) IN ('/', '\\')",
+      );
+    }
     return await db.delete(
       'user_roms',
-      where: 'rom_path LIKE ? OR rom_path LIKE ? OR rom_path = ?',
-      whereArgs: ['$folderPath/%', '$folderPath\\%', folderPath],
+      where: 'rom_path = ? OR substr(rom_path, 1, ?) IN (?, ?)',
+      whereArgs: [base, base.runes.length + 1, '$base/', '$base\\'],
     );
   }
 
   /// Whether any `user_roms` row lives under the ROM root [folderPath].
   ///
   /// Compares prefixes with `substr` rather than `LIKE`: SAF tree URIs are
-  /// full of `%` escapes, which `LIKE` would read as wildcards.
+  /// full of `%` escapes, which `LIKE` would read as wildcards. `substr` counts
+  /// characters, hence the length in runes.
   static Future<bool> hasRomsUnderFolder(String folderPath) async {
     final base = folderPath.replaceFirst(RegExp(r'[/\\]+$'), '');
     if (base.isEmpty) return false;
@@ -2736,7 +2754,7 @@ class SqliteService {
     final rows = await db.rawQuery(
       'SELECT EXISTS(SELECT 1 FROM user_roms WHERE rom_path = ? '
       'OR substr(rom_path, 1, ?) IN (?, ?)) AS present',
-      [base, base.length + 1, '$base/', '$base\\'],
+      [base, base.runes.length + 1, '$base/', '$base\\'],
     );
     return rows.isNotEmpty && rows.first['present'] == 1;
   }
@@ -2769,6 +2787,7 @@ class SqliteService {
     int? bartopExitPoweroff,
     int? scanOnStartup,
     int? ignoreHiddenFiles,
+    int? ignoreArticlesInGameSort,
     int? setupCompleted,
     int? hideBottomScreen,
     int? sfxEnabled,
@@ -2870,6 +2889,9 @@ class SqliteService {
     }
     if (systemSortOrder != null) {
       updates['system_sort_order'] = systemSortOrder;
+    }
+    if (ignoreArticlesInGameSort != null) {
+      updates['ignore_articles_in_game_sort'] = ignoreArticlesInGameSort;
     }
     if (collectionSortBy != null) {
       updates['collection_sort_by'] = collectionSortBy;
@@ -4574,6 +4596,30 @@ class SqliteService {
       ORDER BY ur.is_favorite DESC, LOWER(game_display_name) ASC
     ''');
     return results.map((row) => DatabaseGameModel.fromJson(row)).toList();
+  }
+
+  /// Every scanned game as `(filename, romname, system folder)` — the columns
+  /// the RomM link pass matches on, and nothing else.
+  ///
+  /// Deliberately not [getAllGames]: that query joins the metadata table,
+  /// runs a correlated subquery per row and sorts by `LOWER(...)` over the
+  /// whole library, all of which the pass throws away. On a large Android
+  /// library it is the difference between a scan of two indexed columns and
+  /// several hundred milliseconds of work on the platform thread.
+  static Future<List<RommLinkRow>> getRommLinkRows() async {
+    final db = await instance.database;
+    final results = await db.rawQuery('''
+      SELECT ur.filename, s.folder_name AS system_folder
+      FROM user_roms ur
+      JOIN app_systems s ON ur.app_system_id = s.id
+    ''');
+    return [
+      for (final row in results)
+        rommLinkRow(
+          filename: row['filename']?.toString() ?? '',
+          systemFolder: row['system_folder']?.toString() ?? '',
+        ),
+    ];
   }
 
   /// Retrieves only games marked as favorites across all registered systems.

@@ -42,6 +42,7 @@ import '../../utils/rom_tree.dart';
 import '../../utils/game_list_size.dart';
 import 'game_details_card/game_details_card_list.dart';
 import 'game_details_card/detail_tab.dart';
+import 'game_details_card/dialogs/screenscraper_match_picker_dialog.dart';
 import 'game_details_card/random_game_dialog.dart';
 import 'game_settings_dialog/game_settings_dialog.dart';
 import '../../services/system_switch_animation_preferences.dart';
@@ -165,6 +166,12 @@ class _SystemGamesListState extends State<SystemGamesList> {
 
   // Dataset management.
   List<GameModel> _games = [];
+  bool _lastIgnoreArticles = false;
+
+  bool get _ignoreArticles => _configProvider.config.ignoreArticlesInGameSort;
+
+  int _compareGames(GameModel a, GameModel b) =>
+      _byFavouriteThenName(a, b, ignoreArticles: _ignoreArticles);
   Map<GameModel, int> _gameIndexMap = {};
   GameModel? _selectedGame;
 
@@ -251,6 +258,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
       games: _allGames,
       rootFolders: _subfolderRoots,
       currentRelPath: _currentRelPath,
+      ignoreArticles: _ignoreArticles,
     );
 
     final folders = <RomFolderEntry>[];
@@ -456,6 +464,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
 
     _configProvider = context.read<SqliteConfigProvider>();
     _configProvider.addListener(_onConfigChanged);
+    _lastIgnoreArticles = _ignoreArticles;
 
     _scrapingProvider = context.read<ScrapingProvider>();
     _lastArtworkRevision = _scrapingProvider.artworkRevision;
@@ -588,6 +597,10 @@ class _SystemGamesListState extends State<SystemGamesList> {
   void _onConfigChanged() {
     if (!mounted) return;
     final configProvider = context.read<SqliteConfigProvider>();
+    if (_lastIgnoreArticles != _ignoreArticles) {
+      _lastIgnoreArticles = _ignoreArticles;
+      _loadGames();
+    }
     final newShowInfo = configProvider.config.showGameInfo;
     final gameViewMode = configProvider.config.gameViewMode;
     final gameListSize = configProvider.config.gameListSize;
@@ -757,7 +770,9 @@ class _SystemGamesListState extends State<SystemGamesList> {
     // Resolve current alphabetical letter for navigation overlays. Folder rows
     // sit outside the alphabet, so they show no letter at all.
     final game = _games[newIndex];
-    final letter = _isFolderEntry(game) ? null : LetterJump.letterFor(game);
+    final letter = _isFolderEntry(game)
+        ? null
+        : LetterJump.letterFor(game, ignoreArticles: _ignoreArticles);
 
     setState(() {
       _selectedGameIndex = newIndex;
@@ -1856,6 +1871,7 @@ class _SystemGamesListState extends State<SystemGamesList> {
       games: _allGames,
       rootFolders: _subfolderRoots,
       folderRelPath: folderRelPath,
+      ignoreArticles: _ignoreArticles,
     ).toList()..shuffle(Random(folderRelPath.hashCode));
     final covers = <File>[];
     for (final game in games) {
@@ -2201,7 +2217,10 @@ class _SystemGamesListState extends State<SystemGamesList> {
   /// view-mode-independent path drives the same [ScreenScraperService] flow and
   /// feeds the [_scrapingGameRomnames]/[_scrapeProgress] overlay maps that those
   /// grids already render. Bound to the Select + A chord in those views.
-  Future<void> _scrapeSelectedGame() async {
+  ///
+  /// With [identifyAs], the ROM is first pointed at that ScreenScraper game
+  /// (Identify…) and scraped from it, overwriting what was there.
+  Future<void> _scrapeSelectedGame({int? identifyAs}) async {
     final game = _selectedGame;
     if (game == null || _isScrapingSelectedGame) return;
     if (_isFolderEntry(game)) return;
@@ -2267,28 +2286,40 @@ class _SystemGamesListState extends State<SystemGamesList> {
           .trim()
           .isNotEmpty;
 
-      final result = await ScreenScraperService.scrapeSingleGame(
-        appSystemId: scrapeSystemId,
-        romName: game.romname,
-        systemFolder: targetSystemFolder,
-        romPath: game.romPath ?? '',
-        gameName: game.name,
-        forceOverwrite: forceOverwrite,
-        onProgress: (statusKey, progress) {
-          if (!mounted) return;
-          final localizedStatus = statusKey.getString(context);
-          setState(() {
-            _scrapeProgress[game.romname] = progress;
-            _selectedScrapeStatus = localizedStatus;
-          });
-          if (secondaryState != null && isSecondaryActive) {
-            secondaryState.updateState(
-              scrapeStatus: localizedStatus,
-              scrapeProgress: progress,
+      void onProgress(String statusKey, double progress) {
+        if (!mounted) return;
+        final localizedStatus = statusKey.getString(context);
+        setState(() {
+          _scrapeProgress[game.romname] = progress;
+          _selectedScrapeStatus = localizedStatus;
+        });
+        if (secondaryState != null && isSecondaryActive) {
+          secondaryState.updateState(
+            scrapeStatus: localizedStatus,
+            scrapeProgress: progress,
+          );
+        }
+      }
+
+      final result = identifyAs != null
+          ? await ScreenScraperService.identifyGame(
+              appSystemId: scrapeSystemId,
+              romName: game.romname,
+              systemFolder: targetSystemFolder,
+              romPath: game.romPath ?? '',
+              gameId: identifyAs,
+              gameName: game.name,
+              onProgress: onProgress,
+            )
+          : await ScreenScraperService.scrapeSingleGame(
+              appSystemId: scrapeSystemId,
+              romName: game.romname,
+              systemFolder: targetSystemFolder,
+              romPath: game.romPath ?? '',
+              gameName: game.name,
+              forceOverwrite: forceOverwrite,
+              onProgress: onProgress,
             );
-          }
-        },
-      );
 
       if (!mounted) return;
       if (result['success'] == true) {
@@ -2343,5 +2374,48 @@ class _SystemGamesListState extends State<SystemGamesList> {
         }
       }
     }
+  }
+
+  /// Identify… from the Y menu: lets the user search ScreenScraper for the
+  /// selected game and point it at the right one, then scrapes that game
+  /// through [_scrapeSelectedGame] so it gets the same progress and refresh.
+  Future<void> _identifySelectedGame() async {
+    final game = _selectedGame;
+    if (game == null || _isScrapingSelectedGame) return;
+    if (_isFolderEntry(game)) return;
+
+    // The game's own system, as in [_scrapeSelectedGame].
+    final systemId = game.systemId ?? widget.system.id;
+    final romPath = game.romPath;
+    if (systemId == null || romPath == null || romPath.isEmpty) return;
+
+    final currentGameId = await ScreenScraperService.getIdentifiedGameId(
+      romPath,
+    );
+    if (!mounted) return;
+
+    final choice = await ScreenScraperMatchPickerDialog.show(
+      context,
+      game: game,
+      appSystemId: systemId,
+      currentGameId: currentGameId,
+    );
+    if (choice == null || !mounted) return;
+
+    final picked = choice.game;
+    if (picked != null) {
+      await _scrapeSelectedGame(identifyAs: picked.id);
+      return;
+    }
+
+    final cleared = await ScreenScraperService.clearIdentifiedGame(romPath);
+    if (!mounted) return;
+    AppNotification.showNotification(
+      context,
+      cleared
+          ? AppLocale.raFixMatchUpdated.getString(context)
+          : AppLocale.failedToSaveSetting.getString(context),
+      type: cleared ? NotificationType.success : NotificationType.error,
+    );
   }
 }

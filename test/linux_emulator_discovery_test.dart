@@ -243,7 +243,7 @@ void main() {
         isNull,
       );
     });
-  });
+  }, skip: Platform.isWindows ? 'Requires POSIX executable permissions' : false);
 
   group('RetroArch core arguments', () {
     test('rewrites a bare core filename to an absolute path', () async {
@@ -340,7 +340,7 @@ void main() {
         await LinuxEmulatorDiscovery.resolveRetroArchCoresDir(
           p.join(home.path, 'Emulation/tools/launchers/retroarch.sh'),
         ),
-        flatpakCores.path,
+        p.normalize(flatpakCores.path),
       );
     });
 
@@ -352,7 +352,7 @@ void main() {
         await LinuxEmulatorDiscovery.resolveRetroArchCoresDir(
           p.join(home.path, 'bin/retroarch'),
         ),
-        cores.path,
+        p.normalize(cores.path),
       );
     });
 

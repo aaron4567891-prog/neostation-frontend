@@ -76,7 +76,7 @@ void main() {
       expect(rows, hasLength(1));
       expect(
         rows.single['rom_path'],
-        p.normalize('${root.path}/gc/18 Wheeler.rvz'),
+        p.join(root.path, 'gc', '18 Wheeler.rvz'),
       );
     });
 
@@ -119,7 +119,7 @@ void main() {
         expect(rows, hasLength(1));
         expect(
           rows.single['rom_path'],
-          p.normalize('${real.path}/Wave Race.rvz'),
+          p.normalize(p.join(real.path, 'Wave Race.rvz')),
         );
       },
     );
@@ -188,7 +188,7 @@ void main() {
       expect(rows, hasLength(1));
       expect(
         rows.single['rom_path'],
-        p.normalize('${root.path}/gc/18 Wheeler.rvz'),
+        p.join(root.path, 'gc', '18 Wheeler.rvz'),
       );
       expect(rows.single['is_favorite'], 1);
       expect(rows.single['play_time'], 900);

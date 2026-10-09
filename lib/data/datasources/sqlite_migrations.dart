@@ -38,13 +38,15 @@ class SqliteMigrations {
     );
   ''';
 
-  /// CREATE for the local-game → RomM rom_id save-sync map (v111).
+  /// CREATE for the local-game → RomM rom_id save-sync map (v111;
+  /// `link_source` added in v161).
   static const String createAppRommRomMapTableSql = '''
     CREATE TABLE IF NOT EXISTS app_romm_rom_map (
       romname TEXT NOT NULL,
       system_folder TEXT NOT NULL,
       romm_rom_id INTEGER NOT NULL,
       romm_fs_name TEXT,
+      link_source TEXT,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (romname, system_folder)
     );
@@ -629,6 +631,22 @@ class SqliteMigrations {
         break;
       case 165:
         await _migrateToVersion165(db);
+        break;
+      case 166:
+        // Preserve main's v166 sorting backfill; personal v164 is list size.
+        await _migrateToVersion168(db);
+        break;
+      case 167:
+        await _migrateToVersion167(db);
+        break;
+      case 168:
+        await _migrateToVersion168(db);
+        break;
+      case 169:
+        await _migrateToVersion169(db);
+        break;
+      case 170:
+        await _migrateToVersion170(db);
         break;
       default:
         _log.w('No migration defined for version $version');
@@ -7161,5 +7179,100 @@ class SqliteMigrations {
         'INTEGER DEFAULT 0',
       );
     }
+  }
+
+  /// Personal v164 is already shipped, so upstream sorting moves to v168.
+  /// Migration v168: persists optional article-insensitive game sorting.
+  static Future<void> _migrateToVersion168(Database db) async {
+    final columns = db
+        .select('PRAGMA table_info(user_config)')
+        .map((row) => row['name'].toString())
+        .toSet();
+    if (!columns.contains('ignore_articles_in_game_sort')) {
+      db.execute(
+        'ALTER TABLE user_config ADD COLUMN ignore_articles_in_game_sort INTEGER DEFAULT 0',
+      );
+    }
+  }
+
+  /// Personal v163 is already shipped, so upstream link provenance moves to v167.
+  /// Migration v167: Adds `app_romm_rom_map.link_source`, recording which
+  /// writer produced a RomM link row (`download`, `auto`, or `manual`).
+  ///
+  /// Existing rows are left null and read as automatic: both the download
+  /// path and the automatic link paths populate `romm_fs_name`, so no backfill
+  /// could tell them apart, and only `manual` changes behaviour. Nullable and
+  /// guarded by `PRAGMA table_info`, so a re-run is a no-op. A database that
+  /// skipped v119 (no map table at all) gets the table from its CREATE, which
+  /// already carries the column.
+  ///
+  /// Main shipped this as v163, which the personal branch already uses for
+  /// its settings backfill. The new slot reaches devices from either history.
+  static Future<void> _migrateToVersion167(Database db) async {
+    _log.i('Migration v167: Adding link_source to app_romm_rom_map');
+    try {
+      final tableInfo = db.select('PRAGMA table_info(app_romm_rom_map)');
+      final columns = tableInfo.map((c) => c['name'].toString()).toList();
+      if (columns.isEmpty) {
+        db.execute(createAppRommRomMapTableSql);
+        db.execute(createAppRommRomMapIndexSql);
+        _log.i('Table app_romm_rom_map created with link_source via v167');
+      } else if (!columns.contains('link_source')) {
+        db.execute('ALTER TABLE app_romm_rom_map ADD COLUMN link_source TEXT');
+        _log.i('Column link_source added via v167');
+      } else {
+        _log.i('Column link_source already exists');
+      }
+      _log.i('Migration v167 completed');
+    } catch (e, stackTrace) {
+      _log.e('Error in migration v167: $e');
+      _log.e('   StackTrace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Personal v165 is already shipped, so upstream manual matching moves to v169.
+  /// Migration v169: adds `user_roms.ss_manual_game_id`, the ScreenScraper game
+  /// a user picked by hand for a ROM with Identify….
+  ///
+  /// Matching by dump hash or filename cannot reach every ROM: hacks,
+  /// translations and untidy names match the wrong game or none at all. Once
+  /// the user has pointed a ROM at the right game, every later scrape asks for
+  /// that game by id, so a bulk "all content" pass cannot put the wrong one
+  /// back. NULL means match automatically, which is every existing row.
+  ///
+  /// Main shipped this as v165, which the personal branch uses for the Android
+  /// Apps tab. Re-run the guarded link-source migration as well for installs
+  /// that skipped it in an earlier branch.
+  static Future<void> _migrateToVersion169(Database db) async {
+    await _migrateToVersion167(db);
+    _log.i('Migration v169: Adding ss_manual_game_id to user_roms');
+    try {
+      final tableInfo = db.select('PRAGMA table_info(user_roms)');
+      final columns = tableInfo.map((c) => c['name'].toString()).toList();
+      if (!columns.contains('ss_manual_game_id')) {
+        db.execute(
+          'ALTER TABLE user_roms ADD COLUMN ss_manual_game_id INTEGER',
+        );
+        _log.i('Column ss_manual_game_id added via v169');
+      } else {
+        _log.i('Column ss_manual_game_id already exists');
+      }
+      _log.i('Migration v169 completed');
+    } catch (e, stackTrace) {
+      _log.e('Error in migration v169: $e');
+      _log.e('   StackTrace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  /// Backfills both histories for devices already at personal v165 or main v166.
+  /// The guarded additions preserve existing settings, ROMs, and manual links.
+  static Future<void> _migrateToVersion170(Database db) async {
+    await _migrateToVersion163(db);
+    await _migrateToVersion165(db);
+    await _migrateToVersion167(db);
+    await _migrateToVersion168(db);
+    await _migrateToVersion169(db);
   }
 }

@@ -77,58 +77,66 @@ void main() {
     });
   });
 
-  group('androidVolumeRoot', () {
-    test('primary shared storage is the volume, not the folder on it', () {
-      expect(
-        StorageSpaceService.androidVolumeRoot(
-          '/storage/emulated/0/Emulation/roms/snes',
-        ),
-        '/storage/emulated/0',
-      );
-      // A second Android user is a different volume root.
-      expect(
-        StorageSpaceService.androidVolumeRoot('/storage/emulated/10/roms'),
-        '/storage/emulated/10',
-      );
-    });
+  group(
+    'androidVolumeRoot',
+    () {
+      test('primary shared storage is the volume, not the folder on it', () {
+        expect(
+          StorageSpaceService.androidVolumeRoot(
+            '/storage/emulated/0/Emulation/roms/snes',
+          ),
+          '/storage/emulated/0',
+        );
+        // A second Android user is a different volume root.
+        expect(
+          StorageSpaceService.androidVolumeRoot('/storage/emulated/10/roms'),
+          '/storage/emulated/10',
+        );
+      });
 
-    test('a removable volume is identified by its UUID', () {
-      expect(
-        StorageSpaceService.androidVolumeRoot('/storage/1A2B-3C4D/roms/psx'),
-        '/storage/1A2B-3C4D',
-      );
-    });
+      test('a removable volume is identified by its UUID', () {
+        expect(
+          StorageSpaceService.androidVolumeRoot('/storage/1A2B-3C4D/roms/psx'),
+          '/storage/1A2B-3C4D',
+        );
+      });
 
-    test('an SD card and internal storage are never the same volume', () {
-      // The bug this whole mechanism exists for: two ROM folders whose free
-      // space has nothing to do with each other.
-      expect(
-        StorageSpaceService.androidVolumeRoot('/storage/emulated/0/roms'),
-        isNot(StorageSpaceService.androidVolumeRoot('/storage/1A2B-3C4D/roms')),
-      );
-    });
+      test('an SD card and internal storage are never the same volume', () {
+        // The bug this whole mechanism exists for: two ROM folders whose free
+        // space has nothing to do with each other.
+        expect(
+          StorageSpaceService.androidVolumeRoot('/storage/emulated/0/roms'),
+          isNot(
+            StorageSpaceService.androidVolumeRoot('/storage/1A2B-3C4D/roms'),
+          ),
+        );
+      });
 
-    test('the /sdcard symlink is primary storage under another name', () {
-      expect(
-        StorageSpaceService.androidVolumeRoot('/sdcard/roms/nes'),
-        '/storage/emulated/0',
-      );
-      expect(
-        StorageSpaceService.androidVolumeRoot('/sdcard'),
-        '/storage/emulated/0',
-      );
-    });
+      test('the /sdcard symlink is primary storage under another name', () {
+        expect(
+          StorageSpaceService.androidVolumeRoot('/sdcard/roms/nes'),
+          '/storage/emulated/0',
+        );
+        expect(
+          StorageSpaceService.androidVolumeRoot('/sdcard'),
+          '/storage/emulated/0',
+        );
+      });
 
-    test('a path of no known shape stands alone', () {
-      // Unknown shape means "assume nothing": the path is its own volume, so it
-      // is checked on its own rather than pooled with something unrelated.
-      expect(
-        StorageSpaceService.androidVolumeRoot('/data/user/0/app/files'),
-        '/data/user/0/app/files',
-      );
-      expect(StorageSpaceService.androidVolumeRoot('/storage'), '/storage');
-    });
-  });
+      test('a path of no known shape stands alone', () {
+        // Unknown shape means "assume nothing": the path is its own volume, so it
+        // is checked on its own rather than pooled with something unrelated.
+        expect(
+          StorageSpaceService.androidVolumeRoot('/data/user/0/app/files'),
+          '/data/user/0/app/files',
+        );
+        expect(StorageSpaceService.androidVolumeRoot('/storage'), '/storage');
+      });
+    },
+    skip: Platform.isWindows
+        ? 'Android volume paths require POSIX path semantics'
+        : false,
+  );
 
   group('volumeFor', () {
     test('an empty path has no answer', () async {

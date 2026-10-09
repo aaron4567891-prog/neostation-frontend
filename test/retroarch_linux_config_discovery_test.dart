@@ -22,14 +22,20 @@ void main() {
       expect(
         candidates.any(
           (c) => c.contains(
-            p.normalize('.var/app/org.libretro.RetroArch/config/retroarch'),
+            p.join(
+              '.var',
+              'app',
+              'org.libretro.RetroArch',
+              'config',
+              'retroarch',
+            ),
           ),
         ),
         isTrue,
         reason: 'the Flatpak/EmuDeck config location must be probed',
       );
       expect(
-        candidates.any((c) => c.contains(p.normalize('.config/retroarch'))),
+        candidates.any((c) => c.contains(p.join('.config', 'retroarch'))),
         isTrue,
         reason: 'the native XDG location must still be probed',
       );
@@ -49,7 +55,7 @@ void main() {
 
       expect(
         candidates.first,
-        contains(p.normalize('.var/app/org.libretro.RetroArch')),
+        contains(p.join('.var', 'app', 'org.libretro.RetroArch')),
       );
     });
 
@@ -58,7 +64,7 @@ void main() {
         exePath: '/usr/bin/retroarch',
       );
 
-      expect(candidates.first, contains(p.normalize('.config/retroarch')));
+      expect(candidates.first, contains(p.join('.config', 'retroarch')));
     });
 
     test('falls back to the Flatpak config when no native one exists', () {
@@ -73,7 +79,7 @@ void main() {
       expect(candidates.length, greaterThanOrEqualTo(2));
       expect(
         candidates.any(
-          (c) => c.contains(p.normalize('.var/app/org.libretro.RetroArch')),
+          (c) => c.contains(p.join('.var', 'app', 'org.libretro.RetroArch')),
         ),
         isTrue,
       );

@@ -394,6 +394,9 @@ class GamepadNavigation {
 
   bool _keyboardInitialized = false;
 
+  /// Set by [dispose]; a disposed navigator never starts listening again.
+  bool _disposed = false;
+
   bool get isAndroid => Platform.isAndroid;
   bool get isWindows => Platform.isWindows;
   bool get isLinux => Platform.isLinux;
@@ -440,6 +443,11 @@ class GamepadNavigation {
 
     await _initializeGamepadInfo();
     _focusTrace('device enumeration complete; subscribing');
+
+    // The owner may have been disposed while the gamepad list was loading — a
+    // screen opened and closed straight away. Subscribing now would attach a
+    // handler that nothing will ever remove.
+    if (_disposed) return;
 
     _subscription = Gamepads.events.listen(
       (event) {
@@ -713,6 +721,8 @@ class GamepadNavigation {
   void dispose() {
     _focusTrace('dispose');
     _cancelLeftBumperHold();
+    _disposed = true;
+    _isActive = false;
     _subscription?.cancel();
     _subscription = null;
     _resetSelectModifier();
@@ -724,7 +734,10 @@ class GamepadNavigation {
       _stopShoulderHold();
     }
 
-    if (_keyboardInitialized && isDesktop) {
+    // Removed wherever it was added — every platform, Android included.
+    // Leaving it attached kept every closed screen's navigator (and the State
+    // its callbacks capture) running on each key event for the whole session.
+    if (_keyboardInitialized) {
       ServicesBinding.instance.keyboard.removeHandler(_handleKeyEvent);
       _keyboardInitialized = false;
     }
@@ -788,8 +801,9 @@ class GamepadNavigation {
       }
 
       if (_debugLogging) {
+        // `input`, not `key`: the log redactor treats `key=` as a credential.
         _log.i(
-          '[GamepadRaw] gamepad="${event.gamepadId}" key="${event.key}" '
+          '[GamepadRaw] gamepad="${event.gamepadId}" input="${event.key}" '
           'type=${event.type.name} value=${event.value.toStringAsFixed(4)}',
         );
       }
@@ -1275,8 +1289,9 @@ class GamepadNavigation {
     }
 
     if (_debugLogging) {
+      // `input`, not `key`: the log redactor treats `key=` as a credential.
       _log.i(
-        '[KeyboardRaw] key="${event.logicalKey.keyLabel}" '
+        '[KeyboardRaw] input="${event.logicalKey.keyLabel}" '
         'physical="${event.physicalKey.usbHidUsage.toRadixString(16)}" '
         '${isKeyDown ? "DOWN" : "UP"}',
       );

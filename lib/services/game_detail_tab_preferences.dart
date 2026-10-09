@@ -59,6 +59,5 @@ class GameDetailTabPreferences extends ChangeNotifier {
     DetailTab.screenshotVideo => 'Screenshot',
     DetailTab.gameInfo => 'Game information',
     DetailTab.achievements => 'Achievements',
-    DetailTab.leaderboards => 'Leaderboards',
   };
 }
