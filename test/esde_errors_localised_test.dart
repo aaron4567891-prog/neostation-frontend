@@ -12,8 +12,10 @@ void main() {
   final settings = File(
     'lib/screens/settings_screen/new_settings_options/'
     'directories_settings_content.dart',
-  ).readAsStringSync();
-  final wizard = File('lib/widgets/setup_wizard.dart').readAsStringSync();
+  ).readAsStringSync().replaceAll('\r\n', '\n');
+  final wizard = File(
+    'lib/widgets/setup_wizard.dart',
+  ).readAsStringSync().replaceAll('\r\n', '\n');
 
   // The body of a class method: from its signature to the closing brace at
   // the class member indent.

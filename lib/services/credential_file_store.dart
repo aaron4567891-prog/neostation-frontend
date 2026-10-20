@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path/path.dart' as path;
 import 'package:pointycastle/export.dart';
 
@@ -26,7 +27,20 @@ import 'logger_service.dart';
 /// build has always used. SteamOS uses this store by default; other desktops
 /// use it when the real keychain fails.
 class CredentialFileStore implements CredentialBackend {
-  CredentialFileStore(this.directory);
+  CredentialFileStore(this.directory)
+    : _renameOverride = null,
+      _windowsOverride = null;
+
+  @visibleForTesting
+  CredentialFileStore.forTesting(
+    this.directory, {
+    required Future<File> Function(File, String) rename,
+    required bool windows,
+  }) : _renameOverride = rename,
+       _windowsOverride = windows;
+
+  final Future<File> Function(File, String)? _renameOverride;
+  final bool? _windowsOverride;
 
   /// Directory holding the credential file. This is the user-data directory, so
   /// credentials share the lifetime of the database that stores the matching
@@ -166,7 +180,27 @@ class CredentialFileStore implements CredentialBackend {
     final temp = File('${_file.path}.tmp');
     await temp.writeAsString(envelope, flush: true);
     await _restrictToOwner(temp);
-    await temp.rename(_file.path);
+    // Windows scanners can briefly hold either file without sharing delete
+    // access. Retry only sharing/lock violations, never remove the old file:
+    // permanent errors must leave the last complete credentials recoverable.
+    for (var attempt = 0; ; attempt++) {
+      try {
+        if (_renameOverride != null) {
+          await _renameOverride(temp, _file.path);
+        } else {
+          await temp.rename(_file.path);
+        }
+        break;
+      } on FileSystemException catch (e) {
+        final code = e.osError?.errorCode;
+        if (!(_windowsOverride ?? Platform.isWindows) ||
+            (code != 32 && code != 33) ||
+            attempt >= 5) {
+          rethrow;
+        }
+        await Future<void>.delayed(Duration(milliseconds: 20 * (attempt + 1)));
+      }
+    }
   }
 
   GCMBlockCipher _cipher({

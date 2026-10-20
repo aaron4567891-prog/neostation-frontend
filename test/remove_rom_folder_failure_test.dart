@@ -151,7 +151,7 @@ void main() {
     final source = File(
       'lib/screens/settings_screen/new_settings_options/'
       'directories_settings_content.dart',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     String removal() {
       final start = source.indexOf('Future<void> _removeRomFolder(');
       expect(start, isNot(-1));

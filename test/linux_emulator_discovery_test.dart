@@ -16,13 +16,21 @@ import 'package:path/path.dart' as p;
 void main() {
   late Directory home;
   final systemLibretroDirs = LinuxEmulatorDiscovery.systemLibretroDirs;
+  final executables = <String>{};
+
+  String fixture(String relative) => p.normalize(p.join(home.path, relative));
+  Matcher samePath(String expected) => predicate<String>(
+    (actual) => p.equals(actual, expected),
+    'the same filesystem path as $expected',
+  );
 
   /// Creates an executable file, and the directories leading to it.
   File exe(String relativePath, [String contents = '#!/bin/bash\n']) {
-    final file = File(p.join(home.path, relativePath));
+    final file = File(fixture(relativePath));
     file.parent.createSync(recursive: true);
     file.writeAsStringSync(contents);
-    Process.runSync('chmod', ['+x', file.path]);
+    executables.add(file.path);
+    if (!Platform.isWindows) Process.runSync('chmod', ['+x', file.path]);
     return file;
   }
 
@@ -32,6 +40,13 @@ void main() {
     // Discovery is Linux-only in production; force it on so the resolution
     // order is exercised on any host, macOS included.
     LinuxEmulatorDiscovery.linuxOverride = true;
+    // Windows has no POSIX execute bits. Model those bits while still probing
+    // real fixture files; Linux/macOS keep testing their actual mode bits.
+    executables.clear();
+    if (Platform.isWindows) {
+      LinuxEmulatorDiscovery.runnableOverride = (file) async =>
+          executables.contains(p.normalize(file)) && await File(file).exists();
+    }
     // Point the removable-media scan at an empty fixture path by default, so a
     // test never depends on whether the host running it has an SD card mounted.
     LinuxEmulatorDiscovery.removableMediaRoot = p.join(home.path, 'no-media');
@@ -43,6 +58,8 @@ void main() {
   tearDown(() {
     LinuxEmulatorDiscovery.homeOverride = null;
     LinuxEmulatorDiscovery.linuxOverride = false;
+    LinuxEmulatorDiscovery.runnableOverride = null;
+    LinuxEmulatorDiscovery.directoryExistsOverride = null;
     LinuxEmulatorDiscovery.removableMediaRoot = '/run/media';
     LinuxEmulatorDiscovery.systemLibretroDirs = systemLibretroDirs;
     LinuxEmulatorDiscovery.invalidateCache();
@@ -59,7 +76,7 @@ void main() {
           flatpakId: 'org.libretro.RetroArch',
           emudeckLauncher: 'retroarch.sh',
         ),
-        completion(script.path),
+        completion(samePath(script.path)),
       );
     });
 
@@ -87,7 +104,7 @@ void main() {
             flatpakId: 'org.DolphinEmu.dolphin-emu',
             emudeckLauncher: 'dolphin-emu.sh',
           ),
-          script.path,
+          samePath(script.path),
         );
       },
     );
@@ -116,7 +133,7 @@ void main() {
           flatpakId: 'org.libretro.RetroArch',
           emudeckLauncher: 'retroarch.sh',
         ),
-        script.path,
+        samePath(script.path),
       );
     });
 
@@ -132,7 +149,7 @@ void main() {
           executable: 'pcsx2',
           emudeckLauncher: 'pcsx2-qt.sh',
         ),
-        script.path,
+        samePath(script.path),
       );
     });
 
@@ -147,7 +164,7 @@ void main() {
           executable: 'mame',
           emudeckLauncher: 'mame.sh',
         ),
-        script.path,
+        samePath(script.path),
       );
     });
 
@@ -165,8 +182,16 @@ void main() {
       final wrapper = exe(
         '.local/share/flatpak/exports/bin/org.libretro.RetroArch',
       );
-      addTearDown(() => Process.runSync('chmod', ['700', denied.path]));
-      Process.runSync('chmod', ['000', denied.path]);
+      // Deterministic even under root on Linux or without POSIX ACLs on
+      // Windows: this probe must be treated as unavailable, not abort launch.
+      var deniedProbed = false;
+      LinuxEmulatorDiscovery.directoryExistsOverride = (dir) async {
+        if (p.isWithin(denied.path, dir) || p.equals(dir, denied.path)) {
+          deniedProbed = true;
+          throw FileSystemException('Permission denied', dir);
+        }
+        return Directory(dir).exists();
+      };
 
       expect(
         await LinuxEmulatorDiscovery.resolveExecutable(
@@ -174,8 +199,9 @@ void main() {
           flatpakId: 'org.libretro.RetroArch',
           emudeckLauncher: 'retroarch.sh',
         ),
-        wrapper.path,
+        samePath(wrapper.path),
       );
+      expect(deniedProbed, isTrue);
     });
 
     test('falls back to the Flatpak export wrapper', () async {
@@ -189,7 +215,7 @@ void main() {
           flatpakId: 'org.libretro.RetroArch',
           emudeckLauncher: 'retroarch.sh',
         ),
-        wrapper.path,
+        samePath(wrapper.path),
       );
     });
 
@@ -203,7 +229,7 @@ void main() {
           flatpakId: 'org.azahar_emu.Azahar',
           emudeckLauncher: 'azahar.sh',
         ),
-        newest.path,
+        samePath(newest.path),
       );
     });
 
@@ -214,7 +240,7 @@ void main() {
         p.join(home.path, 'Emulation/tools/launchers/rpcs3.sh'),
       )..parent.createSync(recursive: true);
       script.writeAsStringSync('#!/bin/bash\n');
-      Process.runSync('chmod', ['-x', script.path]);
+      if (!Platform.isWindows) Process.runSync('chmod', ['-x', script.path]);
 
       final wrapper = exe('.local/share/flatpak/exports/bin/net.rpcs3.RPCS3');
 
@@ -224,7 +250,7 @@ void main() {
           flatpakId: 'net.rpcs3.RPCS3',
           emudeckLauncher: 'rpcs3.sh',
         ),
-        wrapper.path,
+        samePath(wrapper.path),
       );
     });
 
@@ -322,10 +348,7 @@ void main() {
   group('RetroArch cores directory', () {
     test('prefers the Flatpak config tree over a sibling cores dir', () async {
       final flatpakCores = Directory(
-        p.join(
-          home.path,
-          '.var/app/org.libretro.RetroArch/config/retroarch/cores',
-        ),
+        fixture('.var/app/org.libretro.RetroArch/config/retroarch/cores'),
       )..createSync(recursive: true);
       // A launcher script has a sibling directory that is *not* the cores dir.
       Directory(
@@ -336,19 +359,19 @@ void main() {
         await LinuxEmulatorDiscovery.resolveRetroArchCoresDir(
           p.join(home.path, 'Emulation/tools/launchers/retroarch.sh'),
         ),
-        flatpakCores.path,
+        samePath(flatpakCores.path),
       );
     });
 
     test('finds a native install cores dir next to the binary', () async {
-      final cores = Directory(p.join(home.path, 'bin/cores'))
+      final cores = Directory(fixture('bin/cores'))
         ..createSync(recursive: true);
 
       expect(
         await LinuxEmulatorDiscovery.resolveRetroArchCoresDir(
           p.join(home.path, 'bin/retroarch'),
         ),
-        cores.path,
+        samePath(cores.path),
       );
     });
 
@@ -361,7 +384,7 @@ void main() {
         await LinuxEmulatorDiscovery.resolveRetroArchCoresDir(
           p.join(home.path, 'nowhere/retroarch'),
         ),
-        systemCores.path,
+        samePath(systemCores.path),
       );
     });
 

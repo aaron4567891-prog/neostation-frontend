@@ -24,7 +24,7 @@ void main() {
   final source = File(
     'lib/screens/settings_screen/new_settings_options/'
     'tools_settings_content.dart',
-  ).readAsStringSync();
+  ).readAsStringSync().replaceAll('\r\n', '\n');
 
   // The body of a class method: from its signature to the closing brace at
   // the class member indent.

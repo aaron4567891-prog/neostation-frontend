@@ -10,10 +10,12 @@ import 'package:neostation/l10n/app_locale.dart';
 /// believing it was finishing. It now says so in a dialogue and lets the user
 /// try again.
 void main() {
-  final wizard = File('lib/widgets/setup_wizard.dart').readAsStringSync();
+  final wizard = File(
+    'lib/widgets/setup_wizard.dart',
+  ).readAsStringSync().replaceAll('\r\n', '\n');
   final wrapper = File(
     'lib/widgets/permission_check_wrapper.dart',
-  ).readAsStringSync();
+  ).readAsStringSync().replaceAll('\r\n', '\n');
 
   // The body of a class method: from its signature to the closing brace at
   // the class member indent.

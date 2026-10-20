@@ -11,7 +11,9 @@ import 'package:neostation/l10n/app_locale.dart';
 /// couldn't use. A scan that failed left the wizard stuck with Next disabled.
 /// Each now shows on screen, and a failed scan can be retried or skipped.
 void main() {
-  final wizard = File('lib/widgets/setup_wizard.dart').readAsStringSync();
+  final wizard = File(
+    'lib/widgets/setup_wizard.dart',
+  ).readAsStringSync().replaceAll('\r\n', '\n');
 
   // The body of a class method: from its signature to the closing brace at
   // the class member indent.
@@ -199,7 +201,7 @@ void main() {
       // the scan marked as running for good.
       final scanning = File(
         'lib/providers/sqlite_config_provider/scanning.dart',
-      ).readAsStringSync();
+      ).readAsStringSync().replaceAll('\r\n', '\n');
       final start = scanning.indexOf(
         '    _setScanning(true);\n    _error = null;',
       );
@@ -246,7 +248,7 @@ void main() {
   test('the desktop ROM folder picker title is translated', () {
     final scanning = File(
       'lib/providers/sqlite_config_provider/scanning.dart',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     expect(scanning, isNot(contains("dialogTitle: 'Select ROM Folder'")));
   });
 

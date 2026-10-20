@@ -81,12 +81,14 @@ void main() {
   group('source', () {
     final scanning = File(
       'lib/providers/sqlite_config_provider/scanning.dart',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     final directories = File(
       'lib/screens/settings_screen/new_settings_options/'
       'directories_settings_content.dart',
-    ).readAsStringSync();
-    final wizard = File('lib/widgets/setup_wizard.dart').readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
+    final wizard = File(
+      'lib/widgets/setup_wizard.dart',
+    ).readAsStringSync().replaceAll('\r\n', '\n');
 
     String body(String source, String signature) {
       final start = source.indexOf(signature);

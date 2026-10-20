@@ -100,18 +100,19 @@ class StorageSpaceService {
   /// with something it may not share a volume with.
   @visibleForTesting
   static String androidVolumeRoot(String path) {
-    final normalized = p.normalize(path);
+    // This parses an Android path regardless of the host running the tests.
+    final normalized = p.posix.normalize(path);
     // `/sdcard` is the historical symlink to primary shared storage; mapping it
     // keeps it from being counted as a volume of its own.
     if (normalized == '/sdcard' || normalized.startsWith('/sdcard/')) {
       return '/storage/emulated/0';
     }
     if (!normalized.startsWith('/storage/')) return normalized;
-    final segments = p.split(normalized);
+    final segments = p.posix.split(normalized);
     // p.split('/storage/emulated/0/roms') -> ['/', 'storage', 'emulated', '0', …]
     final wanted = segments.length > 2 && segments[2] == 'emulated' ? 4 : 3;
     if (segments.length < wanted) return normalized;
-    return p.joinAll(segments.take(wanted));
+    return p.posix.joinAll(segments.take(wanted));
   }
 
   static Future<int?> _viaChannel(String path) async {

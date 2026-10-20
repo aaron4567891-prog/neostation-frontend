@@ -28,6 +28,87 @@ void main() {
 
   File credentialFile() => File(path.join(directory.path, 'credentials.enc'));
 
+  test(
+    'retries a transient Windows sharing violation without losing entries',
+    () async {
+      await store.write('existing', 'kept');
+      var attempts = 0;
+      final lockedStore = CredentialFileStore.forTesting(
+        directory.path,
+        windows: true,
+        rename: (temp, destination) async {
+          if (++attempts == 1) {
+            throw FileSystemException(
+              'Locked',
+              destination,
+              const OSError('Sharing violation', 32),
+            );
+          }
+          return temp.rename(destination);
+        },
+      );
+      await lockedStore.write('new', 'persisted');
+      expect(attempts, 2);
+      expect(await store.read('existing'), 'kept');
+      expect(await store.read('new'), 'persisted');
+    },
+  );
+
+  for (final code in [32, 33, 5]) {
+    test(
+      'a persistent Windows error $code preserves the previous file',
+      () async {
+        await store.write('existing', 'kept');
+        final previous = await credentialFile().readAsBytes();
+        var attempts = 0;
+        final lockedStore = CredentialFileStore.forTesting(
+          directory.path,
+          windows: true,
+          rename: (temp, destination) async {
+            attempts++;
+            throw FileSystemException(
+              'Cannot replace',
+              destination,
+              OSError('Locked or denied', code),
+            );
+          },
+        );
+        await expectLater(
+          lockedStore.write('new', 'not persisted'),
+          throwsA(isA<FileSystemException>()),
+        );
+        expect(attempts, code == 5 ? 1 : 6);
+        expect(await credentialFile().readAsBytes(), previous);
+        expect(await store.read('existing'), 'kept');
+        expect(await store.read('new'), isNull);
+      },
+    );
+  }
+
+  test(
+    'POSIX errors are not mistaken for Windows sharing violations',
+    () async {
+      var attempts = 0;
+      final failingStore = CredentialFileStore.forTesting(
+        directory.path,
+        windows: false,
+        rename: (temp, destination) async {
+          attempts++;
+          throw FileSystemException(
+            'Broken pipe',
+            destination,
+            const OSError('Broken pipe', 32),
+          );
+        },
+      );
+      await expectLater(
+        failingStore.write('new', 'value'),
+        throwsA(isA<FileSystemException>()),
+      );
+      expect(attempts, 1);
+    },
+  );
+
   test('round-trips a credential', () async {
     await store.write('ra_api_key', 'super-secret');
 

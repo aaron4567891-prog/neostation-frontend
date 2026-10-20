@@ -14,9 +14,14 @@ import 'package:neostation/services/retroarch_config_service.dart';
 /// RetroArch reads. Save sync then moved bytes into a dead directory and
 /// reported success, while the real save data sat under the EmuDeck paths.
 void main() {
+  List<String> linuxCandidates({String? exePath}) =>
+      RetroArchConfigService.linuxConfigCandidates(
+        exePath: exePath,
+      ).map((candidate) => candidate.replaceAll('\\', '/')).toList();
+
   group('linuxConfigCandidates', () {
     test('offers the Flatpak config as well as the XDG one', () {
-      final candidates = RetroArchConfigService.linuxConfigCandidates();
+      final candidates = linuxCandidates();
 
       expect(
         candidates.any(
@@ -39,7 +44,7 @@ void main() {
     });
 
     test('prefers the Flatpak config when the executable is a Flatpak', () {
-      final candidates = RetroArchConfigService.linuxConfigCandidates(
+      final candidates = linuxCandidates(
         exePath:
             '/home/deck/.local/share/flatpak/exports/bin/org.libretro.RetroArch',
       );
@@ -48,9 +53,7 @@ void main() {
     });
 
     test('prefers the native config for a plain system install', () {
-      final candidates = RetroArchConfigService.linuxConfigCandidates(
-        exePath: '/usr/bin/retroarch',
-      );
+      final candidates = linuxCandidates(exePath: '/usr/bin/retroarch');
 
       expect(candidates.first, contains('.config/retroarch'));
     });
@@ -60,7 +63,7 @@ void main() {
       // the tie-break cannot classify it. Ordering must still leave the Flatpak
       // path reachable, which is what rescues the Deck: no `~/.config`
       // retroarch.cfg exists there, so the probe falls through to it.
-      final candidates = RetroArchConfigService.linuxConfigCandidates(
+      final candidates = linuxCandidates(
         exePath: '/run/media/deck/Deck/Emulation/tools/launchers/retroarch.sh',
       );
 

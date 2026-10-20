@@ -320,10 +320,8 @@ void main() {
     await sfx.reinitializeAfterEngineRestart();
     await sfx.playBackSound();
     expect(audio.played.last, await files.resolve(clip));
-    expect(
-      audio.loaded.where((path) => path == '${temp.path}/${clip.path}').length,
-      2,
-    );
+    final clipPath = await files.resolve(clip);
+    expect(audio.loaded.where((path) => path == clipPath).length, 2);
   });
 
   test(

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neostation/data/datasources/sqlite_database_service.dart';
 import 'package:neostation/models/system_model.dart';
+import 'package:path/path.dart' as p;
 
 import 'database_test_helper.dart';
 
@@ -73,7 +74,10 @@ void main() {
 
       final rows = await romRows();
       expect(rows, hasLength(1));
-      expect(rows.single['rom_path'], '${root.path}/gc/18 Wheeler.rvz');
+      expect(
+        rows.single['rom_path'],
+        p.join(root.path, 'gc', '18 Wheeler.rvz'),
+      );
     });
 
     test('still scans an alias that is a real directory of its own', () async {
@@ -104,7 +108,7 @@ void main() {
         });
 
         // Reversed layout: the alias is the real directory, `gc` links to it.
-        final real = Directory('${root.path}/gamecube')
+        final real = Directory(p.join(root.path, 'gamecube'))
           ..createSync(recursive: true);
         File('${real.path}/Wave Race.rvz').writeAsStringSync('rom');
         Link('${root.path}/gc').createSync(real.path);
@@ -113,7 +117,7 @@ void main() {
 
         final rows = await romRows();
         expect(rows, hasLength(1));
-        expect(rows.single['rom_path'], '${real.path}/Wave Race.rvz');
+        expect(rows.single['rom_path'], p.join(real.path, 'Wave Race.rvz'));
       },
     );
 
@@ -137,7 +141,7 @@ void main() {
   group('Existing duplicate rows', () {
     test('merges the alias row user data into the surviving row', () async {
       final root = await createAliasedRomTree(['18 Wheeler.rvz']);
-      final realPath = '${root.path}/gc/18 Wheeler.rvz';
+      final realPath = p.join(root.path, 'gc', '18 Wheeler.rvz');
       final aliasPath = '${root.path}/gamecube/18 Wheeler.rvz';
 
       // The pre-fix state: both spellings stored, and the alias row is the one
@@ -179,7 +183,10 @@ void main() {
 
       final rows = await romRows();
       expect(rows, hasLength(1));
-      expect(rows.single['rom_path'], '${root.path}/gc/18 Wheeler.rvz');
+      expect(
+        rows.single['rom_path'],
+        p.join(root.path, 'gc', '18 Wheeler.rvz'),
+      );
       expect(rows.single['is_favorite'], 1);
       expect(rows.single['play_time'], 900);
       expect(rows.single['id_ra'], 77);

@@ -29,7 +29,8 @@ void main() {
   String Function(String) lookup(String code) =>
       (key) => maps[code]![key] as String;
 
-  String read(String path) => File(path).readAsStringSync();
+  String read(String path) =>
+      File(path).readAsStringSync().replaceAll('\r\n', '\n');
 
   group('play time', () {
     test('uses the language\'s own units', () {

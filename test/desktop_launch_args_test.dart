@@ -44,9 +44,14 @@ void main() {
       '-L core.so "{file.path}"',
       '-L core.so {file.path}',
     ]) {
-      test('"$path" is one argument with template $template', () {
-        expect(argv(template, game(path)), ['-L', 'core.so', path]);
-      });
+      test(
+        '"$path" is one argument with template $template',
+        () {
+          expect(argv(template, game(path)), ['-L', 'core.so', path]);
+        },
+        // Quotes are valid POSIX filenames, but cannot name a Windows file.
+        skip: Platform.isWindows && path.contains('"'),
+      );
     }
   }
 

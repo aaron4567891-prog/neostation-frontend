@@ -65,6 +65,13 @@ class LinuxEmulatorDiscovery {
   @visibleForTesting
   static bool linuxOverride = false;
 
+  /// Filesystem probes for host-independent tests of POSIX permissions.
+  @visibleForTesting
+  static Future<bool> Function(String)? runnableOverride;
+
+  @visibleForTesting
+  static Future<bool> Function(String)? directoryExistsOverride;
+
   static bool get _isLinux => linuxOverride || Platform.isLinux;
 
   /// Resolves an absolute, existing path to an emulator executable, or `null`
@@ -492,6 +499,9 @@ class LinuxEmulatorDiscovery {
   /// there" for our purposes.
   static Future<bool> _dirExists(String path) async {
     try {
+      if (directoryExistsOverride != null) {
+        return await directoryExistsOverride!(path);
+      }
       return await Directory(path).exists();
     } catch (_) {
       return false;
@@ -505,6 +515,7 @@ class LinuxEmulatorDiscovery {
   /// `Process.start`, so the mode bits are checked as well as existence.
   static Future<bool> _isRunnable(String path) async {
     try {
+      if (runnableOverride != null) return await runnableOverride!(path);
       final stat = await FileStat.stat(path);
       if (stat.type == FileSystemEntityType.notFound) return false;
       if (stat.type == FileSystemEntityType.directory) return false;

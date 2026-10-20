@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neostation/data/datasources/sqlite_database_service.dart';
+import 'package:path/path.dart' as p;
 
 /// The desktop ROM walk runs on a background isolate, so every one of these
 /// cases crosses an isolate boundary and comes back. That is the point of the
@@ -56,7 +57,7 @@ void main() {
       // The size survives the isolate hop, and the extension match is
       // case-insensitive.
       expect(entries.map((e) => e.size), [12, 34]);
-      expect(entries.first.path, '${root.path}/Sonic.md');
+      expect(entries.first.path, p.join(root.path, 'Sonic.md'));
     });
 
     test('skips extensions the system does not claim', () async {
